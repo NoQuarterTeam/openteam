@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev:frontend": "vite --open",
-    "dev:backend": "convex dev"
+    "dev:backend": "convex dev",
+    "build": "vite build"
   },
   "dependencies": {
     "@auth/core": "^0.40.0",
