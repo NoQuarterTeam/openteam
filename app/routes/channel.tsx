@@ -11,12 +11,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { WithState } from "@/components/with-state"
 import { api } from "@/convex/_generated/api"
-import type { Id } from "@/convex/_generated/dataModel"
+import type { Doc, Id } from "@/convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
 
 export default function Component() {
-  const [isEditing, setIsEditing] = useState(false)
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -31,93 +31,12 @@ export default function Component() {
     }
   }, [messages])
 
-  const updateChannel = useTanstackMutation({
-    mutationFn: useConvexMutation(api.channels.update),
-    onSuccess: () => {
-      setIsEditing(false)
-    },
-    onError: (e) => {
-      console.error(e)
-      toast.error("Failed to save channel")
-    },
-  })
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const archiveChannel = useTanstackMutation({
-    mutationFn: useConvexMutation(api.channels.update),
-    onSuccess: () => {
-      navigate("/")
-      queryClient.invalidateQueries(convexQuery(api.channels.list, {}))
-    },
-    onError: (e) => {
-      console.error(e)
-      toast.error("Failed to archive channel")
-    },
-  })
-
-  const handleSaveChannel = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!currentChannel) return
-
-    const formData = new FormData(e.target as HTMLFormElement)
-    const name = formData.get("name") as string | undefined
-    if (!name?.trim()) return
-    updateChannel.mutate({ channelId: currentChannel._id, name: name.toLowerCase() })
-  }
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (isEditing) {
-      setTimeout(() => {
-        inputRef.current?.focus()
-      }, 250)
-    }
-  }, [isEditing])
-
   if (currentChannel === null) return redirect("/")
-
+  if (!currentChannel) return null
   return (
     <div className="flex flex-1 p-4">
       <div className="flex flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs">
-        <div className="flex items-center justify-between gap-2 border-b py-2 pr-2 pl-2">
-          <p className={cn("pl-2 font-medium text-lg", isEditing && "hidden")}>
-            # {currentChannel?.name.toLowerCase()} {currentChannel?.archivedTime && "(Archived)"}
-          </p>
-          <form onSubmit={handleSaveChannel} className={cn("flex items-center gap-2", isEditing ? "flex" : "hidden")}>
-            <Input name="name" ref={inputRef} defaultValue={currentChannel?.name || ""} />
-            <Button type="submit" className="w-20">
-              {updateChannel.isPending ? "Saving..." : "Save"}
-            </Button>
-            <Button type="button" variant="outline" className="w-20" onClick={() => setIsEditing(false)}>
-              Cancel
-            </Button>
-          </form>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild disabled={!!currentChannel?.archivedTime}>
-              <Button variant="ghost" size="icon">
-                <EllipsisVerticalIcon />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                <PencilIcon />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  if (!currentChannel) return
-                  if (confirm("Are you sure you want to archive this channel?")) {
-                    archiveChannel.mutate({ channelId: currentChannel._id, archivedTime: new Date().toISOString() })
-                  }
-                }}
-              >
-                <Trash2Icon />
-                Archive
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <ChannelHeader key={currentChannel._id} channel={currentChannel} />
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto py-2">
@@ -192,18 +111,92 @@ export default function Component() {
   )
 }
 
-export function WithState<StateValue = undefined>({
-  children,
-  initialState,
-}: {
-  initialState?: StateValue | (() => StateValue)
-  children: (
-    state: StateValue | undefined,
-    setState: React.Dispatch<React.SetStateAction<StateValue | undefined>>,
-  ) => React.ReactNode
-}) {
-  const [state, setState] = useState<StateValue | undefined>(initialState)
-  return children(state, setState)
+function ChannelHeader({ channel }: { channel: Doc<"channels"> }) {
+  const [isEditing, setIsEditing] = useState(false)
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  const archiveChannel = useTanstackMutation({
+    mutationFn: useConvexMutation(api.channels.update),
+    onSuccess: () => {
+      navigate("/")
+      queryClient.invalidateQueries(convexQuery(api.channels.list, {}))
+    },
+    onError: (e) => {
+      console.error(e)
+      toast.error("Failed to archive channel")
+    },
+  })
+
+  const updateChannel = useTanstackMutation({
+    mutationFn: useConvexMutation(api.channels.update),
+    onSuccess: () => {
+      setIsEditing(false)
+    },
+    onError: (e) => {
+      console.error(e)
+      toast.error("Failed to save channel")
+    },
+  })
+  const handleSaveChannel = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!channel) return
+
+    const formData = new FormData(e.target as HTMLFormElement)
+    const name = formData.get("name") as string | undefined
+    if (!name?.trim()) return
+    updateChannel.mutate({ channelId: channel._id, name: name.toLowerCase() })
+  }
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isEditing) {
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 250)
+    }
+  }, [isEditing])
+  return (
+    <div className="flex items-center justify-between gap-2 border-b py-2 pr-2 pl-2">
+      <p className={cn("pl-2 font-medium text-lg", isEditing && "hidden")}>
+        # {channel.name.toLowerCase()} {channel.archivedTime && "(Archived)"}
+      </p>
+      <form onSubmit={handleSaveChannel} className={cn("flex items-center gap-2", isEditing ? "flex" : "hidden")}>
+        <Input name="name" ref={inputRef} defaultValue={channel.name || ""} />
+        <Button type="submit" className="w-20">
+          {updateChannel.isPending ? "Saving..." : "Save"}
+        </Button>
+        <Button type="button" variant="outline" className="w-20" onClick={() => setIsEditing(false)}>
+          Cancel
+        </Button>
+      </form>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild disabled={!!channel?.archivedTime}>
+          <Button variant="ghost" size="icon">
+            <EllipsisVerticalIcon />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => setIsEditing(true)}>
+            <PencilIcon />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              if (!channel) return
+              if (confirm("Are you sure you want to archive this channel?")) {
+                archiveChannel.mutate({ channelId: channel._id, archivedTime: new Date().toISOString() })
+              }
+            }}
+          >
+            <Trash2Icon />
+            Archive
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
 }
 
 type MessageFile = (typeof api.messages.list._returnType)[number]["files"][number]
