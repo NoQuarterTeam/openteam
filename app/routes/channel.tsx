@@ -1,5 +1,6 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query"
 import { useQuery, useQueryClient, useMutation as useTanstackMutation } from "@tanstack/react-query"
+import dayjs from "dayjs"
 import { ChevronDownIcon, EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { redirect, useNavigate, useParams } from "react-router"
@@ -129,7 +130,7 @@ export default function Component() {
                   10 * 60 * 1000)
 
             return (
-              <div key={message._id} className="flex gap-2 px-4 py-1.5 hover:bg-muted/50 dark:hover:bg-muted/10">
+              <div key={message._id} className="group flex gap-2 px-4 py-1.5 hover:bg-muted/50 dark:hover:bg-muted/10">
                 <div className="pt-0">
                   {isFirstMessageOfUser && message.author ? (
                     <Avatar className="size-9 flex-shrink-0 rounded-lg">
@@ -140,23 +141,27 @@ export default function Component() {
                     <div className="w-9 flex-shrink-0" />
                   )}
                 </div>
-                <div className="h-min flex-1">
+                <div className="relative h-min flex-1">
                   {isFirstMessageOfUser ? (
                     <div className="flex items-center gap-2">
                       <span className="pb-1 font-semibold text-sm leading-3">{message.author?.name || "Unknown"}</span>
-                      <span className="text-xs opacity-50">{new Date(message._creationTime).toLocaleTimeString()}</span>
+                      <span className="text-xs opacity-50">{dayjs(message._creationTime).format("HH:mm")}</span>
                     </div>
-                  ) : null}
+                  ) : (
+                    <p className="-left-10 absolute top-0.5 hidden text-xs opacity-50 group-hover:block">
+                      {dayjs(message._creationTime).format("HH:mm")}
+                    </p>
+                  )}
                   {message.content && (
                     <p className={cn("font-normal text-sm", message.temp && "opacity-70")}>{message.content}</p>
                   )}
                   {message.files && message.files.length > 0 && (
-                    <div className="mt-1">
+                    <div>
                       <WithState initialState={true}>
                         {(state, setState) => (
                           <>
                             <div className="flex items-center gap-0.5">
-                              <p className="mb-0.5 text-xs opacity-50">
+                              <p className="mb-1 text-xs opacity-50">
                                 {message.files.length === 1 ? message.files[0].name : `${message.files.length} files`}
                               </p>
                               <Button variant="ghost" size="icon" className="size-4" onClick={() => setState(!state)}>
