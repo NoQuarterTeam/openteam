@@ -3,9 +3,7 @@ import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 
 export const list = query({
-  args: {
-    channelId: v.id("channels"),
-  },
+  args: { channelId: v.id("channels") },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) throw new Error("Not authenticated")

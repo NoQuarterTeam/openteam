@@ -6,6 +6,7 @@ const applicationTables = {
   channels: defineTable({
     name: v.string(),
     createdBy: v.id("users"),
+    archivedTime: v.optional(v.string()),
   }).index("by_name", ["name"]),
 
   messages: defineTable({
