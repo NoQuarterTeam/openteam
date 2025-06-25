@@ -13,10 +13,10 @@ export function SignInForm() {
     <div className="flex min-h-screen flex-col items-center justify-start bg-muted/50 px-4 py-10 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 rounded-xl border bg-background p-8">
         <div className="flex flex-col items-center gap-2">
-          <h2 className="font-bold text-2xl text-gray-900 tracking-tight dark:text-gray-100">
+          <h2 className="font-bold text-2xl text-neutral-900 tracking-tight dark:text-neutral-100">
             {flow === "signIn" ? "Sign in to your account" : "Create a new account"}
           </h2>
-          <p className="text-gray-500 text-sm dark:text-gray-400">
+          <p className="text-neutral-500 text-sm dark:text-neutral-400">
             {flow === "signIn" ? "Welcome back! Please enter your details." : "Sign up to get started."}
           </p>
         </div>
@@ -58,7 +58,7 @@ export function SignInForm() {
           </Button>
         </form>
         <div className="flex items-center justify-between">
-          <span className="text-gray-500 text-sm dark:text-gray-400">
+          <span className="text-neutral-500 text-sm dark:text-neutral-400">
             {flow === "signIn" ? "Don't have an account?" : "Already have an account?"}
           </span>
           <Button

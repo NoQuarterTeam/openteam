@@ -1,10 +1,11 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query"
 import { useQuery, useQueryClient, useMutation as useTanstackMutation } from "@tanstack/react-query"
-import { useMutation } from "convex/react"
 import { EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { redirect, useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
+import { FilePill } from "@/components/file-pill"
+import { MessageInput } from "@/components/message-input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -17,32 +18,10 @@ export default function Component() {
   const [isEditing, setIsEditing] = useState(false)
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
 
-  const [newMessage, setNewMessage] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const { data: user } = useQuery(convexQuery(api.auth.loggedInUser, {}))
   const { data: currentChannel } = useQuery(convexQuery(api.channels.get, { channelId: channelId! }))
   const { data: messages } = useQuery(convexQuery(api.messages.list, { channelId: channelId! }))
-
-  const sendMessage = useMutation(api.messages.send).withOptimisticUpdate((localStore, args) => {
-    const { channelId, content } = args
-    if (!user) return
-    const currentValue = localStore.getQuery(api.messages.list, { channelId })
-    if (currentValue) {
-      localStore.setQuery(api.messages.list, { channelId }, [
-        ...(currentValue || []),
-        {
-          _id: crypto.randomUUID() as Id<"messages">,
-          authorId: user._id,
-          content,
-          author: user,
-          channelId,
-          _creationTime: Date.now(),
-          temp: true,
-        },
-      ])
-    }
-  })
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -50,17 +29,6 @@ export default function Component() {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
     }
   }, [messages])
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newMessage.trim() || !channelId) return
-    try {
-      void sendMessage({ channelId, content: newMessage.trim() })
-      setNewMessage("")
-    } catch {
-      toast.error("Failed to send message")
-    }
-  }
 
   const updateChannel = useTanstackMutation({
     mutationFn: useConvexMutation(api.channels.update),
@@ -174,31 +142,49 @@ export default function Component() {
                       <span className="text-xs opacity-50">{new Date(message._creationTime).toLocaleTimeString()}</span>
                     </div>
                   ) : null}
-                  <p className={cn("font-normal text-sm", message.temp && "opacity-70")}>{message.content}</p>
+                  {message.content && (
+                    <p className={cn("font-normal text-sm", message.temp && "opacity-70")}>{message.content}</p>
+                  )}
+                  {message.files && message.files.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {message.files.length === 1 && <MessageFile file={message.files[0]} />}
+
+                      {message.files.length > 1 && message.files.map((file) => <MessageFilePreview key={file._id} file={file} />)}
+                    </div>
+                  )}
                 </div>
               </div>
             )
           })}
           <div ref={messagesEndRef} />
         </div>
-
-        {/* Message Input */}
-
-        <div className="border-t bg-background p-4">
-          <form onSubmit={handleSendMessage} className="flex gap-2">
-            <Input
-              disabled={!currentChannel || !!currentChannel.archivedTime}
-              type="text"
-              placeholder={`Message`}
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-            />
-            <Button type="submit" disabled={!newMessage.trim()}>
-              Send
-            </Button>
-          </form>
-        </div>
+        {currentChannel && <MessageInput currentChannel={currentChannel} />}
       </div>
     </div>
+  )
+}
+
+type MessageFile = (typeof api.messages.list._returnType)[number]["files"][number]
+
+function MessageFilePreview({ file }: { file: MessageFile }) {
+  return (
+    <a href={file.url || "#"} target="_blank" rel="noopener noreferrer" className="inline-block">
+      {file.metadata?.contentType?.startsWith("image/") ? (
+        <img src={file.url || "#"} alt={file.name} className="h-14 w-14 rounded-lg object-cover" />
+      ) : (
+        <FilePill name={file.name} />
+      )}
+    </a>
+  )
+}
+function MessageFile({ file }: { file: MessageFile }) {
+  return (
+    <a href={file.url || "#"} target="_blank" rel="noopener noreferrer" className="inline-block">
+      {file.metadata?.contentType?.startsWith("image/") ? (
+        <img src={file.url || "#"} alt={file.name} className="max-w-md rounded-lg object-cover" />
+      ) : (
+        <FilePill name={file.name} />
+      )}
+    </a>
   )
 }

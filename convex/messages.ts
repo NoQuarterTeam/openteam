@@ -19,10 +19,25 @@ export const list = query({
       messages.map(async (message) => {
         const user = await ctx.db.get(message.authorId)
 
+        const dbFiles = await ctx.db
+          .query("files")
+          .withIndex("by_message", (q) => q.eq("messageId", message._id))
+          .collect()
+
+        const files = await Promise.all(
+          dbFiles.map(async (file) => {
+            const fileDb = await ctx.db.get(file._id)
+            if (!fileDb?.storageId) return null
+            const metadata = await ctx.db.system.get(fileDb.storageId)
+            if (!metadata) return null
+            return { ...fileDb, metadata, url: await ctx.storage.getUrl(fileDb.storageId) }
+          }),
+        )
+
         let image = null
         if (user?.image) image = await ctx.storage.getUrl(user.image)
 
-        return { ...message, temp: false, author: user ? { ...user, image } : null }
+        return { ...message, files: files.filter(Boolean), temp: false, author: user ? { ...user, image } : null }
       }),
     )
 
@@ -33,13 +48,24 @@ export const list = query({
 export const send = mutation({
   args: {
     channelId: v.id("channels"),
-    content: v.string(),
+    content: v.optional(v.string()),
+    files: v.optional(v.array(v.object({ name: v.string(), storageId: v.id("_storage") }))),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) throw new Error("Not authenticated")
 
-    return await ctx.db.insert("messages", { channelId: args.channelId, authorId: userId, content: args.content })
+    const message = await ctx.db.insert("messages", {
+      channelId: args.channelId,
+      authorId: userId,
+      content: args.content,
+    })
+    if (args.files) {
+      await Promise.all(
+        args.files.map((file) => ctx.db.insert("files", { name: file.name, messageId: message, storageId: file.storageId })),
+      )
+    }
+    return message
   },
 })
 

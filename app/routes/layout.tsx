@@ -31,7 +31,7 @@ export default function Component() {
 
   if (!user) return null
   return (
-    <div className="flex h-screen flex-col bg-gray-50/50">
+    <div className="flex h-screen flex-col bg-neutral-50/50">
       {/* Header */}
       <header className="flex h-14 items-center justify-between border-b bg-background px-4">
         <div className="flex items-center gap-2 ">
@@ -77,7 +77,7 @@ export default function Component() {
 
         {showSearchResults && (
           <div className="fixed inset-20 z-50 overflow-hidden rounded-xl bg-background p-4 shadow-xl">
-            <h3 className="mb-4 font-semibold text-gray-700 text-lg">Search Results for "{searchQuery}"</h3>
+            <h3 className="mb-4 font-semibold text-lg text-neutral-700">Search Results for "{searchQuery}"</h3>
             {searchResults?.length === 0 ? (
               <p className="opacity-60">No messages found.</p>
             ) : (
@@ -90,11 +90,11 @@ export default function Component() {
 
                   <div className="flex-1">
                     <div className="mb-1 flex items-center gap-2">
-                      <span className="font-semibold text-gray-900">{message.author?.name || "Unknown"}</span>
+                      <span className="font-semibold text-neutral-900">{message.author?.name || "Unknown"}</span>
                       <span className="text-xs opacity-60">in #{message.channelName}</span>
                       <span className="text-xs opacity-60">{new Date(message._creationTime).toLocaleString()}</span>
                     </div>
-                    <p className="text-gray-800">{message.content}</p>
+                    <p className="text-neutral-800">{message.content}</p>
                   </div>
                 </div>
               ))

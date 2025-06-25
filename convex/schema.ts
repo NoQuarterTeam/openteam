@@ -12,10 +12,17 @@ const applicationTables = {
   messages: defineTable({
     channelId: v.id("channels"),
     authorId: v.id("users"),
-    content: v.string(),
+    content: v.optional(v.string()),
   })
     .index("by_channel", ["channelId"])
     .searchIndex("search_content", { searchField: "content", filterFields: ["channelId"] }),
+
+  files: defineTable({
+    name: v.string(),
+    messageId: v.id("messages"),
+    storageId: v.id("_storage"),
+  }).index("by_message", ["messageId"]),
+
   users: defineTable({
     name: v.string(),
     image: v.optional(v.id("_storage")),

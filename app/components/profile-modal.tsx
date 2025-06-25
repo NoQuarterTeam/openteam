@@ -20,7 +20,7 @@ export function ProfileModal() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const updateProfile = useMutation(api.users.update)
-  const generateUploadUrl = useMutation(api.users.generateUploadUrl)
+  const generateUploadUrl = useMutation(api.uploads.generateUploadUrl)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,7 +41,7 @@ export function ProfileModal() {
 
         if (!result.ok) throw new Error("Failed to upload image")
 
-        const { storageId } = await result.json()
+        const { storageId } = (await result.json()) as { storageId: Id<"_storage"> }
         image = storageId as Id<"_storage">
       }
 
@@ -89,20 +89,20 @@ export function ProfileModal() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Avatar Section */}
             <div className="flex flex-col items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-gray-300">
+              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-neutral-300">
                 {selectedFile ? (
                   <img src={URL.createObjectURL(selectedFile)} alt="Preview" className="h-full w-full object-cover" />
                 ) : user?.image ? (
                   <img src={user.image} alt="Current avatar" className="h-full w-full object-cover" />
                 ) : (
-                  <span className="font-semibold text-2xl text-gray-600">{name.charAt(0).toUpperCase()}</span>
+                  <span className="font-semibold text-2xl text-neutral-600">{name.charAt(0).toUpperCase()}</span>
                 )}
               </div>
 
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-lg bg-gray-100 px-4 py-2 text-sm transition-colors hover:bg-gray-200"
+                className="rounded-lg bg-neutral-100 px-4 py-2 text-sm transition-colors hover:bg-neutral-200"
               >
                 {user?.image || selectedFile ? "Change Photo" : "Upload Photo"}
               </button>
@@ -112,7 +112,7 @@ export function ProfileModal() {
 
             {/* Name Field */}
             <div>
-              <label htmlFor={inputId} className="mb-1 block font-medium text-gray-700 text-sm">
+              <label htmlFor={inputId} className="mb-1 block font-medium text-neutral-700 text-sm">
                 Display Name
               </label>
               <Input
