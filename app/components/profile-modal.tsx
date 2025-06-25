@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "convex/react"
+import { UserIcon } from "lucide-react"
 import { useId, useRef, useState } from "react"
 import { toast } from "sonner"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -74,6 +75,7 @@ export function ProfileModal() {
   return (
     <>
       <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setOpen(true)}>
+        <UserIcon />
         Profile
       </DropdownMenuItem>
 

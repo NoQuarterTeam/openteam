@@ -43,6 +43,7 @@ export function SignInForm() {
           }}
         >
           <div className="space-y-4">
+            {flow === "signUp" && <Input type="text" name="name" placeholder="Display name" required autoComplete="name" />}
             <Input type="email" name="email" placeholder="Email" required autoComplete="email" />
             <Input
               type="password"

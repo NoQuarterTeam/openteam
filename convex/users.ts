@@ -39,12 +39,9 @@ export const update = mutation({
       .withIndex("by_id", (q) => q.eq("_id", userId))
       .first()
 
-    if (existing) {
-      await ctx.db.patch(existing._id, { name: args.name, image: args.image })
-      return existing._id
-    } else {
-      return await ctx.db.insert("users", { name: args.name, image: args.image })
-    }
+    if (!existing) throw new Error("User not found")
+
+    return await ctx.db.patch(existing._id, { name: args.name, image: args.image })
   },
 })
 

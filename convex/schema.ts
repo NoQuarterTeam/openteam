@@ -16,15 +16,15 @@ const applicationTables = {
     .index("by_channel", ["channelId"])
     .searchIndex("search_content", { searchField: "content", filterFields: ["channelId"] }),
   users: defineTable({
-    name: v.optional(v.string()),
+    name: v.string(),
     image: v.optional(v.id("_storage")),
-    email: v.optional(v.string()),
+    email: v.string(),
     emailVerificationTime: v.optional(v.number()),
     phone: v.optional(v.string()),
     phoneVerificationTime: v.optional(v.number()),
   })
-    .index("email", ["email"])
-    .index("phone", ["phone"]),
+    .index("by_email", ["email"])
+    .index("by_phone", ["phone"]),
 }
 
 export default defineSchema({

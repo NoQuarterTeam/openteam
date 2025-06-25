@@ -50,15 +50,18 @@ export default function Component() {
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="pl-2">
-                <Avatar className="size-6">
-                  <AvatarImage src={user?.image} />
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <Avatar className="size-8">
+                  <AvatarImage src={user?.image || undefined} />
                   <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
                 </Avatar>
-                {displayName}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-52">
+              <div className="pl-2">
+                <p className="text-xs">{displayName}</p>
+              </div>
+              <DropdownMenuSeparator />
               <ProfileModal />
               <DropdownMenuSeparator />
               <SignOutButton />
@@ -76,26 +79,20 @@ export default function Component() {
           <div className="fixed inset-20 z-50 overflow-hidden rounded-xl bg-background p-4 shadow-xl">
             <h3 className="mb-4 font-semibold text-gray-700 text-lg">Search Results for "{searchQuery}"</h3>
             {searchResults?.length === 0 ? (
-              <p className="text-gray-500">No messages found.</p>
+              <p className="opacity-60">No messages found.</p>
             ) : (
               searchResults?.map((message) => (
                 <div key={message._id} className="flex gap-3 rounded-lg bg-yellow-50 p-3">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gray-300">
-                    {message.author.avatarUrl ? (
-                      <img
-                        src={message.author.avatarUrl}
-                        alt={message.author.name}
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="font-semibold text-gray-600 text-sm">{message.author.name.charAt(0).toUpperCase()}</span>
-                    )}
-                  </div>
+                  <Avatar className="size-10 flex-shrink-0">
+                    <AvatarImage src={message.author?.image || undefined} />
+                    <AvatarFallback>{message.author?.name.charAt(0) || "U"}</AvatarFallback>
+                  </Avatar>
+
                   <div className="flex-1">
                     <div className="mb-1 flex items-center gap-2">
-                      <span className="font-semibold text-gray-900">{message.author.name}</span>
-                      <span className="text-gray-500 text-xs">in #{message.channelName}</span>
-                      <span className="text-gray-500 text-xs">{new Date(message._creationTime).toLocaleString()}</span>
+                      <span className="font-semibold text-gray-900">{message.author?.name || "Unknown"}</span>
+                      <span className="text-xs opacity-60">in #{message.channelName}</span>
+                      <span className="text-xs opacity-60">{new Date(message._creationTime).toLocaleString()}</span>
                     </div>
                     <p className="text-gray-800">{message.content}</p>
                   </div>

@@ -8,33 +8,23 @@ export const list = query({
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("Not authenticated")
-    }
+    if (!userId) throw new Error("Not authenticated")
 
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
       .order("asc")
-      .collect()
+      .take(100)
 
     // Get author profiles for each message
     const messagesWithAuthors = await Promise.all(
       messages.map(async (message) => {
         const user = await ctx.db.get(message.authorId)
 
-        let avatarUrl = null
-        if (user?.image) {
-          avatarUrl = await ctx.storage.getUrl(user.image)
-        }
+        let image = null
+        if (user?.image) image = await ctx.storage.getUrl(user.image)
 
-        return {
-          ...message,
-          author: {
-            name: user?.name || user?.name || user?.email || "Unknown",
-            avatarUrl,
-          },
-        }
+        return { ...message, temp: false, author: user ? { ...user, image } : null }
       }),
     )
 
@@ -49,15 +39,9 @@ export const send = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("Not authenticated")
-    }
+    if (!userId) throw new Error("Not authenticated")
 
-    return await ctx.db.insert("messages", {
-      channelId: args.channelId,
-      authorId: userId,
-      content: args.content,
-    })
+    return await ctx.db.insert("messages", { channelId: args.channelId, authorId: userId, content: args.content })
   },
 })
 
@@ -72,9 +56,7 @@ export const search = query({
       throw new Error("Not authenticated")
     }
 
-    if (!args.query.trim()) {
-      return []
-    }
+    if (!args.query.trim()) return []
 
     const searchQuery = ctx.db.query("messages").withSearchIndex("search_content", (q) => {
       let query = q.search("content", args.query)
@@ -92,17 +74,12 @@ export const search = query({
         const user = await ctx.db.get(message.authorId)
         const channel = await ctx.db.get(message.channelId)
 
-        let avatarUrl = null
-        if (user?.image) {
-          avatarUrl = await ctx.storage.getUrl(user.image)
-        }
+        let image = null
+        if (user?.image) image = await ctx.storage.getUrl(user.image)
 
         return {
           ...message,
-          author: {
-            name: user?.name || user?.email || "Unknown",
-            avatarUrl,
-          },
+          author: user ? { ...user, image } : null,
           channelName: channel?.name || "Unknown Channel",
         }
       }),
