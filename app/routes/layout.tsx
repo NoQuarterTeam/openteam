@@ -15,7 +15,7 @@ export default function Component() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
 
   const user = useQuery(api.auth.loggedInUser)
-  const displayName = user?.name || user?.email || "User"
+  const displayName = user?.name || user?.email
 
   const [searchQuery, setSearchQuery] = useState("")
   const [showSearchResults, setShowSearchResults] = useState(false)
@@ -29,9 +29,8 @@ export default function Component() {
     setShowSearchResults(query.trim().length > 0)
   }
 
-  if (!user) return null
   return (
-    <div className="flex h-screen flex-col bg-neutral-50/50 dark:bg-neutral-900/50">
+    <div className="flex h-screen flex-col">
       {/* Header */}
       <header className="flex h-14 items-center justify-between border-b bg-background px-4">
         <div className="flex items-center gap-2 ">
@@ -53,7 +52,7 @@ export default function Component() {
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar className="size-8">
                   <AvatarImage src={user?.image || undefined} />
-                  <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
+                  <AvatarFallback>{displayName?.charAt(0)}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>

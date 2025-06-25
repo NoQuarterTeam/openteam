@@ -6,7 +6,6 @@ import { ThemeProvider } from "next-themes"
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router"
 import { Toaster } from "sonner"
 import type { Route } from "./+types/root"
-import { Spinner } from "./components/ui/spinner"
 import "./globals.css"
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL)
@@ -21,9 +20,9 @@ const queryClient = new QueryClient({
 })
 convexQueryClient.connect(queryClient)
 
-export default function App() {
+export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html suppressHydrationWarning lang="en" className="dark">
+    <html suppressHydrationWarning lang="en" className="dark min-h-dvh w-screen bg-neutral-50/50 dark:bg-neutral-900/50">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -34,7 +33,7 @@ export default function App() {
         <ConvexAuthProvider client={convex}>
           <QueryClientProvider client={queryClient}>
             <ThemeProvider enableSystem attribute="class">
-              <Outlet />
+              {children}
             </ThemeProvider>
           </QueryClientProvider>
         </ConvexAuthProvider>
@@ -44,6 +43,10 @@ export default function App() {
       </body>
     </html>
   )
+}
+
+export default function App() {
+  return <Outlet />
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
@@ -73,9 +76,5 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 }
 
 export function HydrateFallback() {
-  return (
-    <div className="flex h-dvh w-screen items-center justify-center">
-      <Spinner />
-    </div>
-  )
+  return <div className="h-dvh w-screen bg-neutral-50/50 dark:bg-neutral-900/50" />
 }

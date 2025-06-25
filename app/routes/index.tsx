@@ -19,13 +19,5 @@ export default function Component() {
     navigate(`/${channels[0]._id}`)
   }, [channels])
 
-  if (!channels) return null
-
-  return (
-    <div className="flex w-full items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="font-bold text-2xl">Create your first channel</div>
-      </div>
-    </div>
-  )
+  return null
 }

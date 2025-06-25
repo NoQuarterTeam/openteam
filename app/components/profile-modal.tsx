@@ -99,13 +99,9 @@ export function ProfileModal() {
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="rounded-lg bg-neutral-100 px-4 py-2 text-sm transition-colors hover:bg-neutral-200"
-              >
+              <Button onClick={() => fileInputRef.current?.click()}>
                 {user?.image || selectedFile ? "Change Photo" : "Upload Photo"}
-              </button>
+              </Button>
 
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
             </div>
