@@ -1,17 +1,12 @@
 import { useQuery } from "convex/react"
 import { useState } from "react"
 import { Outlet, useParams } from "react-router"
+import { ProfileModal } from "@/components/profile-modal"
 import { Sidebar } from "@/components/sidebar"
 import { SignOutButton } from "@/components/sign-out-button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -64,7 +59,7 @@ export default function Component() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>Profile</DropdownMenuItem>
+              <ProfileModal />
               <DropdownMenuSeparator />
               <SignOutButton />
             </DropdownMenuContent>
@@ -110,8 +105,6 @@ export default function Component() {
           </div>
         )}
       </div>
-
-      {/* {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />} */}
     </div>
   )
 }

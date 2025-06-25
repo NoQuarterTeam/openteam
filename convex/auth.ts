@@ -17,6 +17,6 @@ export const loggedInUser = query({
     if (!userId) return null
     const user = await ctx.db.get(userId)
     if (!user) return null
-    return user
+    return { ...user, image: user.image ? await ctx.storage.getUrl(user.image) : null }
   },
 })

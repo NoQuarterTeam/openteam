@@ -1,16 +1,15 @@
 import { useMutation, useQuery } from "convex/react"
 import { useId, useRef, useState } from "react"
 import { toast } from "sonner"
+import type { Id } from "@/convex/_generated/dataModel"
 import { api } from "../../convex/_generated/api"
 import { Button } from "./ui/button"
-import { Dialog, DialogContent, DialogOverlay } from "./ui/dialog"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "./ui/dialog"
+import { DropdownMenuItem } from "./ui/dropdown-menu"
 import { Input } from "./ui/input"
 
-interface ProfileModalProps {
-  onClose: () => void
-}
-
-export function ProfileModal({ onClose }: ProfileModalProps) {
+export function ProfileModal() {
+  const [open, setOpen] = useState(false)
   const user = useQuery(api.auth.loggedInUser)
 
   const [name, setName] = useState(user?.name || user?.email || "")
@@ -28,7 +27,7 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
 
     setIsUploading(true)
     try {
-      let image = user?.image
+      let image = user?.image as Id<"_storage"> | undefined
 
       if (selectedFile) {
         // Upload new avatar
@@ -39,18 +38,16 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
           body: selectedFile,
         })
 
-        if (!result.ok) {
-          throw new Error("Failed to upload image")
-        }
+        if (!result.ok) throw new Error("Failed to upload image")
 
         const { storageId } = await result.json()
-        image = storageId
+        image = storageId as Id<"_storage">
       }
 
       await updateProfile({ name: name.trim(), image })
 
       toast.success("Profile updated!")
-      onClose()
+      setOpen(false)
     } catch {
       toast.error("Failed to update profile")
     } finally {
@@ -75,15 +72,16 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
 
   const inputId = useId()
   return (
-    <Dialog>
-      <DialogOverlay />
-      <DialogContent>
-        <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="font-semibold text-xl">Edit Profile</h2>
-            <Button onClick={onClose} size="icon" variant="ghost">
-              ×
-            </Button>
+    <>
+      <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setOpen(true)}>
+        Profile
+      </DropdownMenuItem>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <div>
+            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogDescription>Update your profile information</DialogDescription>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -126,17 +124,19 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
             </div>
 
             {/* Buttons */}
-            <div className="flex gap-3 pt-4">
-              <Button type="button" onClick={onClose} variant="outline">
-                Cancel
-              </Button>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" onClick={() => setOpen(false)} variant="outline">
+                  Cancel
+                </Button>
+              </DialogClose>
               <Button type="submit" disabled={!name.trim() || isUploading}>
                 {isUploading ? "Saving..." : "Save"}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

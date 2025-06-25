@@ -43,7 +43,7 @@ export default function Component() {
   return (
     <div className="flex flex-1 p-4">
       <div className="flex flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs">
-        <div className="border-b p-4 py-2 font-semibold text-xl"># {currentChannel?.name.toLowerCase()}</div>
+        <div className="border-b p-4 py-2 font-medium text-lg"># {currentChannel?.name.toLowerCase()}</div>
 
         {/* Messages Area */}
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
