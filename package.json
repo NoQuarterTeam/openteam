@@ -4,9 +4,10 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev:frontend": "vite --open",
+    "dev": "react-router dev",
     "dev:backend": "convex dev",
-    "build": "vite build"
+    "start": "react-router-serve ./build/server/index.js",
+    "build": "react-router build"
   },
   "dependencies": {
     "@auth/core": "^0.40.0",
