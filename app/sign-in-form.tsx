@@ -1,0 +1,76 @@
+import { useAuthActions } from "@convex-dev/auth/react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
+
+export function SignInForm() {
+  const { signIn } = useAuthActions()
+  const [flow, setFlow] = useState<"signIn" | "signUp">("signIn")
+  const [submitting, setSubmitting] = useState(false)
+
+  return (
+    <div className={cn("flex min-h-screen flex-col items-center justify-start bg-muted/50 px-4 py-10 sm:px-6 lg:px-8")}>
+      <div className="w-full max-w-md space-y-8 rounded-xl bg-white/90 p-8 shadow-xl dark:bg-black/60">
+        <div className="flex flex-col items-center gap-2">
+          <h2 className="font-bold text-2xl text-gray-900 tracking-tight dark:text-gray-100">
+            {flow === "signIn" ? "Sign in to your account" : "Create a new account"}
+          </h2>
+          <p className="text-gray-500 text-sm dark:text-gray-400">
+            {flow === "signIn" ? "Welcome back! Please enter your details." : "Sign up to get started."}
+          </p>
+        </div>
+        <form
+          className="space-y-6"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setSubmitting(true)
+            const formData = new FormData(e.target as HTMLFormElement)
+            formData.set("flow", flow)
+            void signIn("password", formData).catch((error) => {
+              let toastTitle = ""
+              if (error.message.includes("Invalid password")) {
+                toastTitle = "Invalid password. Please try again."
+              } else {
+                toastTitle =
+                  flow === "signIn"
+                    ? "Could not sign in, did you mean to sign up?"
+                    : "Could not sign up, did you mean to sign in?"
+              }
+              toast.error(toastTitle)
+              setSubmitting(false)
+            })
+          }}
+        >
+          <div className="space-y-4">
+            <Input type="email" name="email" placeholder="Email" required autoComplete="email" />
+            <Input
+              type="password"
+              name="password"
+              placeholder="Password"
+              required
+              autoComplete={flow === "signIn" ? "current-password" : "new-password"}
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={submitting}>
+            {submitting ? "Signing in..." : flow === "signIn" ? "Sign in" : "Sign up"}
+          </Button>
+        </form>
+        <div className="flex items-center justify-between">
+          <span className="text-gray-500 text-sm dark:text-gray-400">
+            {flow === "signIn" ? "Don't have an account?" : "Already have an account?"}
+          </span>
+          <Button
+            type="button"
+            variant="link"
+            className="h-auto p-0 text-primary"
+            onClick={() => setFlow(flow === "signIn" ? "signUp" : "signIn")}
+          >
+            {flow === "signIn" ? "Sign up instead" : "Sign in instead"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
