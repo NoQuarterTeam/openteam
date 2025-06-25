@@ -3,7 +3,6 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
 
 export function SignInForm() {
   const { signIn } = useAuthActions()
@@ -11,8 +10,8 @@ export function SignInForm() {
   const [submitting, setSubmitting] = useState(false)
 
   return (
-    <div className={cn("flex min-h-screen flex-col items-center justify-start bg-muted/50 px-4 py-10 sm:px-6 lg:px-8")}>
-      <div className="w-full max-w-md space-y-8 rounded-xl bg-white/90 p-8 shadow-xl dark:bg-black/60">
+    <div className="flex min-h-screen flex-col items-center justify-start bg-muted/50 px-4 py-10 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8 rounded-xl border bg-background p-8">
         <div className="flex flex-col items-center gap-2">
           <h2 className="font-bold text-2xl text-gray-900 tracking-tight dark:text-gray-100">
             {flow === "signIn" ? "Sign in to your account" : "Create a new account"}

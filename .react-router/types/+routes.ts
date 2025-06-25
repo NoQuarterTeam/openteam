@@ -13,15 +13,32 @@ type Pages = {
   "/": {
     params: {};
   };
+  "/:channelId": {
+    params: {
+      "channelId": string;
+    };
+  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/";
+    page: "/" | "/:channelId";
   };
-  "routes/index.tsx": {
+  "./routes/auth-check.tsx": {
+    id: "routes/auth-check";
+    page: "/" | "/:channelId";
+  };
+  "./routes/layout.tsx": {
+    id: "routes/layout";
+    page: "/" | "/:channelId";
+  };
+  "./routes/index.tsx": {
     id: "routes/index";
     page: "/";
+  };
+  "./routes/channel.tsx": {
+    id: "routes/channel";
+    page: "/:channelId";
   };
 };

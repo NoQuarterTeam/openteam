@@ -21,22 +21,17 @@ export const list = query({
     // Get author profiles for each message
     const messagesWithAuthors = await Promise.all(
       messages.map(async (message) => {
-        const profile = await ctx.db
-          .query("profiles")
-          .withIndex("by_user", (q) => q.eq("userId", message.authorId))
-          .first()
-
         const user = await ctx.db.get(message.authorId)
 
         let avatarUrl = null
-        if (profile?.avatarId) {
-          avatarUrl = await ctx.storage.getUrl(profile.avatarId)
+        if (user?.image) {
+          avatarUrl = await ctx.storage.getUrl(user.image)
         }
 
         return {
           ...message,
           author: {
-            name: profile?.name || user?.name || user?.email || "Unknown",
+            name: user?.name || user?.name || user?.email || "Unknown",
             avatarUrl,
           },
         }
@@ -94,23 +89,18 @@ export const search = query({
     // Get author profiles and channel names for each message
     const messagesWithDetails = await Promise.all(
       messages.map(async (message) => {
-        const profile = await ctx.db
-          .query("profiles")
-          .withIndex("by_user", (q) => q.eq("userId", message.authorId))
-          .first()
-
         const user = await ctx.db.get(message.authorId)
         const channel = await ctx.db.get(message.channelId)
 
         let avatarUrl = null
-        if (profile?.avatarId) {
-          avatarUrl = await ctx.storage.getUrl(profile.avatarId)
+        if (user?.image) {
+          avatarUrl = await ctx.storage.getUrl(user.image)
         }
 
         return {
           ...message,
           author: {
-            name: profile?.name || user?.name || user?.email || "Unknown",
+            name: user?.name || user?.email || "Unknown",
             avatarUrl,
           },
           channelName: channel?.name || "Unknown Channel",

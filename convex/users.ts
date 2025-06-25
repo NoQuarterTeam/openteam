@@ -1,64 +1,49 @@
 import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
+import { Id } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 
 export const get = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      return null
-    }
+    if (!userId) return null
 
-    const profile = await ctx.db
-      .query("profiles")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_id", (q) => q.eq("_id", userId))
       .first()
 
-    if (!profile) {
-      return null
-    }
+    if (!user) return null
 
     let avatarUrl = null
-    if (profile.avatarId) {
-      avatarUrl = await ctx.storage.getUrl(profile.avatarId)
+    if (user.image) {
+      avatarUrl = await ctx.storage.getUrl(user.image as Id<"_storage">)
     }
 
-    return {
-      ...profile,
-      avatarUrl,
-    }
+    return { ...user, avatarUrl }
   },
 })
 
 export const update = mutation({
   args: {
     name: v.string(),
-    avatarId: v.optional(v.id("_storage")),
+    image: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("Not authenticated")
-    }
+    if (!userId) throw new Error("Not authenticated")
 
     const existing = await ctx.db
-      .query("profiles")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .query("users")
+      .withIndex("by_id", (q) => q.eq("_id", userId))
       .first()
 
     if (existing) {
-      await ctx.db.patch(existing._id, {
-        name: args.name,
-        avatarId: args.avatarId,
-      })
+      await ctx.db.patch(existing._id, { name: args.name, image: args.image })
       return existing._id
     } else {
-      return await ctx.db.insert("profiles", {
-        userId,
-        name: args.name,
-        avatarId: args.avatarId,
-      })
+      return await ctx.db.insert("users", { name: args.name, image: args.image })
     }
   },
 })

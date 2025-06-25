@@ -14,16 +14,17 @@ const applicationTables = {
     content: v.string(),
   })
     .index("by_channel", ["channelId"])
-    .searchIndex("search_content", {
-      searchField: "content",
-      filterFields: ["channelId"],
-    }),
-
-  profiles: defineTable({
-    userId: v.id("users"),
-    name: v.string(),
-    avatarId: v.optional(v.id("_storage")),
-  }).index("by_user", ["userId"]),
+    .searchIndex("search_content", { searchField: "content", filterFields: ["channelId"] }),
+  users: defineTable({
+    name: v.optional(v.string()),
+    image: v.optional(v.id("_storage")),
+    email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    phoneVerificationTime: v.optional(v.number()),
+  })
+    .index("email", ["email"])
+    .index("phone", ["phone"]),
 }
 
 export default defineSchema({
