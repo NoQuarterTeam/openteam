@@ -44,3 +44,12 @@ export const update = mutation({
     return await ctx.db.patch(existing._id, { name: args.name, image: args.image })
   },
 })
+
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error("Not authenticated")
+    return await ctx.db.query("users").collect()
+  },
+})

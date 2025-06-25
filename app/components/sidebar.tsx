@@ -10,6 +10,7 @@ import { Button } from "./ui/button"
 export function Sidebar() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
   const { data: channels } = useQuery(convexQuery(api.channels.list, {}))
+  // const { data: users } = useQuery(convexQuery(api.users.list, {}))
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   return (
@@ -33,6 +34,12 @@ export function Sidebar() {
               {channel.name.toLowerCase()}
             </Button>
           ))}
+          <hr className="my-2" />
+          {/* {users?.map((user) => (
+            <Button key={user._id} variant="ghost" className="h-8 w-full justify-start text-left font-normal">
+              {user.name}
+            </Button>
+          ))} */}
         </div>
         <NewChannel />
       </div>

@@ -1,11 +1,12 @@
 import { useQuery } from "convex/react"
-import { useState } from "react"
-import { Outlet, useParams } from "react-router"
+import { useEffect, useState } from "react"
+import { Outlet, useNavigate, useParams } from "react-router"
 import { ProfileModal } from "@/components/profile-modal"
 import { Sidebar } from "@/components/sidebar"
 import { SignOutButton } from "@/components/sign-out-button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { api } from "@/convex/_generated/api"
@@ -13,7 +14,9 @@ import type { Id } from "@/convex/_generated/dataModel"
 
 export default function Component() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
-
+  const navigate = useNavigate()
+  const channels = useQuery(api.channels.list)
+  const users = useQuery(api.users.list)
   const user = useQuery(api.auth.loggedInUser)
   const displayName = user?.name || user?.email
 
@@ -28,6 +31,19 @@ export default function Component() {
     setSearchQuery(query)
     setShowSearchResults(query.trim().length > 0)
   }
+
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setOpen((open) => !open)
+      }
+    }
+    document.addEventListener("keydown", down)
+    return () => document.removeEventListener("keydown", down)
+  }, [])
 
   return (
     <div className="flex h-screen flex-col">
@@ -71,6 +87,31 @@ export default function Component() {
 
       <div className="flex w-full flex-1 overflow-hidden">
         <Sidebar />
+
+        <CommandDialog open={open} onOpenChange={setOpen}>
+          <CommandInput placeholder="Channels, people, files..." />
+          <CommandList className="py-2">
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandGroup heading="Channels">
+              {channels?.map((channel) => (
+                <CommandItem
+                  key={channel._id}
+                  onSelect={() => {
+                    navigate(`/${channel._id}`)
+                    setOpen(false)
+                  }}
+                >
+                  # {channel.name.toLowerCase()}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            <CommandGroup heading="People">
+              {users?.map((user) => (
+                <CommandItem key={user._id}>{user.name}</CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </CommandDialog>
 
         <Outlet />
 
