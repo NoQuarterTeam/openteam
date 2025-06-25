@@ -1,6 +1,6 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query"
 import { useQuery, useQueryClient, useMutation as useTanstackMutation } from "@tanstack/react-query"
-import { EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
+import { ChevronDownIcon, EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { redirect, useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
@@ -121,10 +121,15 @@ export default function Component() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto py-2">
           {messages?.map((message, index) => {
-            const isFirstMessageOfUser = index === 0 || messages[index - 1]?.authorId !== message.authorId
+            const isFirstMessageOfUser =
+              index === 0 ||
+              messages[index - 1]?.authorId !== message.authorId ||
+              (messages[index - 1] &&
+                new Date(message._creationTime).getTime() - new Date(messages[index - 1]._creationTime).getTime() >
+                  10 * 60 * 1000)
 
             return (
-              <div key={message._id} className="flex gap-2 px-4 py-1.5 hover:bg-muted/50">
+              <div key={message._id} className="flex gap-2 px-4 py-1.5 hover:bg-muted/50 dark:hover:bg-muted/10">
                 <div className="pt-0">
                   {isFirstMessageOfUser && message.author ? (
                     <Avatar className="size-9 flex-shrink-0 rounded-lg">
@@ -146,10 +151,28 @@ export default function Component() {
                     <p className={cn("font-normal text-sm", message.temp && "opacity-70")}>{message.content}</p>
                   )}
                   {message.files && message.files.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-2">
-                      {message.files.length === 1 && <MessageFile file={message.files[0]} />}
-
-                      {message.files.length > 1 && message.files.map((file) => <MessageFilePreview key={file._id} file={file} />)}
+                    <div className="mt-1">
+                      <WithState initialState={true}>
+                        {(state, setState) => (
+                          <>
+                            <div className="flex items-center gap-0.5">
+                              <p className="mb-0.5 text-xs opacity-50">
+                                {message.files.length === 1 ? message.files[0].name : `${message.files.length} files`}
+                              </p>
+                              <Button variant="ghost" size="icon" className="size-4" onClick={() => setState(!state)}>
+                                <ChevronDownIcon className="size-3.5 opacity-50" />
+                              </Button>
+                            </div>
+                            {state && (
+                              <div className="flex flex-wrap gap-2">
+                                {message.files.length === 1 && <MessageFile file={message.files[0]} />}
+                                {message.files.length > 1 &&
+                                  message.files.map((file) => <MessageFile key={file._id} file={file} className="h-14 w-14" />)}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </WithState>
                     </div>
                   )}
                 </div>
@@ -164,24 +187,27 @@ export default function Component() {
   )
 }
 
+export function WithState<StateValue = undefined>({
+  children,
+  initialState,
+}: {
+  initialState?: StateValue | (() => StateValue)
+  children: (
+    state: StateValue | undefined,
+    setState: React.Dispatch<React.SetStateAction<StateValue | undefined>>,
+  ) => React.ReactNode
+}) {
+  const [state, setState] = useState<StateValue | undefined>(initialState)
+  return children(state, setState)
+}
+
 type MessageFile = (typeof api.messages.list._returnType)[number]["files"][number]
 
-function MessageFilePreview({ file }: { file: MessageFile }) {
+function MessageFile({ file, className }: { file: MessageFile; className?: string }) {
   return (
-    <a href={file.url || "#"} target="_blank" rel="noopener noreferrer" className="inline-block">
+    <a href={file.url || "#"} target="_blank" rel="noopener noreferrer" className={cn("inline-block max-w-md", className)}>
       {file.metadata?.contentType?.startsWith("image/") ? (
-        <img src={file.url || "#"} alt={file.name} className="h-14 w-14 rounded-lg object-cover" />
-      ) : (
-        <FilePill name={file.name} />
-      )}
-    </a>
-  )
-}
-function MessageFile({ file }: { file: MessageFile }) {
-  return (
-    <a href={file.url || "#"} target="_blank" rel="noopener noreferrer" className="inline-block">
-      {file.metadata?.contentType?.startsWith("image/") ? (
-        <img src={file.url || "#"} alt={file.name} className="max-w-md rounded-lg object-cover" />
+        <img src={file.url || "#"} alt={file.name} className="h-full w-full rounded-lg object-cover" />
       ) : (
         <FilePill name={file.name} />
       )}

@@ -1,7 +1,7 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query"
 import { useQuery } from "@tanstack/react-query"
 import { useMutation } from "convex/react"
-import { PlusIcon, XIcon } from "lucide-react"
+import { ArrowRightIcon, PlusIcon, XIcon } from "lucide-react"
 import * as React from "react"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
@@ -115,8 +115,8 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
           />
           <div className="flex items-center gap-2">
             <input id={fileInputId} type="file" multiple className="hidden" onChange={handleFileInput} />
-            <Button type="submit" disabled={!newMessage.trim() && filePreviews.length === 0}>
-              Send
+            <Button type="submit" size="icon" disabled={!newMessage.trim() && filePreviews.length === 0}>
+              <ArrowRightIcon />
             </Button>
           </div>
         </div>

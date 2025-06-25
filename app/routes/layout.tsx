@@ -31,7 +31,7 @@ export default function Component() {
 
   if (!user) return null
   return (
-    <div className="flex h-screen flex-col bg-neutral-50/50">
+    <div className="flex h-screen flex-col bg-neutral-50/50 dark:bg-neutral-900/50">
       {/* Header */}
       <header className="flex h-14 items-center justify-between border-b bg-background px-4">
         <div className="flex items-center gap-2 ">

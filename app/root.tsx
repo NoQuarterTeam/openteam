@@ -2,9 +2,11 @@ import { ConvexAuthProvider } from "@convex-dev/auth/react"
 import { ConvexQueryClient } from "@convex-dev/react-query"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ConvexReactClient } from "convex/react"
+import { ThemeProvider } from "next-themes"
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router"
 import { Toaster } from "sonner"
 import type { Route } from "./+types/root"
+import { Spinner } from "./components/ui/spinner"
 import "./globals.css"
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL)
@@ -19,9 +21,9 @@ const queryClient = new QueryClient({
 })
 convexQueryClient.connect(queryClient)
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export default function App() {
   return (
-    <html lang="en">
+    <html suppressHydrationWarning lang="en" className="dark">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -30,7 +32,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ConvexAuthProvider client={convex}>
-          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider enableSystem attribute="class">
+              <Outlet />
+            </ThemeProvider>
+          </QueryClientProvider>
         </ConvexAuthProvider>
         <ScrollRestoration />
         <Scripts />
@@ -38,10 +44,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </body>
     </html>
   )
-}
-
-export default function App() {
-  return <Outlet />
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
@@ -67,5 +69,13 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         </pre>
       )}
     </main>
+  )
+}
+
+export function HydrateFallback() {
+  return (
+    <div className="flex h-dvh w-screen items-center justify-center">
+      <Spinner />
+    </div>
   )
 }
