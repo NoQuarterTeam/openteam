@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { Button } from "./components/ui/button"
+import { Input } from "./components/ui/input"
 import { ProfileModal } from "./ProfileModal"
-import { SignOutButton } from "./SignOutButton"
+import { SignOutButton } from "./sign-out-button"
 
 export function ChatApp() {
   const [selectedChannelId, setSelectedChannelId] = useState<Id<"channels"> | null>(null)
@@ -59,7 +61,7 @@ export function ChatApp() {
       setNewChannelName("")
       setShowCreateChannel(false)
       toast.success("Channel created!")
-    } catch (error) {
+    } catch {
       toast.error("Failed to create channel")
     }
   }
@@ -74,7 +76,7 @@ export function ChatApp() {
         content: newMessage.trim(),
       })
       setNewMessage("")
-    } catch (error) {
+    } catch {
       toast.error("Failed to send message")
     }
   }
@@ -89,96 +91,84 @@ export function ChatApp() {
   return (
     <div className="flex h-screen flex-col bg-white">
       {/* Header */}
-      <header className="flex h-16 items-center justify-between bg-purple-600 px-4 text-white shadow-sm">
+      <header className="flex h-16 items-center justify-between border-b px-4">
         <div className="flex items-center gap-4">
-          <h1 className="font-bold text-xl">Slack Clone</h1>
-          {currentChannel && <span className="text-purple-200">#{currentChannel.name}</span>}
+          <h1 className="font-bold text-xl">OpenTeam</h1>
         </div>
 
         {/* Search Bar */}
         <div className="mx-8 max-w-md flex-1">
-          <input
+          <Input
             type="text"
             placeholder="Search messages..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            className="w-full rounded border border-purple-400 bg-purple-500 px-3 py-1 text-white placeholder-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-300"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowProfile(true)}
-            className="flex items-center gap-2 rounded px-3 py-1 transition-colors hover:bg-purple-500"
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-400 font-semibold text-sm">
-              {displayName.charAt(0).toUpperCase()}
-            </div>
-            <span className="text-sm">{displayName}</span>
-          </button>
+          <Button type="button" onClick={() => setShowProfile(true)} variant="ghost">
+            {displayName}
+          </Button>
           <SignOutButton />
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <div className="flex w-64 flex-col bg-purple-800 text-white">
-          <div className="border-purple-700 border-b p-4">
-            <div className="mb-4 flex items-center justify-between">
+        <div className="flex w-64 flex-col bg-gray-100">
+          <div className="border-b p-4">
+            <div className="flex items-center justify-between">
               <h2 className="font-semibold">Channels</h2>
-              <button
-                onClick={() => setShowCreateChannel(true)}
-                className="flex h-6 w-6 items-center justify-center rounded bg-purple-600 transition-colors hover:bg-purple-500"
-                title="Create channel"
-              >
+              <Button type="button" onClick={() => setShowCreateChannel(true)} size="icon" title="Create channel">
                 +
-              </button>
+              </Button>
             </div>
 
             {showCreateChannel && (
               <form onSubmit={handleCreateChannel} className="mb-4">
-                <input
+                <Input
                   type="text"
                   placeholder="Channel name"
                   value={newChannelName}
                   onChange={(e) => setNewChannelName(e.target.value)}
-                  className="w-full rounded border border-purple-600 bg-purple-700 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-purple-400"
                   autoFocus
                 />
                 <div className="mt-2 flex gap-2">
-                  <button type="submit" className="rounded bg-green-600 px-2 py-1 text-xs hover:bg-green-500">
+                  <Button type="submit" size="sm">
                     Create
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    size="sm"
+                    variant="outline"
                     onClick={() => {
                       setShowCreateChannel(false)
                       setNewChannelName("")
                     }}
-                    className="rounded bg-gray-600 px-2 py-1 text-xs hover:bg-gray-500"
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 flex-col gap-2 overflow-y-auto p-4">
             {channels?.map((channel) => (
-              <button
+              <Button
+                type="button"
+                className="w-full justify-start text-left"
                 key={channel._id}
                 onClick={() => {
                   setSelectedChannelId(channel._id)
                   setShowSearchResults(false)
                   setSearchQuery("")
                 }}
-                className={`w-full px-4 py-2 text-left transition-colors hover:bg-purple-700 ${
-                  selectedChannelId === channel._id ? "bg-purple-700" : ""
-                }`}
+                variant={selectedChannelId === channel._id ? "default" : "ghost"}
               >
                 # {channel.name}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -255,20 +245,15 @@ export function ChatApp() {
           {selectedChannelId && !showSearchResults && (
             <div className="border-t bg-white p-4">
               <form onSubmit={handleSendMessage} className="flex gap-2">
-                <input
+                <Input
                   type="text"
                   placeholder={`Message #${currentChannel?.name || "channel"}`}
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
-                <button
-                  type="submit"
-                  disabled={!newMessage.trim()}
-                  className="rounded-lg bg-purple-600 px-4 py-2 text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
+                <Button type="submit" disabled={!newMessage.trim()}>
                   Send
-                </button>
+                </Button>
               </form>
             </div>
           )}
