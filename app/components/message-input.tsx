@@ -132,7 +132,7 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
                   onClick={() => handleRemoveFile(i)}
                   className="-top-1 -right-1 absolute rounded-full bg-black p-0.5 text-white hover:bg-neutral-700"
                 >
-                  {storageId ? <XIcon className="size-4" /> : <Spinner className="size-4" />}
+                  {storageId ? <XIcon className="size-4" /> : <Spinner className="size-4 text-white" />}
                 </button>
               </div>
             ))}
