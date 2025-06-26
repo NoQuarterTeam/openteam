@@ -126,16 +126,20 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
     }, 100)
   }, [currentChannel._id])
 
-  useEffect(() => {
-    const handleKeyDown = () => {
-      // Focus the textarea when the user presses any key
-      textAreaRef.current?.focus()
-    }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [])
+  // useEffect(() => {
+  //   const handleKeyDown = (e: KeyboardEvent) => {
+  //     // Focus the textarea when the user presses any key
+  //     if (e.key === "/" && !newMessage) {
+  //       textAreaRef.current?.focus()
+  //       e.preventDefault()
+  //       e.stopPropagation()
+  //     }
+  //   }
+  //   window.addEventListener("keydown", handleKeyDown)
+  //   return () => {
+  //     window.removeEventListener("keydown", handleKeyDown)
+  //   }
+  // }, [newMessage])
   return (
     <div className="border-t bg-background">
       <form onSubmit={handleSendMessage} ref={formRef} className="relative flex flex-col gap-2">
