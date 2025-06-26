@@ -61,7 +61,7 @@ export function CommandCenter() {
                     <Avatar className="size-5 rounded">
                       <AvatarImage src={channel.dmUser.image || undefined} />
                       <AvatarFallback className="size-5 rounded text-black text-xs dark:text-white">
-                        {channel.dmUser.name.charAt(0)}
+                        {channel.dmUser.name?.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <p>{channel.dmUser.name}</p>
