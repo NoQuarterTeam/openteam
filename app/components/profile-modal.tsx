@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "convex/react"
 import { UserIcon } from "lucide-react"
-import { useCallback, useId, useRef, useState } from "react"
+import { useCallback, useId, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -15,39 +15,16 @@ export function ProfileModal() {
   const user = useQuery(api.auth.loggedInUser)
 
   const [name, setName] = useState(user?.name || user?.email || "")
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
-
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const updateProfile = useMutation(api.users.update)
   const generateUploadUrl = useMutation(api.uploads.generateUploadUrl)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return
-
     setIsUploading(true)
     try {
-      let image = user?.image as Id<"_storage"> | undefined
-
-      if (selectedFile) {
-        // Upload new avatar
-        const uploadUrl = await generateUploadUrl()
-        const result = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": selectedFile.type },
-          body: selectedFile,
-        })
-
-        if (!result.ok) throw new Error("Failed to upload image")
-
-        const { storageId } = (await result.json()) as { storageId: Id<"_storage"> }
-        image = storageId as Id<"_storage">
-      }
-
-      await updateProfile({ name: name.trim(), image })
-
+      await updateProfile({ name: name.trim() })
       toast.success("Profile updated!")
       setOpen(false)
     } catch {
@@ -57,12 +34,24 @@ export function ProfileModal() {
     }
   }
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    setSelectedFile(acceptedFiles[0])
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    const selectedFile = acceptedFiles[0]
+    const uploadUrl = await generateUploadUrl()
+    const result = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": selectedFile.type },
+      body: selectedFile,
+    })
+
+    if (!result.ok) throw new Error("Failed to upload image")
+
+    const { storageId } = (await result.json()) as { storageId: Id<"_storage"> }
+    await updateProfile({ image: storageId })
   }, [])
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
+    autoFocus: false,
     multiple: false,
     accept: {
       "image/*": [],
@@ -84,28 +73,21 @@ export function ProfileModal() {
             <DialogDescription>Update your profile information</DialogDescription>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Avatar Section */}
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-neutral-300">
-                {selectedFile ? (
-                  <img src={URL.createObjectURL(selectedFile)} alt="Preview" className="h-full w-full object-cover" />
-                ) : user?.image ? (
-                  <img src={user.image} alt="Current avatar" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="font-semibold text-2xl text-neutral-600">{name.charAt(0).toUpperCase()}</span>
-                )}
-              </div>
-
-              <div {...getRootProps()}>
-                <input {...getInputProps()} />
-
-                <Button onClick={() => fileInputRef.current?.click()}>
-                  {user?.image || selectedFile ? "Change Photo" : "Upload Photo"}
-                </Button>
-              </div>
+          {/* Avatar Section */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-neutral-300">
+              {user?.image ? (
+                <img src={user.image} alt="Current avatar" className="h-full w-full object-cover" />
+              ) : (
+                <span className="font-semibold text-2xl text-neutral-600">{name.charAt(0).toUpperCase()}</span>
+              )}
             </div>
-
+            <div {...getRootProps()}>
+              <input {...getInputProps()} />
+              <Button size="sm">{user?.image ? "Change Photo" : "Upload Photo"}</Button>
+            </div>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name Field */}
             <div>
               <label htmlFor={inputId} className="mb-1 block font-medium text-neutral-700 text-sm">
@@ -115,6 +97,7 @@ export function ProfileModal() {
                 id={inputId}
                 type="text"
                 value={name}
+                autoFocus
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your display name"
                 required

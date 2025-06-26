@@ -26,7 +26,7 @@ export const get = query({
 
 export const update = mutation({
   args: {
-    name: v.string(),
+    name: v.optional(v.string()),
     image: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
@@ -39,7 +39,7 @@ export const update = mutation({
 
     if (!existing) throw new ConvexError("User not found")
 
-    return await ctx.db.patch(existing._id, { name: args.name, image: args.image })
+    return await ctx.db.patch(existing._id, args)
   },
 })
 
