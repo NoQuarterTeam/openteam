@@ -29,7 +29,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body className="min-h-dvh w-screen bg-muted/50 dark:bg-black/50">
+      <body suppressHydrationWarning className="min-h-dvh w-screen bg-muted/50 dark:bg-black/50">
         <ConvexAuthProvider client={convex}>
           <QueryClientProvider client={queryClient}>
             <ThemeProvider enableSystem attribute="class">
