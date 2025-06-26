@@ -1,7 +1,8 @@
 import { useConvexMutation } from "@convex-dev/react-query"
 import { useMutation, useQuery } from "convex/react"
 import { ArrowRightIcon, PlusIcon, XIcon } from "lucide-react"
-import { useEffect, useId, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
 import type { Doc, Id } from "@/convex/_generated/dataModel"
@@ -16,92 +17,80 @@ function isImage(file: File | { name: string }): boolean {
 
 export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels"> }) {
   const [newMessage, setNewMessage] = useState("")
-  const [filePreviews, setFilePreviews] = useState<{ file: File; url: string; storageId?: Id<"_storage"> }[]>([])
-  const fileInputId = useId()
+  const [filePreviews, setFilePreviews] = useState<{ id: string; file: File; url: string; storageId?: Id<"_storage"> }[]>([])
+
   const user = useQuery(api.auth.loggedInUser)
 
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate((localStore, args) => {
-    const { channelId, content } = args
+    const { content } = args
     if (!user) return
-    const currentValue = localStore.getQuery(api.messages.list, { channelId })
-    if (currentValue) {
-      const messageId = crypto.randomUUID() as Id<"messages">
-      localStore.setQuery(api.messages.list, { channelId }, [
-        ...(currentValue || []),
-        {
-          _id: messageId,
-          authorId: user._id,
-          content,
-          author: user,
-          channelId,
-          _creationTime: Date.now(),
-          temp: true,
-          reactions: [],
-          files: filePreviews.map(({ file, url }) => ({
-            name: file.name,
-            _creationTime: Date.now(),
+    const currentValue = localStore.getQuery(api.messages.list, { channelId: currentChannel._id })
+    if (!currentValue) return
+    const messageId = crypto.randomUUID() as Id<"messages">
+    localStore.setQuery(api.messages.list, { channelId: currentChannel._id }, [
+      ...currentValue,
+      {
+        _id: messageId,
+        authorId: user._id,
+        content,
+        author: user,
+        channelId: currentChannel._id,
+        _creationTime: Date.now(),
+        temp: true,
+        reactions: [],
+        files:
+          args.files?.map(({ name, storageId }, i) => ({
             _id: crypto.randomUUID() as Id<"files">,
+            name,
+            _creationTime: Date.now(),
             messageId,
-            url,
+            url: filePreviews[i].url,
             metadata: {
               _id: crypto.randomUUID() as Id<"_storage">,
               _creationTime: Date.now(),
-              contentType: file.type,
+              contentType: filePreviews[i].file.type,
               sha256: "",
-              size: file.size,
+              size: filePreviews[i].file.size,
             },
-            storageId: crypto.randomUUID() as Id<"_storage">,
-          })),
-        },
-      ])
-    }
+            storageId,
+          })) || [],
+      },
+    ])
   })
 
   const generateUploadUrl = useConvexMutation(api.uploads.generateUploadUrl)
 
   const textAreaRef = useRef<ExpandableTextareaRef>(null)
 
+  const [isLoading, setIsLoading] = useState(false)
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() && filePreviews.length === 0) return
+    if ((!newMessage.trim() && filePreviews.length === 0) || filePreviews.some(({ storageId }) => !storageId)) return
 
     try {
-      // const newFiles: { name: string; storageId: Id<"_storage"> }[] = []
-      // if (filePreviews.length > 0) {
-      //   for (const { file } of filePreviews) {
-      //     const uploadUrl = await generateUploadUrl()
-      //     const result = await fetch(uploadUrl, {
-      //       method: "POST",
-      //       headers: { "Content-Type": file.type },
-      //       body: file,
-      //     })
-      //     if (!result.ok) throw new Error("Failed to upload file")
-      //     const { storageId } = (await result.json()) as { storageId: Id<"_storage"> }
-      //     newFiles.push({ name: file.name, storageId })
-      //   }
-      // }
+      setIsLoading(true)
+
       textAreaRef.current?.resetHeight()
       textAreaRef.current?.clearValue()
+
+      setIsLoading(false)
       void sendMessage({
         channelId: currentChannel._id,
         content: newMessage.trim(),
-        files: filePreviews
-          .filter(({ storageId }) => storageId)
-          .map(({ file, storageId }) => ({ name: file.name, storageId: storageId as Id<"_storage"> })),
+        files: filePreviews.map(({ file, storageId }) => ({ name: file.name, storageId: storageId! })),
       })
       setFilePreviews([])
-      setNewMessage("")
     } catch {
       toast.error("Failed to send message")
     }
   }
-  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : []
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    const newPreviews = acceptedFiles.map((file) => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) }))
+    setFilePreviews((prev) => [...prev, ...newPreviews])
 
-    setFilePreviews((prev) => [...prev, ...files.map((file) => ({ file, url: URL.createObjectURL(file) }))])
-
-    const storageIds = await Promise.all(
-      files.map(async (file) => {
+    const newFiles = await Promise.all(
+      newPreviews.map(async ({ id, file, url }) => {
         const uploadUrl = await generateUploadUrl()
         const result = await fetch(uploadUrl, {
           method: "POST",
@@ -110,13 +99,24 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
         })
         if (!result.ok) throw new Error("Failed to upload file")
         const { storageId } = (await result.json()) as { storageId: Id<"_storage"> }
-        return storageId
+        return { id, file, url, storageId }
       }),
     )
-    setFilePreviews((prev) => prev.map((file, i) => ({ ...file, storageId: storageIds[i] })))
-  }
 
-  const handleRemoveFile = (index: number) => setFilePreviews((prev) => prev.filter((_, i) => i !== index))
+    setFilePreviews((prev) =>
+      prev.map((preview) => {
+        const uploaded = newFiles.find((nf) => nf.id === preview.id)
+        return uploaded || preview
+      }),
+    )
+  }, [])
+
+  const { getRootProps, getInputProps } = useDropzone({ onDrop })
+
+  const handleRemoveFile = (index: number) => {
+    setFilePreviews((prev) => prev.filter((_, i) => i !== index))
+    window.URL.revokeObjectURL(filePreviews[index].url)
+  }
 
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -126,27 +126,13 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
     }, 100)
   }, [currentChannel._id])
 
-  // useEffect(() => {
-  //   const handleKeyDown = (e: KeyboardEvent) => {
-  //     // Focus the textarea when the user presses any key
-  //     if (e.key === "/" && !newMessage) {
-  //       textAreaRef.current?.focus()
-  //       e.preventDefault()
-  //       e.stopPropagation()
-  //     }
-  //   }
-  //   window.addEventListener("keydown", handleKeyDown)
-  //   return () => {
-  //     window.removeEventListener("keydown", handleKeyDown)
-  //   }
-  // }, [newMessage])
   return (
     <div className="border-t bg-background">
       <form onSubmit={handleSendMessage} ref={formRef} className="relative flex flex-col gap-2">
         {filePreviews.length > 0 && (
           <div className="-top-18 absolute right-0 left-0 flex flex-wrap gap-2 border-t border-b bg-background p-2">
-            {filePreviews.map(({ file, url, storageId }, i) => (
-              <div key={i} className="relative">
+            {filePreviews.map(({ id, file, url, storageId }, i) => (
+              <div key={id} className="relative">
                 {isImage(file) ? (
                   <img src={url} alt={file.name} className="h-14 w-14 rounded-lg border object-cover" />
                 ) : (
@@ -164,9 +150,12 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
           </div>
         )}
         <div className="flex flex-row gap-2 p-4">
-          <Button type="button" variant="secondary" onClick={() => document.getElementById(fileInputId)?.click()} size="icon">
-            <PlusIcon />
-          </Button>
+          <div {...getRootProps()}>
+            <input {...getInputProps()} />
+            <Button variant="secondary" size="icon">
+              <PlusIcon />
+            </Button>
+          </div>
 
           <ExpandableTextarea
             ref={textAreaRef}
@@ -183,12 +172,15 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
             }}
           />
 
-          <div className="flex items-center gap-2">
-            <input id={fileInputId} type="file" multiple className="hidden" onChange={handleFileInput} />
-            <Button type="submit" size="icon" disabled={!newMessage.trim() && filePreviews.length === 0}>
-              <ArrowRightIcon />
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            size="icon"
+            disabled={
+              (!newMessage.trim() && filePreviews.length === 0) || isLoading || filePreviews.some(({ storageId }) => !storageId)
+            }
+          >
+            {isLoading ? <Spinner className="size-4" /> : <ArrowRightIcon />}
+          </Button>
         </div>
       </form>
     </div>

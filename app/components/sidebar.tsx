@@ -73,7 +73,7 @@ export function Sidebar() {
                             ? "border-transparent bg-primary text-primary-foreground"
                             : snapshot.isDragging
                               ? "border-border bg-neutral-50 dark:bg-neutral-900/50"
-                              : "border-transparent text-muted-foreground",
+                              : "border-transparent text-muted-foreground hover:bg-neutral-100 hover:dark:bg-black/80",
                         )}
                         onClick={() => {
                           if (!snapshot.isDragging) navigate(`/${channel._id}`)

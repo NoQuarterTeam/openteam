@@ -137,7 +137,7 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
             <WithState initialState={true}>
               {(state, setState) => (
                 <>
-                  <div className="flex items-center gap-0.5 pb-1">
+                  <div className="flex items-center gap-0.5 py-1">
                     <p className="text-xs opacity-50">
                       {message.files.length === 1 ? message.files[0].name : `${message.files.length} files`}
                     </p>
@@ -287,15 +287,23 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
   )
 }
 
-type MessageFile = MessageData["files"][number]
+type MessageFileType = MessageData["files"][number]
 
-function MessageFile({ file, className }: { file: MessageFile; className?: string }) {
+function MessageFile({ file, className }: { file: MessageFileType; className?: string }) {
   return (
-    <a href={file.url || "#"} target="_blank" rel="noopener noreferrer" className={cn("inline-block max-w-md", className)}>
-      {file.metadata?.contentType?.startsWith("image/") ? (
-        <img src={file.url || "#"} alt={file.name} className="h-full w-full rounded-lg object-cover" />
+    <a href={file.url || "#"} target="_blank" rel="noopener noreferrer" className={cn("flex max-w-md shrink-0", className)}>
+      {file.metadata?.contentType?.startsWith("image/") || file.url?.startsWith("blob:") ? (
+        <div className="relative">
+          <img
+            src={file.url || "#"}
+            alt={file.name}
+            className="h-full w-full rounded-lg bg-neutral-50 object-cover dark:bg-neutral-700"
+          />
+        </div>
       ) : (
-        <FilePill name={file.name} />
+        <div className="relative">
+          <FilePill name={file.name} />
+        </div>
       )}
     </a>
   )

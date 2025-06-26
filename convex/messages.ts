@@ -63,6 +63,7 @@ export const send = mutation({
     content: v.optional(v.string()),
     files: v.optional(v.array(v.object({ name: v.string(), storageId: v.id("_storage") }))),
   },
+  returns: v.id("messages"),
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx)
 
@@ -71,11 +72,13 @@ export const send = mutation({
       authorId: userId,
       content: args.content,
     })
+
     if (args.files) {
       await Promise.all(
         args.files.map((file) => ctx.db.insert("files", { name: file.name, messageId: message, storageId: file.storageId })),
       )
     }
+
     return message
   },
 })
