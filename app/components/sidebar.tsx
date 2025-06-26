@@ -88,7 +88,7 @@ export function Sidebar() {
                               <Avatar className="size-5 rounded">
                                 <AvatarImage src={channel.dmUser.image || undefined} />
                                 <AvatarFallback className="size-5 rounded text-black text-xs dark:text-white">
-                                  {channel.dmUser.name?.charAt(0) || "U"}
+                                  {channel.dmUser.name.charAt(0)}
                                 </AvatarFallback>
                               </Avatar>
                               {channel.dmUser.name}

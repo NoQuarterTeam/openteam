@@ -95,7 +95,10 @@ export const get = query({
     if (!channel) return null
 
     const dmUser = channel.dmId ? await ctx.db.get(channel.dmId) : null
-    return { ...channel, dmUser: { ...dmUser, image: dmUser?.image ? await ctx.storage.getUrl(dmUser.image) : null } }
+    return {
+      ...channel,
+      dmUser: dmUser ? { ...dmUser, image: dmUser?.image ? await ctx.storage.getUrl(dmUser.image) : null } : null,
+    }
   },
 })
 

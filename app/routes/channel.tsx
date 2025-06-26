@@ -123,7 +123,7 @@ function ChannelHeader({ channel }: { channel: ChannelData }) {
           <Avatar className="size-8 flex-shrink-0 rounded-lg">
             <AvatarImage src={channel.dmUser.image || undefined} />
             <AvatarFallback className="size-8 rounded-lg text-black dark:text-white">
-              {channel.dmUser.name?.charAt(0) || "U"}
+              {channel.dmUser.name.charAt(0)}
             </AvatarFallback>
           </Avatar>
           <p className={cn("font-medium text-lg", isEditing && "hidden")}>{channel.dmUser.name}</p>
