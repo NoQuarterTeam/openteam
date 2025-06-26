@@ -1,16 +1,17 @@
 import { convexQuery } from "@convex-dev/react-query"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "convex/react"
 import { useNavigate, useParams } from "react-router"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
 import { NewChannel } from "./new-channel"
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
 
 export function Sidebar() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
-  const { data: channels } = useQuery(convexQuery(api.channels.list, {}))
-  // const { data: users } = useQuery(convexQuery(api.users.list, {}))
+  const channels = useQuery(api.channels.list)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   return (
@@ -23,23 +24,31 @@ export function Sidebar() {
                 queryClient.fetchQuery(convexQuery(api.channels.get, { channelId: channel._id }))
               }}
               className={cn(
-                "h-8 w-full justify-start text-left font-normal",
+                "h-8 w-full justify-start pl-2 text-left font-normal",
                 channelId !== channel._id && "text-muted-foreground",
               )}
               key={channel._id}
               onClick={() => navigate(`/${channel._id}`)}
               variant={channelId === channel._id ? "default" : "ghost"}
             >
-              <div className="w-4">#</div>
-              {channel.name.toLowerCase()}
+              {channel.dmUser ? (
+                <>
+                  <Avatar className="size-5 rounded">
+                    <AvatarImage src={channel.dmUser.image || undefined} />
+                    <AvatarFallback className="size-5 rounded text-black text-xs dark:text-white">
+                      {channel.dmUser.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {channel.dmUser.name}
+                </>
+              ) : (
+                <>
+                  <div className="w-5 text-center">#</div>
+                  {channel.name.toLowerCase()}
+                </>
+              )}
             </Button>
           ))}
-          <hr className="my-2" />
-          {/* {users?.map((user) => (
-            <Button key={user._id} variant="ghost" className="h-8 w-full justify-start text-left font-normal">
-              {user.name}
-            </Button>
-          ))} */}
         </div>
         <NewChannel />
       </div>

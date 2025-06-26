@@ -1,17 +1,16 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query"
 import { useQuery, useQueryClient, useMutation as useTanstackMutation } from "@tanstack/react-query"
-import dayjs from "dayjs"
-import { ChevronDownIcon, EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
+import { useQuery as useConvexQuery } from "convex/react"
+import { EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { redirect, useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
-import { FilePill } from "@/components/file-pill"
+import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { WithState } from "@/components/with-state"
 import { api } from "@/convex/_generated/api"
 import type { Doc, Id } from "@/convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
@@ -21,13 +20,14 @@ export default function Component() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const { data: currentChannel } = useQuery(convexQuery(api.channels.get, { channelId: channelId! }))
+  const currentChannel = useConvexQuery(api.channels.get, { channelId: channelId! })
+
   const { data: messages } = useQuery(convexQuery(api.messages.list, { channelId: channelId! }))
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
+      messagesEndRef.current.scrollIntoView()
     }
   }, [messages])
 
@@ -38,7 +38,6 @@ export default function Component() {
       <div className="flex flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs">
         <ChannelHeader key={currentChannel._id} channel={currentChannel} />
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto py-2">
           {messages?.map((message, index) => {
             const isFirstMessageOfUser =
@@ -48,70 +47,20 @@ export default function Component() {
                 new Date(message._creationTime).getTime() - new Date(messages[index - 1]._creationTime).getTime() >
                   10 * 60 * 1000)
 
-            return (
-              <div key={message._id} className="group flex gap-2 px-4 py-1.5 hover:bg-muted/50 dark:hover:bg-muted/10">
-                <div className="pt-0">
-                  {isFirstMessageOfUser && message.author ? (
-                    <Avatar className="size-9 flex-shrink-0 rounded-lg">
-                      <AvatarImage src={message.author.image || undefined} />
-                      <AvatarFallback>{message.author.name.charAt(0) || "U"}</AvatarFallback>
-                    </Avatar>
-                  ) : (
-                    <div className="w-9 flex-shrink-0" />
-                  )}
-                </div>
-                <div className="relative h-min flex-1">
-                  {isFirstMessageOfUser ? (
-                    <div className="flex items-center gap-2">
-                      <span className="pb-1 font-semibold text-sm leading-3">{message.author?.name || "Unknown"}</span>
-                      <span className="text-xs opacity-50">{dayjs(message._creationTime).format("HH:mm")}</span>
-                    </div>
-                  ) : (
-                    <p className="-left-10 absolute top-0.5 hidden text-xs opacity-50 group-hover:block">
-                      {dayjs(message._creationTime).format("HH:mm")}
-                    </p>
-                  )}
-                  {message.content && (
-                    <p className={cn("font-normal text-sm", message.temp && "opacity-70")}>{message.content}</p>
-                  )}
-                  {message.files && message.files.length > 0 && (
-                    <div>
-                      <WithState initialState={true}>
-                        {(state, setState) => (
-                          <>
-                            <div className="flex items-center gap-0.5">
-                              <p className="mb-1 text-xs opacity-50">
-                                {message.files.length === 1 ? message.files[0].name : `${message.files.length} files`}
-                              </p>
-                              <Button variant="ghost" size="icon" className="size-4" onClick={() => setState(!state)}>
-                                <ChevronDownIcon className="size-3.5 opacity-50" />
-                              </Button>
-                            </div>
-                            {state && (
-                              <div className="flex flex-wrap gap-2">
-                                {message.files.length === 1 && <MessageFile file={message.files[0]} />}
-                                {message.files.length > 1 &&
-                                  message.files.map((file) => <MessageFile key={file._id} file={file} className="h-14 w-14" />)}
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </WithState>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
+            return <Message key={message._id} message={message} isFirstMessageOfUser={isFirstMessageOfUser} />
           })}
           <div ref={messagesEndRef} />
         </div>
-        {currentChannel && <MessageInput currentChannel={currentChannel} />}
+
+        <MessageInput currentChannel={currentChannel} />
       </div>
     </div>
   )
 }
 
-function ChannelHeader({ channel }: { channel: Doc<"channels"> }) {
+type Channel = Doc<"channels"> & { dmUser: Doc<"users"> | null }
+
+function ChannelHeader({ channel }: { channel: Channel }) {
   const [isEditing, setIsEditing] = useState(false)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -158,9 +107,24 @@ function ChannelHeader({ channel }: { channel: Doc<"channels"> }) {
   }, [isEditing])
   return (
     <div className="flex items-center justify-between gap-2 border-b py-2 pr-2 pl-2">
-      <p className={cn("pl-2 font-medium text-lg", isEditing && "hidden")}>
-        # {channel.name.toLowerCase()} {channel.archivedTime && "(Archived)"}
-      </p>
+      {channel.dmUser ? (
+        <div className="flex items-center gap-2">
+          <Avatar className="size-8 flex-shrink-0 rounded-lg">
+            <AvatarImage src={channel.dmUser.image || undefined} />
+            <AvatarFallback className="size-8 rounded-lg text-black dark:text-white">
+              {channel.dmUser.name.charAt(0) || "U"}
+            </AvatarFallback>
+          </Avatar>
+          <p className={cn("font-medium text-lg", isEditing && "hidden")}>{channel.dmUser.name}</p>
+        </div>
+      ) : (
+        <div className={cn("flex items-center gap-2 pl-2 font-medium text-lg", isEditing && "hidden")}>
+          <p>#</p>
+          <p>
+            {channel.name.toLowerCase()} {channel.archivedTime && "(Archived)"}
+          </p>
+        </div>
+      )}
       <form onSubmit={handleSaveChannel} className={cn("flex items-center gap-2", isEditing ? "flex" : "hidden")}>
         <Input name="name" ref={inputRef} defaultValue={channel.name || ""} />
         <Button type="submit" className="w-20">
@@ -171,44 +135,32 @@ function ChannelHeader({ channel }: { channel: Doc<"channels"> }) {
         </Button>
       </form>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild disabled={!!channel?.archivedTime}>
-          <Button variant="ghost" size="icon">
-            <EllipsisVerticalIcon />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setIsEditing(true)}>
-            <PencilIcon />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              if (!channel) return
-              if (confirm("Are you sure you want to archive this channel?")) {
-                archiveChannel.mutate({ channelId: channel._id, archivedTime: new Date().toISOString() })
-              }
-            }}
-          >
-            <Trash2Icon />
-            Archive
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  )
-}
-
-type MessageFile = (typeof api.messages.list._returnType)[number]["files"][number]
-
-function MessageFile({ file, className }: { file: MessageFile; className?: string }) {
-  return (
-    <a href={file.url || "#"} target="_blank" rel="noopener noreferrer" className={cn("inline-block max-w-md", className)}>
-      {file.metadata?.contentType?.startsWith("image/") ? (
-        <img src={file.url || "#"} alt={file.name} className="h-full w-full rounded-lg object-cover" />
-      ) : (
-        <FilePill name={file.name} />
+      {!channel.dmUser && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild disabled={!!channel?.archivedTime}>
+            <Button variant="ghost" size="icon">
+              <EllipsisVerticalIcon />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setIsEditing(true)}>
+              <PencilIcon />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                if (!channel) return
+                if (confirm("Are you sure you want to archive this channel?")) {
+                  archiveChannel.mutate({ channelId: channel._id, archivedTime: new Date().toISOString() })
+                }
+              }}
+            >
+              <Trash2Icon />
+              Archive
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
-    </a>
+    </div>
   )
 }

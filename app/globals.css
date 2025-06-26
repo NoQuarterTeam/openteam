@@ -11,8 +11,6 @@
 
 html,
 body {
-  @apply bg-white dark:bg-neutral-950;
-
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
   }

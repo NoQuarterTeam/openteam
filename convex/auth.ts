@@ -1,22 +1,66 @@
+import GitHub from "@auth/core/providers/github"
 import { Password } from "@convex-dev/auth/providers/Password"
 import { convexAuth, getAuthUserId } from "@convex-dev/auth/server"
 import { ConvexError } from "convex/values"
 import { z } from "zod"
-import { MutationCtx, query } from "./_generated/server"
+import { MutationCtx, QueryCtx, query } from "./_generated/server"
 
 const ParamsSchema = z.object({ email: z.string().email(), name: z.string().optional() })
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
+    GitHub({
+      async profile(githubProfile) {
+        const allowedDomain = process.env.ALLOWED_DOMAIN
+        if (!githubProfile.email) throw new ConvexError("Email is required")
+        if (allowedDomain && !githubProfile.email.endsWith(`@${allowedDomain}`)) {
+          throw new ConvexError("This email domain is not allowed")
+        }
+
+        return {
+          id: githubProfile.id.toString(),
+          name: githubProfile.name,
+          email: githubProfile.email,
+          // githubImage: githubProfile.avatar_url,
+        }
+      },
+    }),
     Password({
       profile(params) {
         const { error, data } = ParamsSchema.safeParse(params)
-        if (error) throw new ConvexError(error.format())
+        if (error) throw new ConvexError({ fieldErrors: error.flatten().fieldErrors })
+        const allowedDomain = process.env.ALLOWED_DOMAIN
+        if (allowedDomain && !data.email.endsWith(`@${allowedDomain}`)) {
+          throw new ConvexError("This email domain is not allowed")
+        }
         return data
       },
     }),
   ],
   callbacks: {
+    async createOrUpdateUser(ctx: MutationCtx, args) {
+      if (args.existingUserId) {
+        return args.existingUserId
+      }
+
+      const existingUser = await ctx.db
+        .query("users")
+        .filter((q) => q.eq(q.field("email"), args.profile.email))
+        .first()
+
+      if (existingUser) {
+        return existingUser._id
+      }
+
+      const userId = await ctx.db.insert("users", {
+        name: args.profile.name as string,
+        email: args.profile.email as string,
+      })
+
+      await ctx.db.insert("channels", { name: userId, createdBy: userId, dmId: userId })
+
+      return userId
+    },
     afterUserCreatedOrUpdated: async (ctx: MutationCtx, args) => {
       const existingChannels = await ctx.db.query("channels").first()
       if (!existingChannels) {
@@ -36,3 +80,9 @@ export const loggedInUser = query({
     return { ...user, image: user.image ? await ctx.storage.getUrl(user.image) : null }
   },
 })
+
+export const requireUser = async (ctx: MutationCtx | QueryCtx) => {
+  const userId = await getAuthUserId(ctx)
+  if (!userId) throw new ConvexError("Not authenticated")
+  return userId
+}

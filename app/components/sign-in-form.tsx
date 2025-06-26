@@ -1,8 +1,10 @@
 import { useAuthActions } from "@convex-dev/auth/react"
+import { ConvexError } from "convex/values"
 import { useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { GitHubIcon } from "./github-icon"
 
 export function SignInForm() {
   const { signIn } = useAuthActions()
@@ -29,8 +31,14 @@ export function SignInForm() {
             formData.set("flow", flow)
             void signIn("password", formData).catch((error) => {
               let toastTitle = ""
-              if (error.message.includes("Invalid password")) {
-                toastTitle = "Invalid password. Please try again."
+              if (error instanceof ConvexError) {
+                if (error.data.fieldErrors?.email) {
+                  toastTitle = error.data.fieldErrors.email[0]
+                } else if (error.data.fieldErrors?.password) {
+                  toastTitle = error.data.fieldErrors.password[0]
+                } else {
+                  toastTitle = error.data.message
+                }
               } else {
                 toastTitle =
                   flow === "signIn"
@@ -43,6 +51,11 @@ export function SignInForm() {
           }}
         >
           <div className="space-y-4">
+            <Button variant="outline" className="w-full" onClick={() => void signIn("github")}>
+              <GitHubIcon />
+              Sign {flow === "signIn" ? "in" : "up"} with GitHub
+            </Button>
+            <hr />
             {flow === "signUp" && <Input type="text" name="name" placeholder="Display name" required autoComplete="name" />}
             <Input type="email" name="email" placeholder="Email" required autoComplete="email" />
             <Input

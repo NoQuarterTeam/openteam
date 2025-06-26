@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "convex/react"
 import { UserIcon } from "lucide-react"
-import { useId, useRef, useState } from "react"
+import { useCallback, useId, useRef, useState } from "react"
+import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
 import type { Id } from "@/convex/_generated/dataModel"
 import { api } from "../../convex/_generated/api"
@@ -56,20 +57,17 @@ export function ProfileModal() {
     }
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("File size must be less than 5MB")
-        return
-      }
-      if (!file.type.startsWith("image/")) {
-        toast.error("Please select an image file")
-        return
-      }
-      setSelectedFile(file)
-    }
-  }
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    setSelectedFile(acceptedFiles[0])
+  }, [])
+
+  const { getRootProps, getInputProps } = useDropzone({
+    onDrop,
+    multiple: false,
+    accept: {
+      "image/*": [],
+    },
+  })
 
   const inputId = useId()
   return (
@@ -99,11 +97,13 @@ export function ProfileModal() {
                 )}
               </div>
 
-              <Button onClick={() => fileInputRef.current?.click()}>
-                {user?.image || selectedFile ? "Change Photo" : "Upload Photo"}
-              </Button>
+              <div {...getRootProps()}>
+                <input {...getInputProps()} />
 
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+                <Button onClick={() => fileInputRef.current?.click()}>
+                  {user?.image || selectedFile ? "Change Photo" : "Upload Photo"}
+                </Button>
+              </div>
             </div>
 
             {/* Name Field */}

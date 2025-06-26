@@ -1,5 +1,4 @@
-import { convexQuery } from "@convex-dev/react-query"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery } from "convex/react"
 import { useEffect } from "react"
 import { useNavigate } from "react-router"
 import { api } from "@/convex/_generated/api"
@@ -10,7 +9,7 @@ export function meta(_: Route.MetaArgs) {
 }
 
 export default function Component() {
-  const { data: channels } = useQuery(convexQuery(api.channels.list, {}))
+  const channels = useQuery(api.channels.list)
 
   const navigate = useNavigate()
 

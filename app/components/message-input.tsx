@@ -1,6 +1,5 @@
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query"
-import { useQuery } from "@tanstack/react-query"
-import { useMutation } from "convex/react"
+import { useConvexMutation } from "@convex-dev/react-query"
+import { useMutation, useQuery } from "convex/react"
 import { ArrowRightIcon, PlusIcon, XIcon } from "lucide-react"
 import * as React from "react"
 import { toast } from "sonner"
@@ -19,7 +18,7 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
   const [newMessage, setNewMessage] = React.useState("")
   const [filePreviews, setFilePreviews] = React.useState<{ file: File; url: string; storageId?: Id<"_storage"> }[]>([])
   const fileInputId = React.useId()
-  const { data: user } = useQuery(convexQuery(api.auth.loggedInUser, {}))
+  const user = useQuery(api.auth.loggedInUser)
 
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate((localStore, args) => {
     const { channelId, content } = args

@@ -22,14 +22,14 @@ convexQueryClient.connect(queryClient)
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html suppressHydrationWarning lang="en" className="dark min-h-dvh w-screen bg-neutral-50/50 dark:bg-neutral-900/50">
+    <html suppressHydrationWarning lang="en" className="dark">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
       </head>
-      <body>
+      <body className="min-h-dvh w-screen bg-neutral-50 dark:bg-neutral-900/50">
         <ConvexAuthProvider client={convex}>
           <QueryClientProvider client={queryClient}>
             <ThemeProvider enableSystem attribute="class">
@@ -76,5 +76,5 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 }
 
 export function HydrateFallback() {
-  return <div className="h-dvh w-screen bg-neutral-50/50 dark:bg-neutral-900/50" />
+  return <div className="h-dvh w-screen bg-neutral-50 dark:bg-neutral-900/50" />
 }

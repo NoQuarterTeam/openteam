@@ -1,12 +1,11 @@
-import { getAuthUserId } from "@convex-dev/auth/server"
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import { requireUser } from "./auth"
 
 export const list = query({
   args: { channelId: v.id("channels") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) throw new Error("Not authenticated")
+    await requireUser(ctx)
 
     const messages = await ctx.db
       .query("messages")
@@ -52,8 +51,7 @@ export const send = mutation({
     files: v.optional(v.array(v.object({ name: v.string(), storageId: v.id("_storage") }))),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) throw new Error("Not authenticated")
+    const userId = await requireUser(ctx)
 
     const message = await ctx.db.insert("messages", {
       channelId: args.channelId,
@@ -75,19 +73,12 @@ export const search = query({
     channelId: v.optional(v.id("channels")),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx)
-    if (!userId) {
-      throw new Error("Not authenticated")
-    }
+    await requireUser(ctx)
 
     if (!args.query.trim()) return []
 
     const searchQuery = ctx.db.query("messages").withSearchIndex("search_content", (q) => {
-      let query = q.search("content", args.query)
-      if (args.channelId) {
-        query = query.eq("channelId", args.channelId)
-      }
-      return query
+      return q.search("content", args.query)
     })
 
     const messages = await searchQuery.take(20)
