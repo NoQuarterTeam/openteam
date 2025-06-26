@@ -6,7 +6,7 @@ import { requireUser } from "./auth"
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    await requireUser(ctx)
+    const userId = await requireUser(ctx)
 
     const channels = await ctx.db
       .query("channels")
@@ -14,8 +14,23 @@ export const list = query({
       .order("asc")
       .collect()
 
+    // Get user's channel orders
+    const channelOrders = await ctx.db
+      .query("channelOrders")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect()
+
+    const orderMap = new Map(channelOrders.map((order) => [order.channelId, order.order]))
+
+    // Sort channels by user's custom order, fallback to creation time
+    const sortedChannels = channels.sort((a, b) => {
+      const orderA = orderMap.get(a._id) ?? a._creationTime
+      const orderB = orderMap.get(b._id) ?? b._creationTime
+      return orderA - orderB
+    })
+
     return await Promise.all(
-      channels.map(async (channel) => {
+      sortedChannels.map(async (channel) => {
         const dmUser = channel.dmId ? await ctx.db.get(channel.dmId) : null
 
         if (dmUser?.image) {
@@ -40,9 +55,26 @@ export const create = mutation({
 
     if (existing) throw new ConvexError("Channel already exists")
 
-    return await ctx.db.insert("channels", { name: args.name, createdBy: userId })
+    const channelId = await ctx.db.insert("channels", { name: args.name, createdBy: userId })
+
+    // Get the current max order for this user and add the new channel at the end
+    const userChannelOrders = await ctx.db
+      .query("channelOrders")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect()
+
+    const maxOrder = Math.max(...userChannelOrders.map((order) => order.order), -1)
+
+    await ctx.db.insert("channelOrders", {
+      channelId,
+      userId,
+      order: maxOrder + 1,
+    })
+
+    return channelId
   },
 })
+
 export const update = mutation({
   args: { channelId: v.id("channels"), name: v.optional(v.string()), archivedTime: v.optional(v.string()) },
   handler: async (ctx, args) => {
@@ -66,5 +98,38 @@ export const get = query({
 
     const dmUser = channel.dmId ? await ctx.db.get(channel.dmId) : null
     return { ...channel, dmUser }
+  },
+})
+
+export const updateOrder = mutation({
+  args: {
+    channelOrders: v.array(
+      v.object({
+        channelId: v.id("channels"),
+        order: v.number(),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx)
+
+    // Update or create channel orders for the user
+    for (const { channelId, order } of args.channelOrders) {
+      const existingOrder = await ctx.db
+        .query("channelOrders")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .filter((q) => q.eq(q.field("channelId"), channelId))
+        .first()
+
+      if (existingOrder) {
+        await ctx.db.patch(existingOrder._id, { order })
+      } else {
+        await ctx.db.insert("channelOrders", {
+          channelId,
+          userId,
+          order,
+        })
+      }
+    }
   },
 })

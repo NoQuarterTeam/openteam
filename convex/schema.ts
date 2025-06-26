@@ -13,6 +13,15 @@ export default defineSchema({
     .index("by_name", ["name"])
     .index("by_dm_id", ["dmId"]),
 
+  channelOrders: defineTable({
+    channelId: v.id("channels"),
+    order: v.number(),
+    userId: v.id("users"),
+  })
+    .index("by_channel", ["channelId"])
+    .index("by_order", ["order"])
+    .index("by_user", ["userId"]),
+
   messages: defineTable({
     channelId: v.id("channels"),
     authorId: v.id("users"),

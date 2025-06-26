@@ -29,7 +29,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body className="min-h-dvh w-screen bg-neutral-50 dark:bg-neutral-900/50">
+      <body className="min-h-dvh w-screen bg-muted/50">
         <ConvexAuthProvider client={convex}>
           <QueryClientProvider client={queryClient}>
             <ThemeProvider enableSystem attribute="class">

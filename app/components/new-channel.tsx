@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 export function NewChannel() {
   const [open, setOpen] = React.useState(false)
   return (
-    <Popover open={open} onOpenChange={setOpen} modal>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="outline" className="w-full" title="Create channel">
           <PlusIcon />
@@ -30,14 +30,15 @@ function NewChannelForm(props: { onClose: () => void }) {
   const [newChannelName, setNewChannelName] = React.useState("")
   const createChannel = useMutation(api.channels.create)
   const navigate = useNavigate()
+
   const handleCreateChannel = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newChannelName.trim()) return
 
     try {
       const channelId = await createChannel({ name: newChannelName.toLowerCase().trim() })
-      navigate(`/${channelId}`)
       props.onClose()
+      await navigate(`/${channelId}`)
     } catch {
       toast.error("Failed to create channel")
     }

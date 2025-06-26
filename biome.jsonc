@@ -59,7 +59,9 @@
       "a11y": {
         "noAutofocus": "off",
         "useMediaCaption": "off",
-        "noStaticElementInteractions": "off"
+        "noStaticElementInteractions": "off",
+        "noAccessKey": "off",
+        "useKeyWithClickEvents": "off"
       },
       "style": {
         "noNonNullAssertion": "off",
