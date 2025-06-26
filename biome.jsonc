@@ -58,7 +58,8 @@
       },
       "a11y": {
         "noAutofocus": "off",
-        "useMediaCaption": "off"
+        "useMediaCaption": "off",
+        "noStaticElementInteractions": "off"
       },
       "style": {
         "noNonNullAssertion": "off",

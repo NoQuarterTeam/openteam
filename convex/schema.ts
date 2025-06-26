@@ -21,6 +21,14 @@ export default defineSchema({
     .index("by_channel", ["channelId"])
     .searchIndex("search_content", { searchField: "content", filterFields: ["channelId"] }),
 
+  messageReactions: defineTable({
+    messageId: v.id("messages"),
+    userId: v.id("users"),
+    content: v.string(),
+  })
+    .index("by_message", ["messageId"])
+    .index("by_user", ["userId"]),
+
   files: defineTable({
     name: v.string(),
     messageId: v.id("messages"),

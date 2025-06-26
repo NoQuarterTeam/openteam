@@ -16,27 +16,40 @@ export const list = query({
     // Get author profiles for each message
     const messagesWithAuthors = await Promise.all(
       messages.map(async (message) => {
-        const user = await ctx.db.get(message.authorId)
+        const [user, dbReactions, dbFiles] = await Promise.all([
+          ctx.db.get(message.authorId),
+          ctx.db
+            .query("messageReactions")
+            .withIndex("by_message", (q) => q.eq("messageId", message._id))
+            .collect(),
+          ctx.db
+            .query("files")
+            .withIndex("by_message", (q) => q.eq("messageId", message._id))
+            .collect(),
+        ])
 
-        const dbFiles = await ctx.db
-          .query("files")
-          .withIndex("by_message", (q) => q.eq("messageId", message._id))
-          .collect()
-
-        const files = await Promise.all(
-          dbFiles.map(async (file) => {
-            const fileDb = await ctx.db.get(file._id)
-            if (!fileDb?.storageId) return null
-            const metadata = await ctx.db.system.get(fileDb.storageId)
-            if (!metadata) return null
-            return { ...fileDb, metadata, url: await ctx.storage.getUrl(fileDb.storageId) }
-          }),
-        )
+        const [reactions, files] = await Promise.all([
+          Promise.all(
+            dbReactions.map(async (reaction) => {
+              const user = await ctx.db.get(reaction.userId)
+              return { ...reaction, user: { ...user, image: user?.image ? await ctx.storage.getUrl(user.image) : null } }
+            }),
+          ),
+          Promise.all(
+            dbFiles.map(async (file) => {
+              const fileDb = await ctx.db.get(file._id)
+              if (!fileDb?.storageId) return null
+              const metadata = await ctx.db.system.get(fileDb.storageId)
+              if (!metadata) return null
+              return { ...fileDb, metadata, url: await ctx.storage.getUrl(fileDb.storageId) }
+            }),
+          ),
+        ])
 
         let image = null
         if (user?.image) image = await ctx.storage.getUrl(user.image)
 
-        return { ...message, files: files.filter(Boolean), temp: false, author: user ? { ...user, image } : null }
+        return { ...message, reactions, files: files.filter(Boolean), temp: false, author: user ? { ...user, image } : null }
       }),
     )
 
@@ -101,5 +114,18 @@ export const search = query({
     )
 
     return messagesWithDetails
+  },
+})
+
+export const deleteMessage = mutation({
+  args: {
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx)
+    const message = await ctx.db.get(args.messageId)
+    if (!message) throw new Error("Message not found")
+    if (message.authorId !== userId) throw new Error("You are not the author of this message")
+    await ctx.db.delete(args.messageId)
   },
 })

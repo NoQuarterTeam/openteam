@@ -36,6 +36,7 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
           channelId,
           _creationTime: Date.now(),
           temp: true,
+          reactions: [],
           files: filePreviews.map(({ file, url }) => ({
             name: file.name,
             _creationTime: Date.now(),

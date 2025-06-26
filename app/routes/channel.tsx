@@ -19,17 +19,27 @@ export default function Component() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const [isUserScrolledUp, setIsUserScrolledUp] = useState(false)
 
   const currentChannel = useConvexQuery(api.channels.get, { channelId: channelId! })
 
   const { data: messages } = useQuery(convexQuery(api.messages.list, { channelId: channelId! }))
 
-  // Auto-scroll to bottom when new messages arrive
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return
+
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 10 // 10px threshold
+
+    setIsUserScrolledUp(!isAtBottom)
+  }
+
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (messagesEndRef.current && !isUserScrolledUp) {
       messagesEndRef.current.scrollIntoView()
     }
-  }, [messages])
+  }, [messages?.length, isUserScrolledUp])
 
   if (currentChannel === null) return redirect("/")
   if (!currentChannel) return null
@@ -38,7 +48,7 @@ export default function Component() {
       <div className="flex flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs">
         <ChannelHeader key={currentChannel._id} channel={currentChannel} />
 
-        <div className="flex-1 overflow-y-auto py-2">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto py-2" onScroll={handleScroll}>
           {messages?.map((message, index) => {
             const isFirstMessageOfUser =
               index === 0 ||
