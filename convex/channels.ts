@@ -1,5 +1,4 @@
 import { ConvexError, v } from "convex/values"
-import { Id } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 import { requireUser } from "./auth"
 
@@ -33,10 +32,7 @@ export const list = query({
       sortedChannels.map(async (channel) => {
         const dmUser = channel.dmId ? await ctx.db.get(channel.dmId) : null
 
-        if (dmUser?.image) {
-          dmUser.image = (await ctx.storage.getUrl(dmUser.image)) as Id<"_storage"> | undefined
-        }
-        return { ...channel, dmUser }
+        return { ...channel, dmUser: { ...dmUser, image: dmUser?.image ? await ctx.storage.getUrl(dmUser.image) : null } }
       }),
     )
   },
@@ -97,7 +93,7 @@ export const get = query({
     if (!channel) return null
 
     const dmUser = channel.dmId ? await ctx.db.get(channel.dmId) : null
-    return { ...channel, dmUser }
+    return { ...channel, dmUser: { ...dmUser, image: dmUser?.image ? await ctx.storage.getUrl(dmUser.image) : null } }
   },
 })
 

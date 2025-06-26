@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { api } from "@/convex/_generated/api"
-import type { Doc, Id } from "@/convex/_generated/dataModel"
+import type { Id } from "@/convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
 
 export default function Component() {
@@ -69,9 +69,9 @@ export default function Component() {
   )
 }
 
-type Channel = Doc<"channels"> & { dmUser: Doc<"users"> | null }
+type ChannelData = NonNullable<typeof api.channels.get._returnType>
 
-function ChannelHeader({ channel }: { channel: Channel }) {
+function ChannelHeader({ channel }: { channel: ChannelData }) {
   const [isEditing, setIsEditing] = useState(false)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -123,7 +123,7 @@ function ChannelHeader({ channel }: { channel: Channel }) {
           <Avatar className="size-8 flex-shrink-0 rounded-lg">
             <AvatarImage src={channel.dmUser.image || undefined} />
             <AvatarFallback className="size-8 rounded-lg text-black dark:text-white">
-              {channel.dmUser.name.charAt(0) || "U"}
+              {channel.dmUser.name?.charAt(0) || "U"}
             </AvatarFallback>
           </Avatar>
           <p className={cn("font-medium text-lg", isEditing && "hidden")}>{channel.dmUser.name}</p>
