@@ -21,7 +21,6 @@ export const list = query({
 
     const orderMap = new Map(channelOrders.map((order) => [order.channelId, order.order]))
 
-    // Sort channels by user's custom order, fallback to creation time
     const sortedChannels = channels.sort((a, b) => {
       const orderA = orderMap.get(a._id) ?? a._creationTime
       const orderB = orderMap.get(b._id) ?? b._creationTime
@@ -32,7 +31,10 @@ export const list = query({
       sortedChannels.map(async (channel) => {
         const dmUser = channel.dmId ? await ctx.db.get(channel.dmId) : null
 
-        return { ...channel, dmUser: { ...dmUser, image: dmUser?.image ? await ctx.storage.getUrl(dmUser.image) : null } }
+        return {
+          ...channel,
+          dmUser: dmUser ? { ...dmUser, image: dmUser?.image ? await ctx.storage.getUrl(dmUser.image) : null } : null,
+        }
       }),
     )
   },
