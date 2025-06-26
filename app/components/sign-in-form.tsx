@@ -13,7 +13,7 @@ export function SignInForm() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-start bg-muted/50 px-4 py-10 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 rounded-xl border bg-background p-8">
+      <div className="w-full max-w-md space-y-4 rounded-xl border bg-background p-8">
         <div className="flex flex-col items-center gap-2">
           <h2 className="font-bold text-2xl text-neutral-900 tracking-tight dark:text-neutral-100">
             {flow === "signIn" ? "Sign in to your account" : "Create a new account"}
@@ -22,6 +22,11 @@ export function SignInForm() {
             {flow === "signIn" ? "Welcome back! Please enter your details." : "Sign up to get started."}
           </p>
         </div>
+        <Button variant="outline" className="w-full" onClick={() => void signIn("github")}>
+          <GitHubIcon />
+          Sign {flow === "signIn" ? "in" : "up"} with GitHub
+        </Button>
+        <hr />
         <form
           className="space-y-6"
           onSubmit={(e) => {
@@ -51,11 +56,6 @@ export function SignInForm() {
           }}
         >
           <div className="space-y-4">
-            <Button variant="outline" className="w-full" onClick={() => void signIn("github")}>
-              <GitHubIcon />
-              Sign {flow === "signIn" ? "in" : "up"} with GitHub
-            </Button>
-            <hr />
             {flow === "signUp" && <Input type="text" name="name" placeholder="Display name" required autoComplete="name" />}
             <Input type="email" name="email" placeholder="Email" required autoComplete="email" />
             <Input
