@@ -49,9 +49,11 @@ export function CommandCenter() {
             {channels?.map((channel) => (
               <CommandItem
                 key={channel._id}
-                onSelect={() => {
+                onSelect={async () => {
+                  setTimeout(() => {
+                    setOpen(false)
+                  }, 100)
                   navigate(`/${channel._id}`)
-                  setOpen(false)
                 }}
               >
                 {channel.dmUser ? (

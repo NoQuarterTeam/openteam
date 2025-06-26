@@ -1,4 +1,4 @@
-import { v } from "convex/values"
+import { ConvexError, v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import { requireUser } from "./auth"
 
@@ -127,5 +127,19 @@ export const deleteMessage = mutation({
     if (!message) throw new Error("Message not found")
     if (message.authorId !== userId) throw new Error("You are not the author of this message")
     await ctx.db.delete(args.messageId)
+  },
+})
+
+export const update = mutation({
+  args: {
+    messageId: v.id("messages"),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx)
+    const message = await ctx.db.get(args.messageId)
+    if (!message) throw new ConvexError("Message not found")
+    if (message.authorId !== userId) throw new ConvexError("You are not the author of this message")
+    await ctx.db.patch(args.messageId, { content: args.content })
   },
 })

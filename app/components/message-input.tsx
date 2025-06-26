@@ -1,13 +1,13 @@
 import { useConvexMutation } from "@convex-dev/react-query"
 import { useMutation, useQuery } from "convex/react"
 import { ArrowRightIcon, PlusIcon, XIcon } from "lucide-react"
-import * as React from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
 import type { Doc, Id } from "@/convex/_generated/dataModel"
+import { ExpandableTextarea, type ExpandableTextareaRef } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
 import { Button } from "./ui/button"
-import { Input } from "./ui/input"
 import { Spinner } from "./ui/spinner"
 
 function isImage(file: File | { name: string }): boolean {
@@ -15,9 +15,9 @@ function isImage(file: File | { name: string }): boolean {
 }
 
 export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels"> }) {
-  const [newMessage, setNewMessage] = React.useState("")
-  const [filePreviews, setFilePreviews] = React.useState<{ file: File; url: string; storageId?: Id<"_storage"> }[]>([])
-  const fileInputId = React.useId()
+  const [newMessage, setNewMessage] = useState("")
+  const [filePreviews, setFilePreviews] = useState<{ file: File; url: string; storageId?: Id<"_storage"> }[]>([])
+  const fileInputId = useId()
   const user = useQuery(api.auth.loggedInUser)
 
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate((localStore, args) => {
@@ -59,6 +59,8 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
 
   const generateUploadUrl = useConvexMutation(api.uploads.generateUploadUrl)
 
+  const textAreaRef = useRef<ExpandableTextareaRef>(null)
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newMessage.trim() && filePreviews.length === 0) return
@@ -78,7 +80,8 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
       //     newFiles.push({ name: file.name, storageId })
       //   }
       // }
-
+      textAreaRef.current?.resetHeight()
+      textAreaRef.current?.clearValue()
       void sendMessage({
         channelId: currentChannel._id,
         content: newMessage.trim(),
@@ -115,9 +118,27 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
 
   const handleRemoveFile = (index: number) => setFilePreviews((prev) => prev.filter((_, i) => i !== index))
 
+  const formRef = useRef<HTMLFormElement>(null)
+
+  useEffect(() => {
+    setTimeout(() => {
+      textAreaRef.current?.focus()
+    }, 100)
+  }, [currentChannel._id])
+
+  useEffect(() => {
+    const handleKeyDown = () => {
+      // Focus the textarea when the user presses any key
+      textAreaRef.current?.focus()
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [])
   return (
     <div className="border-t bg-background">
-      <form onSubmit={handleSendMessage} className="relative flex flex-col gap-2">
+      <form onSubmit={handleSendMessage} ref={formRef} className="relative flex flex-col gap-2">
         {filePreviews.length > 0 && (
           <div className="-top-18 absolute right-0 left-0 flex flex-wrap gap-2 border-t border-b bg-background p-2">
             {filePreviews.map(({ file, url, storageId }, i) => (
@@ -142,13 +163,22 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
           <Button type="button" variant="secondary" onClick={() => document.getElementById(fileInputId)?.click()} size="icon">
             <PlusIcon />
           </Button>
-          <Input
-            disabled={!currentChannel || !!currentChannel.archivedTime}
-            type="text"
-            placeholder={`Message`}
-            value={newMessage}
+
+          <ExpandableTextarea
+            ref={textAreaRef}
+            placeholder="Send a message..."
             onChange={(e) => setNewMessage(e.target.value)}
+            rows={1}
+            disabled={!!currentChannel.archivedTime}
+            autoFocus
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault()
+                formRef.current?.requestSubmit()
+              }
+            }}
           />
+
           <div className="flex items-center gap-2">
             <input id={fileInputId} type="file" multiple className="hidden" onChange={handleFileInput} />
             <Button type="submit" size="icon" disabled={!newMessage.trim() && filePreviews.length === 0}>

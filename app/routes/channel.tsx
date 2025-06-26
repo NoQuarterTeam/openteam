@@ -39,7 +39,7 @@ export default function Component() {
     if (messagesEndRef.current && !isUserScrolledUp) {
       messagesEndRef.current.scrollIntoView()
     }
-  }, [messages?.length, isUserScrolledUp])
+  }, [messages, isUserScrolledUp])
 
   if (currentChannel === null) return redirect("/")
   if (!currentChannel) return null
@@ -48,17 +48,18 @@ export default function Component() {
       <div className="flex flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs">
         <ChannelHeader key={currentChannel._id} channel={currentChannel} />
 
-        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto py-2" onScroll={handleScroll}>
-          {messages?.map((message, index) => {
-            const isFirstMessageOfUser =
-              index === 0 ||
-              messages[index - 1]?.authorId !== message.authorId ||
-              (messages[index - 1] &&
-                new Date(message._creationTime).getTime() - new Date(messages[index - 1]._creationTime).getTime() >
-                  10 * 60 * 1000)
-
-            return <Message key={message._id} message={message} isFirstMessageOfUser={isFirstMessageOfUser} />
-          })}
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-none py-2" onScroll={handleScroll}>
+          <div className="min-h-[500px]">
+            {messages?.map((message, index) => {
+              const isFirstMessageOfUser =
+                index === 0 ||
+                messages[index - 1]?.authorId !== message.authorId ||
+                (messages[index - 1] &&
+                  new Date(message._creationTime).getTime() - new Date(messages[index - 1]._creationTime).getTime() >
+                    10 * 60 * 1000)
+              return <Message key={message._id} message={message} isFirstMessageOfUser={isFirstMessageOfUser} />
+            })}
+          </div>
           <div ref={messagesEndRef} />
         </div>
 
@@ -116,7 +117,7 @@ function ChannelHeader({ channel }: { channel: Channel }) {
     }
   }, [isEditing])
   return (
-    <div className="flex items-center justify-between gap-2 border-b py-2 pr-2 pl-2">
+    <div className="flex h-13 items-center justify-between gap-2 border-b px-2">
       {channel.dmUser ? (
         <div className="flex items-center gap-2">
           <Avatar className="size-8 flex-shrink-0 rounded-lg">

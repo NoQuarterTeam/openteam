@@ -1,11 +1,12 @@
 import { useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
 import { ChevronDownIcon, Edit2Icon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
+import { ExpandableTextarea } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
@@ -21,8 +22,9 @@ interface Props {
 
 export function Message({ message, isFirstMessageOfUser }: Props) {
   const user = useQuery(api.auth.loggedInUser)
-  const [isToolbarVisible, setIsToolbarVisible] = useState(false)
+  const [isMessageHovered, setIsMessageHovered] = useState(false)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   const addReaction = useMutation(api.reactions.add).withOptimisticUpdate((localStore, args) => {
     if (!user) return
@@ -90,12 +92,14 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
     <div
       key={message._id}
       className="group flex gap-2 px-4 py-1.5 hover:bg-muted/50 dark:hover:bg-muted/10"
-      onMouseEnter={() => setIsToolbarVisible(true)}
+      onMouseEnter={() => {
+        if (!isEditing) setIsMessageHovered(true)
+      }}
       onMouseLeave={() => {
-        if (!isPopoverOpen) setIsToolbarVisible(false)
+        if (!isPopoverOpen) setIsMessageHovered(false)
       }}
     >
-      <div className="pt-0">
+      <div>
         {isFirstMessageOfUser && message.author ? (
           <Avatar className="size-9 flex-shrink-0 rounded-lg">
             <AvatarImage src={message.author.image || undefined} />
@@ -109,17 +113,26 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
       </div>
       <div className="relative h-min flex-1">
         {isFirstMessageOfUser ? (
-          <div className="flex items-center gap-2">
-            <span className="pb-1 font-semibold text-sm leading-3">{message.author?.name || "Unknown"}</span>
-            <span className="text-xs opacity-50">{dayjs(message._creationTime).format("HH:mm")}</span>
+          <div className="flex gap-2 pb-1.5">
+            <span className="font-semibold text-sm leading-4">{message.author?.name || "Unknown"}</span>
+            <span className="text-xs leading-4 opacity-50">{dayjs(message._creationTime).format("HH:mm")}</span>
           </div>
         ) : (
-          <p className="-left-10 absolute top-0.5 hidden text-xs opacity-50 group-hover:block">
+          <p className="-left-10 absolute top-0 hidden text-xs opacity-50 group-hover:block">
             {dayjs(message._creationTime).format("HH:mm")}
           </p>
         )}
-        {message.content && <p className={cn("font-normal text-sm", message.temp && "opacity-70")}>{message.content}</p>}
-        {message.files && message.files.length > 0 && (
+        {!isEditing && message.content && (
+          <p
+            className={cn(
+              "wrap-break-word -my-[6px] whitespace-pre-line font-normal text-sm leading-7",
+              message.temp && "opacity-70",
+            )}
+            dangerouslySetInnerHTML={{ __html: message.content.replace(/\n{2,}/g, "\n") }}
+          />
+        )}
+        {isEditing && <MessageEditor message={message} onClose={() => setIsEditing(false)} />}
+        {!isEditing && message.files && message.files.length > 0 && (
           <div>
             <WithState initialState={true}>
               {(state, setState) => (
@@ -144,60 +157,8 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
             </WithState>
           </div>
         )}
-        <div
-          className={cn(
-            "-top-4 absolute right-0 gap-0 rounded-lg border bg-background p-1 shadow-xs transition-opacity duration-200",
-            isToolbarVisible ? "flex" : "hidden",
-          )}
-        >
-          <Popover modal open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-            <PopoverTrigger>
-              <Button size="icon" variant="ghost">
-                <SmileIcon />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-full p-0" backdrop="transparent">
-              <EmojiPicker
-                className="h-[342px]"
-                onEmojiSelect={({ emoji }) => {
-                  if (!user) return
-                  const existingReaction = message.reactions.find((r) => r.content === emoji && r.userId === user._id)
-                  if (existingReaction) {
-                    removeReaction({ reactionId: existingReaction._id })
-                  } else {
-                    addReaction({ messageId: message._id, content: emoji })
-                  }
-                  setIsPopoverOpen(false)
-                }}
-              >
-                <EmojiPickerSearch />
-                <EmojiPickerContent />
-                <EmojiPickerFooter />
-              </EmojiPicker>
-            </PopoverContent>
-          </Popover>
 
-          {message.author?._id === user?._id && (
-            <Button size="icon" variant="ghost">
-              <Edit2Icon />
-            </Button>
-          )}
-          {message.author?._id === user?._id && (
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => {
-                if (window.confirm("Are you sure you want to delete this message?")) {
-                  deleteMessage({ messageId: message._id })
-                }
-              }}
-            >
-              <TrashIcon className="text-destructive" />
-            </Button>
-          )}
-        </div>
-
-        {Object.entries(groupedReactions).length > 0 && (
+        {!isEditing && Object.entries(groupedReactions).length > 0 && (
           <div className="flex items-center gap-1 pt-1">
             {Object.entries(groupedReactions).map(([content, { count, reactions }]) => (
               <button
@@ -220,7 +181,8 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
                     : "hover:border-black dark:hover:border-white",
                 )}
               >
-                {content} <span className="min-w-4">{count}</span>
+                <span>{content}</span>
+                <span className="min-w-4">{count}</span>
               </button>
             ))}
 
@@ -259,6 +221,67 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
             </WithState>
           </div>
         )}
+        <div
+          className={cn(
+            "-top-4 absolute right-0 gap-0 rounded-lg border bg-background p-1 shadow-xs transition-opacity duration-200",
+            isMessageHovered ? "flex" : "hidden",
+          )}
+        >
+          <Popover modal open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button size="icon" className="size-8" variant="ghost">
+                <SmileIcon className="size-3.5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-full p-0" backdrop="transparent">
+              <EmojiPicker
+                className="h-[342px]"
+                onEmojiSelect={({ emoji }) => {
+                  if (!user) return
+                  const existingReaction = message.reactions.find((r) => r.content === emoji && r.userId === user._id)
+                  if (existingReaction) {
+                    removeReaction({ reactionId: existingReaction._id })
+                  } else {
+                    addReaction({ messageId: message._id, content: emoji })
+                  }
+                  setIsPopoverOpen(false)
+                }}
+              >
+                <EmojiPickerSearch />
+                <EmojiPickerContent />
+                <EmojiPickerFooter />
+              </EmojiPicker>
+            </PopoverContent>
+          </Popover>
+
+          {message.author?._id === user?._id && (
+            <Button
+              size="icon"
+              className="size-8"
+              variant="ghost"
+              onClick={() => {
+                setIsEditing(true)
+                setIsMessageHovered(false)
+              }}
+            >
+              <Edit2Icon className="size-3.5" />
+            </Button>
+          )}
+          {message.author?._id === user?._id && (
+            <Button
+              size="icon"
+              className="size-8"
+              variant="ghost"
+              onClick={() => {
+                if (window.confirm("Are you sure you want to delete this message?")) {
+                  deleteMessage({ messageId: message._id })
+                }
+              }}
+            >
+              <TrashIcon className="size-3.5 text-destructive" />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -275,5 +298,64 @@ function MessageFile({ file, className }: { file: MessageFile; className?: strin
         <FilePill name={file.name} />
       )}
     </a>
+  )
+}
+
+function MessageEditor({ message, onClose }: { message: MessageData; onClose: () => void }) {
+  const updateMessage = useMutation(api.messages.update).withOptimisticUpdate((localStore, args) => {
+    const currentValue = localStore.getQuery(api.messages.list, { channelId: message.channelId })
+    if (currentValue) {
+      localStore.setQuery(
+        api.messages.list,
+        { channelId: message.channelId },
+        currentValue.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
+      )
+    }
+  })
+
+  const [input, setInput] = useState(message.content || "")
+
+  const handleSubmit = () => {
+    void updateMessage({ messageId: message._id, content: input })
+    onClose()
+  }
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault()
+        onClose()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [])
+
+  return (
+    <div className="space-y-2 rounded-lg border bg-background p-2">
+      <ExpandableTextarea
+        placeholder="Edit message"
+        onChange={(event) => setInput(event.target.value)}
+        defaultValue={message.content}
+        rows={1}
+        autoFocus
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+            event.preventDefault()
+            handleSubmit()
+          }
+        }}
+      />
+      <div className="flex gap-2">
+        <Button size="sm" variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button size="sm" onClick={handleSubmit}>
+          Save
+        </Button>
+      </div>
+    </div>
   )
 }
