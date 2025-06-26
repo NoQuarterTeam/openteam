@@ -137,11 +137,11 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
             <WithState initialState={true}>
               {(state, setState) => (
                 <>
-                  <div className="flex items-center gap-0.5">
-                    <p className="mb-1 text-xs opacity-50">
+                  <div className="flex items-center gap-0.5 pb-1">
+                    <p className="text-xs opacity-50">
                       {message.files.length === 1 ? message.files[0].name : `${message.files.length} files`}
                     </p>
-                    <Button variant="ghost" size="icon" className="size-4" onClick={() => setState(!state)}>
+                    <Button variant="ghost" size="icon" className="size-4 rounded-sm" onClick={() => setState(!state)}>
                       <ChevronDownIcon className="size-3.5 opacity-50" />
                     </Button>
                   </div>
