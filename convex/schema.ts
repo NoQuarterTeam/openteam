@@ -30,6 +30,17 @@ export default defineSchema({
     .index("by_channel", ["channelId"])
     .searchIndex("search_content", { searchField: "content", filterFields: ["channelId"] }),
 
+  userChannelActivity: defineTable({
+    lastReadMessageTime: v.optional(v.number()),
+    channelId: v.id("channels"),
+    isFavourite: v.boolean(),
+    isMuted: v.boolean(),
+    userId: v.id("users"),
+  })
+    .index("by_last_read_message_time", ["lastReadMessageTime"])
+    .index("by_user", ["userId"])
+    .index("by_channel", ["channelId"]),
+
   messageReactions: defineTable({
     messageId: v.id("messages"),
     userId: v.id("users"),

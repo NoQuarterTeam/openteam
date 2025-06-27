@@ -51,7 +51,7 @@ export function Sidebar() {
       order: index,
     }))
 
-    updateChannelOrder({ channelOrders })
+    void updateChannelOrder({ channelOrders })
   }
 
   return (
@@ -98,6 +98,12 @@ export function Sidebar() {
                               <div className="w-5 text-center">#</div>
                               {channel.name.toLowerCase()}
                             </>
+                          )}
+                          {channelId !== channel._id && channel.unreadCount > 0 && (
+                            <div className="ml-auto rounded bg-primary/10 px-1.5 py-0.5 font-medium text-primary text-xs">
+                              {channel.unreadCount}
+                              {channel.unreadCount > 100 && "+"}
+                            </div>
                           )}
                         </div>
                       </div>

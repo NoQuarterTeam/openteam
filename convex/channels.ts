@@ -7,17 +7,17 @@ export const list = query({
   handler: async (ctx) => {
     const userId = await requireUser(ctx)
 
-    const channels = await ctx.db
-      .query("channels")
-      .filter((q) => q.eq(q.field("archivedTime"), undefined))
-      .order("asc")
-      .collect()
-
-    // Get user's channel orders
-    const channelOrders = await ctx.db
-      .query("channelOrders")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect()
+    const [channels, channelOrders] = await Promise.all([
+      ctx.db
+        .query("channels")
+        .filter((q) => q.eq(q.field("archivedTime"), undefined))
+        .order("asc")
+        .collect(),
+      ctx.db
+        .query("channelOrders")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect(),
+    ])
 
     const orderMap = new Map(channelOrders.map((order) => [order.channelId, order.order]))
 
@@ -30,13 +30,63 @@ export const list = query({
     return await Promise.all(
       sortedChannels.map(async (channel) => {
         const dmUser = channel.dmId ? await ctx.db.get(channel.dmId) : null
+        const userChannelActivity = await ctx.db
+          .query("userChannelActivity")
+          .withIndex("by_channel", (q) => q.eq("channelId", channel._id))
+          .filter((q) => q.eq(q.field("userId"), userId))
+          .first()
+
+        const unreadMessages = userChannelActivity?.lastReadMessageTime
+          ? await ctx.db
+              .query("messages")
+              .withIndex("by_channel", (q) => q.eq("channelId", channel._id))
+              .filter((q) =>
+                q.and(
+                  q.neq(q.field("authorId"), userId),
+                  q.gte(q.field("_creationTime"), userChannelActivity.lastReadMessageTime!),
+                ),
+              )
+              .take(100)
+          : await ctx.db
+              .query("messages")
+              .withIndex("by_channel", (q) => q.eq("channelId", channel._id))
+              .filter((q) => q.neq(q.field("authorId"), userId))
+              .take(100)
+
+        // console.log("AC", userChannelActivity?.lastReadMessageTime)
+        // console.log(unreadMessages.length)
 
         return {
           ...channel,
+          unreadCount: unreadMessages.length,
           dmUser: dmUser ? { ...dmUser, image: dmUser?.image ? await ctx.storage.getUrl(dmUser.image) : null } : null,
         }
       }),
     )
+  },
+})
+
+export const markAsRead = mutation({
+  args: { channelId: v.id("channels") },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx)
+    const channelActivity = await ctx.db
+      .query("userChannelActivity")
+      .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .first()
+
+    if (!channelActivity) {
+      await ctx.db.insert("userChannelActivity", {
+        channelId: args.channelId,
+        isFavourite: false,
+        isMuted: false,
+        userId,
+        lastReadMessageTime: Date.now(),
+      })
+    } else {
+      await ctx.db.patch(channelActivity._id, { lastReadMessageTime: Date.now() })
+    }
   },
 })
 

@@ -1,6 +1,6 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query"
 import { useQuery, useQueryClient, useMutation as useTanstackMutation } from "@tanstack/react-query"
-import { useQuery as useConvexQuery } from "convex/react"
+import { useQuery as useConvexQuery, useMutation } from "convex/react"
 import { EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { redirect, useNavigate, useParams } from "react-router"
@@ -35,11 +35,14 @@ export default function Component() {
     setIsUserScrolledUp(!isAtBottom)
   }
 
+  const markAsRead = useMutation(api.channels.markAsRead)
+
   useEffect(() => {
     if (messagesEndRef.current && !isUserScrolledUp) {
       messagesEndRef.current.scrollIntoView()
     }
-  }, [messages, isUserScrolledUp])
+    if (channelId) void markAsRead({ channelId })
+  }, [messages, isUserScrolledUp, channelId])
 
   if (currentChannel === null) return redirect("/")
   if (!currentChannel) return null
