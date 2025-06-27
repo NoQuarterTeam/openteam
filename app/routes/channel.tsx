@@ -1,7 +1,7 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query"
 import { useQuery, useQueryClient, useMutation as useTanstackMutation } from "@tanstack/react-query"
 import { useQuery as useConvexQuery, useMutation } from "convex/react"
-import { EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
+import { BellIcon, BellOffIcon, EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { redirect, useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
@@ -101,6 +102,21 @@ function ChannelHeader({ channel }: { channel: ChannelData }) {
       toast.error("Failed to save channel")
     },
   })
+
+  const toggleMute = useConvexMutation(api.channels.toggleMute).withOptimisticUpdate((localStore, args) => {
+    const currentValue = localStore.getQuery(api.channels.list, {})
+    if (currentValue) {
+      localStore.setQuery(
+        api.channels.list,
+        {},
+        currentValue.map((c) => (c._id === args.channelId ? { ...c, isMuted: !c.isMuted } : c)),
+      )
+    }
+    const channelStore = localStore.getQuery(api.channels.get, { channelId: args.channelId })
+    if (!channelStore) return null
+    localStore.setQuery(api.channels.get, { channelId: args.channelId }, { ...channel, isMuted: !channel.isMuted })
+  })
+
   const handleSaveChannel = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!channel) return
@@ -121,24 +137,36 @@ function ChannelHeader({ channel }: { channel: ChannelData }) {
   }, [isEditing])
   return (
     <div className="flex h-13 items-center justify-between gap-2 border-b px-2">
-      {channel.dmUser ? (
-        <div className="flex items-center gap-2">
-          <Avatar className="size-8 flex-shrink-0 rounded-lg">
-            <AvatarImage src={channel.dmUser.image || undefined} />
-            <AvatarFallback className="size-8 rounded-lg text-black dark:text-white">
-              {channel.dmUser.name.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-          <p className={cn("font-medium text-lg", isEditing && "hidden")}>{channel.dmUser.name}</p>
-        </div>
-      ) : (
-        <div className={cn("flex items-center gap-2 pl-2 font-medium text-lg", isEditing && "hidden")}>
-          <p>#</p>
-          <p>
-            {channel.name.toLowerCase()} {channel.archivedTime && "(Archived)"}
-          </p>
-        </div>
-      )}
+      <div className="flex items-center gap-2">
+        {channel.dmUser ? (
+          <div className="flex items-center gap-2">
+            <Avatar className="size-8 flex-shrink-0 rounded-lg">
+              <AvatarImage src={channel.dmUser.image || undefined} />
+              <AvatarFallback className="size-8 rounded-lg text-black dark:text-white">
+                {channel.dmUser.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <p className={cn("font-medium text-lg", isEditing && "hidden")}>{channel.dmUser.name}</p>
+          </div>
+        ) : (
+          <div className={cn("flex items-center gap-2 pl-2 font-medium text-lg", isEditing && "hidden")}>
+            <p>#</p>
+            <p>
+              {channel.name.toLowerCase()} {channel.archivedTime && "(Archived)"}
+            </p>
+          </div>
+        )}
+        {channel.isMuted && (
+          <Tooltip>
+            <TooltipTrigger>
+              <Button variant="ghost" size="icon" onClick={() => void toggleMute({ channelId: channel._id })}>
+                <BellOffIcon className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Muted</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
       <form onSubmit={handleSaveChannel} className={cn("flex items-center gap-2", isEditing ? "flex" : "hidden")}>
         <Input name="name" ref={inputRef} defaultValue={channel.name || ""} />
         <Button type="submit" className="w-20">
@@ -157,6 +185,10 @@ function ChannelHeader({ channel }: { channel: ChannelData }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => void toggleMute({ channelId: channel._id })}>
+              <BellIcon />
+              {channel.isMuted ? "Unmute" : "Mute"}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setIsEditing(true)}>
               <PencilIcon />
               Edit

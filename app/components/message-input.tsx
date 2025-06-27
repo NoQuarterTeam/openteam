@@ -149,7 +149,7 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
             ))}
           </div>
         )}
-        <div className="flex flex-row gap-2 p-4">
+        <div className="flex flex-row items-end gap-2 p-4">
           <div {...getRootProps()}>
             <input {...getInputProps()} />
             <Button variant="secondary" size="icon">

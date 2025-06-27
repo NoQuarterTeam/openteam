@@ -53,11 +53,9 @@ export const list = query({
               .filter((q) => q.neq(q.field("authorId"), userId))
               .take(100)
 
-        // console.log("AC", userChannelActivity?.lastReadMessageTime)
-        // console.log(unreadMessages.length)
-
         return {
           ...channel,
+          isMuted: !!userChannelActivity?.isMuted,
           unreadCount: unreadMessages.length,
           dmUser: dmUser ? { ...dmUser, image: dmUser?.image ? await ctx.storage.getUrl(dmUser.image) : null } : null,
         }
@@ -136,17 +134,54 @@ export const update = mutation({
   },
 })
 
+export const toggleMute = mutation({
+  args: { channelId: v.id("channels") },
+  handler: async (ctx, args) => {
+    const userId = await requireUser(ctx)
+
+    const channel = await ctx.db.get(args.channelId)
+    if (!channel) throw new ConvexError("Channel not found")
+
+    const userChannelActivity = await ctx.db
+      .query("userChannelActivity")
+      .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .first()
+
+    if (!userChannelActivity) {
+      await ctx.db.insert("userChannelActivity", {
+        channelId: args.channelId,
+        isFavourite: false,
+        isMuted: true,
+        userId,
+        lastReadMessageTime: Date.now(),
+      })
+    } else {
+      await ctx.db.patch(userChannelActivity._id, { isMuted: !userChannelActivity.isMuted })
+    }
+  },
+})
+
 export const get = query({
   args: { channelId: v.id("channels") },
   handler: async (ctx, args) => {
-    await requireUser(ctx)
+    const userId = await requireUser(ctx)
 
     const channel = await ctx.db.get(args.channelId)
     if (!channel) return null
 
+    const userChannelActivity = await ctx.db
+      .query("userChannelActivity")
+      .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .first()
+
+    const isMuted = !!userChannelActivity?.isMuted
+
     const dmUser = channel.userId ? await ctx.db.get(channel.userId) : null
     return {
       ...channel,
+      isMuted,
       dmUser: dmUser ? { ...dmUser, image: dmUser?.image ? await ctx.storage.getUrl(dmUser.image) : null } : null,
     }
   },

@@ -19,7 +19,7 @@ export function NewChannel() {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-2" align="start">
+      <PopoverContent className="w-46 p-2" align="start">
         <NewChannelForm onClose={() => setOpen(false)} />
       </PopoverContent>
     </Popover>
