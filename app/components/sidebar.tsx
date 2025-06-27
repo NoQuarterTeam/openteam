@@ -2,6 +2,7 @@ import { convexQuery } from "@convex-dev/react-query"
 import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd"
 import { useQueryClient } from "@tanstack/react-query"
 import { useMutation, useQuery } from "convex/react"
+import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -52,6 +53,11 @@ export function Sidebar() {
     void updateChannelOrder({ channelOrders })
   }
 
+  const [isMounted, setIsMounted] = useState(false)
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   return (
     <div className="w-50 p-4 pr-0">
       <div className="flex h-full flex-1 flex-col justify-between rounded-xl">
@@ -69,7 +75,7 @@ export function Sidebar() {
         </DragDropContext>
 
         <div className="space-y-2">
-          <Babble />
+          {isMounted && <Babble />}
           <NewChannel />
         </div>
       </div>

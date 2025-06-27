@@ -62,6 +62,15 @@ export default defineSchema({
     joinedAt: v.number(),
   }).index("by_user", ["userId"]),
 
+  babbleSignals: defineTable({
+    fromUserId: v.id("users"),
+    toUserId: v.id("users"),
+    signal: v.any(),
+    createdAt: v.number(),
+  })
+    .index("by_to_user", ["toUserId"])
+    .index("by_from_user", ["fromUserId"]),
+
   users: defineTable({
     name: v.string(),
     image: v.optional(v.id("_storage")),
