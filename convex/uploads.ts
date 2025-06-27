@@ -11,6 +11,27 @@ export const generateUploadUrl = mutation({
   },
 })
 
+export const search = query({
+  args: {
+    query: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const files = await ctx.db
+      .query("files")
+      .withSearchIndex("search_name", (q) => q.search("name", args.query))
+      .take(10)
+
+    return await Promise.all(
+      files.map(async (file) => ({
+        ...file,
+        name: file.name,
+        url: await ctx.storage.getUrl(file.storageId),
+        metadata: await ctx.db.system.get(file.storageId),
+      })),
+    )
+  },
+})
+
 export const getFileUrl = query({
   args: { fileId: v.id("_storage") },
   handler: async (ctx, args) => {

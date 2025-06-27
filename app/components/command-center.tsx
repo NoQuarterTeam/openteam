@@ -1,18 +1,21 @@
 import { useQuery } from "convex/react"
-import { SearchIcon } from "lucide-react"
+import { FileIcon, SearchIcon } from "lucide-react"
 import * as React from "react"
 import { useNavigate } from "react-router"
 import { api } from "@/convex/_generated/api"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
-import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command"
+import { CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 
 export function CommandCenter() {
   const navigate = useNavigate()
   const channels = useQuery(api.channels.list)
+  const [search, setSearch] = React.useState("")
 
   const [open, setOpen] = React.useState(false)
+
+  const files = useQuery(api.uploads.search, search ? { query: search } : "skip")
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -42,9 +45,8 @@ export function CommandCenter() {
       </Tooltip>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Channels, people, files..." />
+        <CommandInput placeholder="Channels, people, files..." value={search} onValueChange={setSearch} />
         <CommandList className="py-2">
-          <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup heading="Channels">
             {channels?.map((channel) => (
               <CommandItem
@@ -75,6 +77,25 @@ export function CommandCenter() {
               </CommandItem>
             ))}
           </CommandGroup>
+          <div className="px-2">
+            {files && files?.length > 0 && <p className="pt-2 pb-1 pl-2 font-medium text-muted-foreground text-xs">Files</p>}
+            {files?.map((file) => (
+              <Button
+                variant="ghost"
+                className="h-11 w-full justify-start rounded-sm pl-2 font-normal"
+                key={file._id}
+                onClick={() => {
+                  if (!file.url) return
+                  window.open(file.url, "_blank")
+                }}
+              >
+                <div className="flex w-5 items-center justify-center">
+                  <FileIcon className="size-4" />
+                </div>
+                <p className="truncate">{file.name}</p>
+              </Button>
+            ))}
+          </div>
         </CommandList>
       </CommandDialog>
     </>

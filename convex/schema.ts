@@ -44,7 +44,7 @@ export default defineSchema({
     storageId: v.id("_storage"),
   })
     .index("by_message", ["messageId"])
-    .searchIndex("search_name", { searchField: "name", filterFields: ["messageId"] }),
+    .searchIndex("search_name", { searchField: "name" }),
 
   users: defineTable({
     name: v.string(),
