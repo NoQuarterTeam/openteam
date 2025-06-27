@@ -29,7 +29,7 @@ export const list = query({
 
     return await Promise.all(
       sortedChannels.map(async (channel) => {
-        const dmUser = channel.dmId ? await ctx.db.get(channel.dmId) : null
+        const dmUser = channel.userId ? await ctx.db.get(channel.userId) : null
         const userChannelActivity = await ctx.db
           .query("userChannelActivity")
           .withIndex("by_channel", (q) => q.eq("channelId", channel._id))
@@ -144,7 +144,7 @@ export const get = query({
     const channel = await ctx.db.get(args.channelId)
     if (!channel) return null
 
-    const dmUser = channel.dmId ? await ctx.db.get(channel.dmId) : null
+    const dmUser = channel.userId ? await ctx.db.get(channel.userId) : null
     return {
       ...channel,
       dmUser: dmUser ? { ...dmUser, image: dmUser?.image ? await ctx.storage.getUrl(dmUser.image) : null } : null,

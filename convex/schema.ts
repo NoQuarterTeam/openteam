@@ -9,9 +9,11 @@ export default defineSchema({
     createdBy: v.id("users"),
     archivedTime: v.optional(v.string()),
     dmId: v.optional(v.id("users")),
+    userId: v.optional(v.id("users")),
   })
     .index("by_name", ["name"])
-    .index("by_dm_id", ["dmId"]),
+    .index("by_dm_id", ["dmId"])
+    .index("by_user_id", ["userId"]),
 
   channelOrders: defineTable({
     channelId: v.id("channels"),

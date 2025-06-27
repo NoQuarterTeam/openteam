@@ -62,7 +62,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       if (!existingChannels) {
         await ctx.db.insert("channels", { name: "general", createdBy: args.userId })
       }
-      await ctx.db.insert("channels", { name: args.userId, createdBy: args.userId, dmId: args.userId })
+      await ctx.db.insert("channels", { name: args.userId, createdBy: args.userId, userId: args.userId })
     },
   },
 })
