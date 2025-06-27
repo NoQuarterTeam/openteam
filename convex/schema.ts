@@ -57,6 +57,11 @@ export default defineSchema({
     .index("by_message", ["messageId"])
     .searchIndex("search_name", { searchField: "name" }),
 
+  babblers: defineTable({
+    userId: v.id("users"),
+    joinedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   users: defineTable({
     name: v.string(),
     image: v.optional(v.id("_storage")),
