@@ -45,7 +45,7 @@ export const leave = mutation({
   },
 })
 
-export const getActive = query({
+export const getBabblers = query({
   args: {},
   handler: async (ctx) => {
     await requireUser(ctx)

@@ -38,10 +38,16 @@ export default function Component() {
 
   const markAsRead = useMutation(api.channels.markAsRead)
 
+  const isMounted = useRef(false)
   useEffect(() => {
-    if (messagesEndRef.current && !isUserScrolledUp) {
-      messagesEndRef.current.scrollIntoView()
-    }
+    if (isUserScrolledUp) return
+    setTimeout(
+      () => {
+        messagesEndRef.current?.scrollIntoView()
+      },
+      isMounted.current ? 0 : 100,
+    )
+    isMounted.current = true
     if (channelId) void markAsRead({ channelId })
   }, [messages, isUserScrolledUp, channelId])
 

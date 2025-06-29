@@ -26,13 +26,16 @@ export function NewChannel() {
   )
 }
 
-function NewChannelForm(props: { onClose: () => void }) {
+export function NewChannelForm(props: { onClose: () => void }) {
   const [newChannelName, setNewChannelName] = React.useState("")
   const createChannel = useMutation(api.channels.create)
   const navigate = useNavigate()
 
   const handleCreateChannel = async (e: React.FormEvent) => {
+    e.stopPropagation()
     e.preventDefault()
+    console.log("why")
+
     if (!newChannelName.trim()) return
 
     try {
@@ -53,7 +56,7 @@ function NewChannelForm(props: { onClose: () => void }) {
         autoFocus
       />
       <div className="flex justify-between gap-2">
-        <Button size="sm" variant="outline" className="flex-1" onClick={props.onClose}>
+        <Button type="button" size="sm" variant="outline" className="flex-1" onClick={props.onClose}>
           Cancel
         </Button>
         <Button type="submit" size="sm" className="flex-1">

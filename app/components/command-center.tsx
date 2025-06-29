@@ -77,6 +77,23 @@ export function CommandCenter() {
               </CommandItem>
             ))}
           </CommandGroup>
+          {/* <WithState initialState={false}>
+            {(state, setState) => (
+              <CommandGroup heading="Actions">
+                <Popover open={state} onOpenChange={setState}>
+                  <PopoverTrigger asChild>
+                    <CommandItem onSelect={() => setState(true)}>
+                      <PlusIcon className="size-4" />
+                      New channel
+                    </CommandItem>
+                  </PopoverTrigger>
+                  <PopoverContent>
+                    <NewChannelForm onClose={() => setState(false)} />
+                  </PopoverContent>
+                </Popover>
+              </CommandGroup>
+            )}
+          </WithState> */}
           <div className="px-2">
             {files && files?.length > 0 && <p className="pt-2 pb-1 pl-2 font-medium text-muted-foreground text-xs">Files</p>}
             {files?.map((file) => (
