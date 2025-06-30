@@ -23,7 +23,7 @@ export function Nav() {
       <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button variant="ghost" size="icon" className="rounded">
               <Avatar className="size-8 rounded">
                 <AvatarImage src={user?.image || undefined} />
                 <AvatarFallback className="size-8 rounded text-black dark:text-white">{displayName?.charAt(0)}</AvatarFallback>
