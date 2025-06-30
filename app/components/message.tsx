@@ -102,7 +102,7 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
       <div>
         {isFirstMessageOfUser && message.author ? (
           <Avatar className="size-9 flex-shrink-0 rounded-lg">
-            <AvatarImage src={message.author.image || undefined} />
+            <AvatarImage src={message.author.image || undefined} className="object-cover" />
             <AvatarFallback className="size-9 rounded-lg text-black dark:text-white">
               {message.author.name.charAt(0) || "U"}
             </AvatarFallback>

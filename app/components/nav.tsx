@@ -25,7 +25,7 @@ export function Nav() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded">
               <Avatar className="size-8 rounded">
-                <AvatarImage src={user?.image || undefined} />
+                <AvatarImage src={user?.image || undefined} className="object-cover" />
                 <AvatarFallback className="size-8 rounded text-black dark:text-white">{displayName?.charAt(0)}</AvatarFallback>
               </Avatar>
             </Button>

@@ -125,7 +125,7 @@ export function Babble() {
                 <div className="-space-x-3 flex items-center">
                   {babblers?.slice(0, 3).map((babbler, i) => (
                     <Avatar key={babbler.userId} className="size-7 border border-background" style={{ zIndex: 3 - i }}>
-                      <AvatarImage src={babbler.user.image || undefined} />
+                      <AvatarImage src={babbler.user.image || undefined} className="object-cover" />
                       <AvatarFallback className="size-7 text-xs">{babbler.user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                   ))}
@@ -137,7 +137,7 @@ export function Babble() {
               {babblers?.map((babbler) => (
                 <div key={babbler.userId} className="flex items-center gap-1">
                   <Avatar className="size-5">
-                    <AvatarImage src={babbler.user.image || undefined} />
+                    <AvatarImage src={babbler.user.image || undefined} className="object-cover" />
                     <AvatarFallback className="size-5 text-xs">{babbler.user.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <p className="text-sm">{babbler.user.name}</p>

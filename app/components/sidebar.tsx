@@ -116,7 +116,7 @@ function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
             {channel.dmUser ? (
               <>
                 <Avatar className="size-5 rounded">
-                  <AvatarImage src={channel.dmUser.image || undefined} />
+                  <AvatarImage src={channel.dmUser.image || undefined} className="object-cover" />
                   <AvatarFallback className="size-5 rounded text-black text-xs dark:text-white">
                     {channel.dmUser.name.charAt(0)}
                   </AvatarFallback>
