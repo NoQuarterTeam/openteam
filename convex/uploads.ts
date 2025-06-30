@@ -1,5 +1,5 @@
 import { v } from "convex/values"
-import { Id } from "./_generated/dataModel"
+import type { Id } from "./_generated/dataModel"
 import { action, mutation, query } from "./_generated/server"
 import { requireUser } from "./auth"
 

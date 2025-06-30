@@ -3,7 +3,7 @@ import { Password } from "@convex-dev/auth/providers/Password"
 import { convexAuth, getAuthUserId } from "@convex-dev/auth/server"
 import { ConvexError } from "convex/values"
 import { z } from "zod"
-import { MutationCtx, QueryCtx, query } from "./_generated/server"
+import { type MutationCtx, type QueryCtx, query } from "./_generated/server"
 
 const ParamsSchema = z.object({ email: z.string().email(), name: z.string().optional() })
 

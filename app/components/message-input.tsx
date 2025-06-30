@@ -44,13 +44,13 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
             name,
             _creationTime: Date.now(),
             messageId,
-            url: filePreviews[i].url,
+            url: filePreviews[i]?.url || null,
             metadata: {
               _id: crypto.randomUUID() as Id<"_storage">,
               _creationTime: Date.now(),
-              contentType: filePreviews[i].file.type,
+              contentType: filePreviews[i]?.file.type || "image/png",
               sha256: "",
-              size: filePreviews[i].file.size,
+              size: filePreviews[i]?.file.size || 10,
             },
             storageId,
           })) || [],
@@ -115,7 +115,7 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
 
   const handleRemoveFile = (index: number) => {
     setFilePreviews((prev) => prev.filter((_, i) => i !== index))
-    window.URL.revokeObjectURL(filePreviews[index].url)
+    if (filePreviews[index]) window.URL.revokeObjectURL(filePreviews[index].url)
   }
 
   const formRef = useRef<HTMLFormElement>(null)

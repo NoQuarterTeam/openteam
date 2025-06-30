@@ -69,8 +69,8 @@ export default function Component() {
               const isFirstMessageOfUser =
                 index === 0 ||
                 messages[index - 1]?.authorId !== message.authorId ||
-                (messages[index - 1] &&
-                  new Date(message._creationTime).getTime() - new Date(messages[index - 1]._creationTime).getTime() >
+                (!!messages[index - 1] &&
+                  new Date(message._creationTime).getTime() - new Date(messages[index - 1]!._creationTime).getTime() >
                     10 * 60 * 1000)
               return <Message key={message._id} message={message} isFirstMessageOfUser={isFirstMessageOfUser} />
             })}

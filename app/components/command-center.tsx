@@ -33,8 +33,8 @@ export function CommandCenter() {
   // switch first and second from recentChannels
   if (recentChannels.length > 2) {
     const secondItem = recentChannels[1]
-    recentChannels[1] = recentChannels[0]
-    recentChannels[0] = secondItem
+    if (recentChannels[1] && recentChannels[0]) recentChannels[1] = recentChannels[0]
+    if (secondItem) recentChannels[0] = secondItem
   }
   const otherChannels = channels.filter((c) => !recentChannelIds.find((id) => id === c._id))
   return (

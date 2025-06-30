@@ -36,6 +36,7 @@ export function ProfileModal() {
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const selectedFile = acceptedFiles[0]
+    if (!selectedFile) return
     const uploadUrl = await generateUploadUrl()
     const result = await fetch(uploadUrl, {
       method: "POST",

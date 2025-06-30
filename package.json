@@ -7,7 +7,8 @@
     "dev": "run-p dev:*",
     "dev:backend": "convex dev",
     "dev:frontend": "react-router dev",
-    "build": "react-router build"
+    "build": "react-router build",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@auth/core": "0.40.0",

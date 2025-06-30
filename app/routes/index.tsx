@@ -14,7 +14,7 @@ export default function Component() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!channels || channels.length === 0) return
+    if (!channels || !channels[0]) return
     navigate(`/${channels[0]._id}`)
   }, [channels])
 

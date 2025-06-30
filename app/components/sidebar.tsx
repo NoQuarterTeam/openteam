@@ -42,13 +42,10 @@ export function Sidebar() {
     // Create new order based on drag result
     const reorderedChannels = Array.from(channels)
     const [removed] = reorderedChannels.splice(sourceIndex, 1)
-    reorderedChannels.splice(destinationIndex, 0, removed)
+    reorderedChannels.splice(destinationIndex, 0, removed!)
 
     // Generate new orders
-    const channelOrders = reorderedChannels.map((channel, index) => ({
-      channelId: channel._id,
-      order: index,
-    }))
+    const channelOrders = reorderedChannels.map((channel, index) => ({ channelId: channel._id, order: index }))
 
     void updateChannelOrder({ channelOrders })
   }

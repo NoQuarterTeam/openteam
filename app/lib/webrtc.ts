@@ -40,6 +40,7 @@ export class WebRTCService {
     // Handle remote stream
     peerConnection.ontrack = (event) => {
       const [remoteStream] = event.streams
+      if (!remoteStream) return
       this.playAudioStream(remoteStream, userId)
     }
 

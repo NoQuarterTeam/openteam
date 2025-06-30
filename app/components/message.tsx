@@ -139,7 +139,7 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
                 <>
                   <div className="flex items-center gap-0.5 py-1">
                     <p className="text-xs opacity-50">
-                      {message.files.length === 1 ? message.files[0].name : `${message.files.length} files`}
+                      {message.files[0] ? message.files[0].name : `${message.files.length} files`}
                     </p>
                     <Button variant="ghost" size="icon" className="size-4 rounded-sm" onClick={() => setState(!state)}>
                       <ChevronDownIcon className="size-3.5 opacity-50" />
@@ -147,7 +147,7 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
                   </div>
                   {state && (
                     <div className="flex flex-wrap gap-2">
-                      {message.files.length === 1 && <MessageFile file={message.files[0]} />}
+                      {message.files[0] && <MessageFile file={message.files[0]} />}
                       {message.files.length > 1 &&
                         message.files.map((file) => <MessageFile key={file._id} file={file} className="h-14 w-14" />)}
                     </div>
