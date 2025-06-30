@@ -80,6 +80,8 @@ export function Babble() {
 
         // play sound eventually using mp3
       } catch (error) {
+        console.log(error)
+
         console.error("Failed to initialize WebRTC:", error)
         toast.error("Failed to connect audio")
       } finally {
