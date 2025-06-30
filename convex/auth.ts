@@ -56,15 +56,13 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         name: args.profile.name as string,
         email: args.profile.email as string,
       })
-
-      return user
-    },
-    afterUserCreatedOrUpdated: async (ctx: MutationCtx, args) => {
       const existingChannels = await ctx.db.query("channels").first()
       if (!existingChannels) {
-        await ctx.db.insert("channels", { name: "general", createdBy: args.userId })
+        await ctx.db.insert("channels", { name: "general", createdBy: user })
       }
-      await ctx.db.insert("channels", { name: args.userId, createdBy: args.userId, userId: args.userId })
+      await ctx.db.insert("channels", { name: user, createdBy: user, userId: user })
+
+      return user
     },
   },
 })
