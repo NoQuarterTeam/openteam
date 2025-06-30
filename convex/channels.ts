@@ -57,7 +57,7 @@ export const list = query({
           ...channel,
           isMuted: !!userChannelActivity?.isMuted,
           unreadCount: unreadMessages.length,
-          dmUser: dmUser ? { ...dmUser, image: dmUser?.image ? await ctx.storage.getUrl(dmUser.image) : null } : null,
+          dmUser: dmUser ? { ...dmUser, image: dmUser.image ? await ctx.storage.getUrl(dmUser.image) : null } : null,
         }
       }),
     )
