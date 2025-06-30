@@ -1,8 +1,9 @@
 import { useQuery } from "convex/react"
 import { FileIcon, SearchIcon } from "lucide-react"
-import * as React from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router"
 import { api } from "@/convex/_generated/api"
+import { useRecentChannels } from "@/lib/use-recent-channels"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command"
@@ -10,14 +11,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 
 export function CommandCenter() {
   const navigate = useNavigate()
-  const channels = useQuery(api.channels.list)
-  const [search, setSearch] = React.useState("")
-
-  const [open, setOpen] = React.useState(false)
+  const channels = useQuery(api.channels.list) || []
+  const [search, setSearch] = useState("")
+  const recentChannelIds = useRecentChannels((s) => s.channels)
+  const [open, setOpen] = useState(false)
 
   const files = useQuery(api.uploads.search, search ? { query: search } : "skip")
 
-  React.useEffect(() => {
+  useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
@@ -27,6 +28,13 @@ export function CommandCenter() {
     document.addEventListener("keydown", down)
     return () => document.removeEventListener("keydown", down)
   }, [])
+
+  const recentChannels = recentChannelIds.map((id) => channels.find((c) => c._id === id)).filter(Boolean)
+  // switch first and second from recentChannels
+  const secondItem = recentChannels[1]
+  recentChannels[1] = recentChannels[0]
+  recentChannels[0] = secondItem
+  const otherChannels = channels.filter((c) => !recentChannelIds.find((id) => id === c._id))
   return (
     <>
       <Tooltip>
@@ -48,7 +56,7 @@ export function CommandCenter() {
         <CommandInput placeholder="Channels, people, files..." value={search} onValueChange={setSearch} />
         <CommandList className="py-2">
           <CommandGroup heading="Channels">
-            {channels?.map((channel) => (
+            {[...recentChannels, ...otherChannels].map((channel) => (
               <CommandItem
                 key={channel._id}
                 onSelect={async () => {

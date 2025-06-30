@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { useRecentChannels } from "@/lib/use-recent-channels"
 import { cn } from "@/lib/utils"
 
 export default function Component() {
@@ -22,6 +23,7 @@ export default function Component() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const [isUserScrolledUp, setIsUserScrolledUp] = useState(false)
+  const addChannel = useRecentChannels((s) => s.addChannel)
 
   const currentChannel = useConvexQuery(api.channels.get, { channelId: channelId! })
 
@@ -48,7 +50,10 @@ export default function Component() {
       isMounted.current ? 0 : 100,
     )
     isMounted.current = true
-    if (channelId) void markAsRead({ channelId })
+    if (channelId) {
+      addChannel(channelId)
+      void markAsRead({ channelId })
+    }
   }, [messages, isUserScrolledUp, channelId])
 
   if (currentChannel === null) return redirect("/")
@@ -164,7 +169,7 @@ function ChannelHeader({ channel }: { channel: ChannelData }) {
         )}
         {channel.isMuted && (
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={() => void toggleMute({ channelId: channel._id })}>
                 <BellOffIcon className="size-4" />
               </Button>
