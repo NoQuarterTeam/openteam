@@ -38,7 +38,11 @@ export function Babble() {
   // Initialize WebRTC service
   useEffect(() => {
     if (!webrtcServiceRef.current) {
-      webrtcServiceRef.current = new WebRTCService({ mutation: sendSignal })
+      webrtcServiceRef.current = new WebRTCService({
+        onSendSignal: async (targetUserId, signal) => {
+          await sendSignal({ targetUserId, signal })
+        },
+      })
     }
   }, [])
 

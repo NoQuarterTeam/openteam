@@ -9,8 +9,14 @@ export default function Component() {
 
       <div className="flex w-full flex-1 overflow-hidden">
         <Sidebar />
+        <NotificationHandler />
         <Outlet />
       </div>
     </div>
   )
+}
+
+function NotificationHandler() {
+  // const channelId = use
+  return null
 }

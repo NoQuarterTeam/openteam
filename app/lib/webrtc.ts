@@ -1,13 +1,22 @@
-import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+
+export type WebRTCSignal = {
+  type: "offer" | "answer" | "ice-candidate"
+  sdp?: RTCSessionDescriptionInit
+  candidate?: RTCIceCandidate
+}
+
+export type WebRTCCallbacks = {
+  onSendSignal: (targetUserId: Id<"users">, signal: WebRTCSignal) => Promise<void>
+}
 
 export class WebRTCService {
   private peers: Map<Id<"users">, RTCPeerConnection> = new Map()
   public localStream: MediaStream | null = null
-  private convex: any
+  private callbacks: WebRTCCallbacks
 
-  constructor(convex: any) {
-    this.convex = convex
+  constructor(callbacks: WebRTCCallbacks) {
+    this.callbacks = callbacks
   }
 
   async initializeAudio(): Promise<void> {
@@ -47,12 +56,9 @@ export class WebRTCService {
     // Handle ICE candidates
     peerConnection.onicecandidate = async (event) => {
       if (event.candidate) {
-        await this.convex.mutation(api.babbles.sendSignal, {
-          targetUserId: userId,
-          signal: {
-            type: "ice-candidate",
-            candidate: event.candidate,
-          },
+        await this.callbacks.onSendSignal(userId, {
+          type: "ice-candidate",
+          candidate: event.candidate,
         })
       }
     }
@@ -74,12 +80,9 @@ export class WebRTCService {
       const offer = await peerConnection.createOffer()
       await peerConnection.setLocalDescription(offer)
 
-      await this.convex.mutation(api.babbles.sendSignal, {
-        targetUserId: userId,
-        signal: {
-          type: "offer",
-          sdp: offer,
-        },
+      await this.callbacks.onSendSignal(userId, {
+        type: "offer",
+        sdp: offer,
       })
     }
   }
@@ -101,12 +104,9 @@ export class WebRTCService {
         const answer = await peerConnection.createAnswer()
         await peerConnection.setLocalDescription(answer)
 
-        await this.convex.mutation(api.babbles.sendSignal, {
-          targetUserId: fromUserId,
-          signal: {
-            type: "answer",
-            sdp: answer,
-          },
+        await this.callbacks.onSendSignal(fromUserId, {
+          type: "answer",
+          sdp: answer,
         })
       } else if (signal.type === "answer") {
         await peerConnection.setRemoteDescription(signal.sdp)
