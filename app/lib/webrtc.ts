@@ -92,10 +92,7 @@ export class WebRTCService {
       const offer = await peerConnection.createOffer()
       await peerConnection.setLocalDescription(offer)
 
-      await this.callbacks.onSendSignal(userId, {
-        type: "offer",
-        sdp: offer,
-      })
+      await this.callbacks.onSendSignal(userId, { type: "offer", sdp: offer })
     }
   }
 
@@ -116,14 +113,11 @@ export class WebRTCService {
         const answer = await peerConnection.createAnswer()
         await peerConnection.setLocalDescription(answer)
 
-        await this.callbacks.onSendSignal(fromUserId, {
-          type: "answer",
-          sdp: answer,
-        })
+        await this.callbacks.onSendSignal(fromUserId, { type: "answer", sdp: answer })
       } else if (signal.type === "answer") {
         await peerConnection.setRemoteDescription(signal.sdp)
       } else if (signal.type === "ice-candidate") {
-        if (signal.candidate && signal.candidate.candidate) {
+        if (signal.candidate?.candidate) {
           await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate))
         }
       }
@@ -177,9 +171,7 @@ export class WebRTCService {
 
     // Remove audio element
     const audio = document.getElementById(`audio-${userId}`)
-    if (audio) {
-      audio.remove()
-    }
+    audio?.remove()
   }
 
   disconnectAll(): void {
