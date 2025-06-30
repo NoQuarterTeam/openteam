@@ -3,7 +3,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 export type WebRTCSignal = {
   type: "offer" | "answer" | "ice-candidate"
   sdp?: RTCSessionDescriptionInit
-  candidate?: RTCIceCandidate
+  candidate?: RTCIceCandidateInit
 }
 
 export type WebRTCCallbacks = {
@@ -58,7 +58,12 @@ export class WebRTCService {
       if (event.candidate) {
         await this.callbacks.onSendSignal(userId, {
           type: "ice-candidate",
-          candidate: event.candidate,
+          candidate: {
+            candidate: event.candidate.candidate,
+            sdpMLineIndex: event.candidate.sdpMLineIndex,
+            sdpMid: event.candidate.sdpMid,
+            usernameFragment: event.candidate.usernameFragment,
+          },
         })
       }
     }
@@ -111,7 +116,7 @@ export class WebRTCService {
       } else if (signal.type === "answer") {
         await peerConnection.setRemoteDescription(signal.sdp)
       } else if (signal.type === "ice-candidate") {
-        await peerConnection.addIceCandidate(signal.candidate)
+        await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate))
       }
     } catch (error) {
       console.error(`Error handling signal from ${fromUserId}:`, error)
