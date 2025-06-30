@@ -1,13 +1,15 @@
 import { useQuery } from "convex/react"
-import { FileIcon, SearchIcon } from "lucide-react"
+import { FileIcon, PlusIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router"
 import { api } from "@/convex/_generated/api"
 import { useRecentChannels } from "@/lib/use-recent-channels"
+import { NewChannelForm } from "./new-channel"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command"
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+import { WithState } from "./with-state"
 
 export function CommandCenter() {
   const navigate = useNavigate()
@@ -39,7 +41,7 @@ export function CommandCenter() {
   const otherChannels = channels.filter((c) => !recentChannelIds.find((id) => id === c._id))
   return (
     <>
-      <Tooltip>
+      {/* <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="outline" className="h-8 w-full font-normal" onClick={() => setOpen(true)}>
             <SearchIcon className="size-3.5" />
@@ -52,7 +54,7 @@ export function CommandCenter() {
             <kbd className="text-sm">K</kbd>
           </div>
         </TooltipContent>
-      </Tooltip>
+      </Tooltip> */}
 
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="Channels, people, files..." value={search} onValueChange={setSearch} />
@@ -87,7 +89,7 @@ export function CommandCenter() {
               </CommandItem>
             ))}
           </CommandGroup>
-          {/* <WithState initialState={false}>
+          <WithState initialState={false}>
             {(state, setState) => (
               <CommandGroup heading="Actions">
                 <Popover open={state} onOpenChange={setState}>
@@ -97,13 +99,18 @@ export function CommandCenter() {
                       New channel
                     </CommandItem>
                   </PopoverTrigger>
-                  <PopoverContent>
-                    <NewChannelForm onClose={() => setState(false)} />
+                  <PopoverContent align="start">
+                    <NewChannelForm
+                      onClose={() => {
+                        setState(false)
+                        setOpen(false)
+                      }}
+                    />
                   </PopoverContent>
                 </Popover>
               </CommandGroup>
             )}
-          </WithState> */}
+          </WithState>
           <div className="px-2">
             {files && files?.length > 0 && <p className="pt-2 pb-1 pl-2 font-medium text-muted-foreground text-xs">Files</p>}
             {files?.map((file) => (
