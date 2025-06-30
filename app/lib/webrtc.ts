@@ -56,14 +56,21 @@ export class WebRTCService {
     // Handle ICE candidates
     peerConnection.onicecandidate = async (event) => {
       if (event.candidate) {
+        // Serialize ICE candidate to plain object
+        const candidateInit: RTCIceCandidateInit = {
+          candidate: event.candidate.candidate,
+          sdpMLineIndex: event.candidate.sdpMLineIndex,
+          sdpMid: event.candidate.sdpMid,
+        }
+
+        // Only add usernameFragment if it exists
+        if (event.candidate.usernameFragment) {
+          candidateInit.usernameFragment = event.candidate.usernameFragment
+        }
+
         await this.callbacks.onSendSignal(userId, {
           type: "ice-candidate",
-          candidate: {
-            candidate: event.candidate.candidate,
-            sdpMLineIndex: event.candidate.sdpMLineIndex,
-            sdpMid: event.candidate.sdpMid,
-            usernameFragment: event.candidate.usernameFragment,
-          },
+          candidate: candidateInit,
         })
       }
     }
@@ -116,7 +123,9 @@ export class WebRTCService {
       } else if (signal.type === "answer") {
         await peerConnection.setRemoteDescription(signal.sdp)
       } else if (signal.type === "ice-candidate") {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate))
+        if (signal.candidate && signal.candidate.candidate) {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate))
+        }
       }
     } catch (error) {
       console.error(`Error handling signal from ${fromUserId}:`, error)
