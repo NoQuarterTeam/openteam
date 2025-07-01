@@ -159,7 +159,7 @@ export function Message({
                       className="size-4 rounded-sm"
                       onClick={() => setIsImageOpen(!isImageOpen)}
                     >
-                      <ChevronDownIcon className="size-3.5 opacity-50" />
+                      <ChevronDownIcon className={cn("size-3.5 opacity-50 transition-transform", !isImageOpen && "-rotate-90")} />
                     </Button>
                   </div>
                   {isImageOpen && message.files.length > 0 && (
