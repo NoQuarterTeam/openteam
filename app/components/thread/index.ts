@@ -1,4 +1,4 @@
-export { ThreadSidebar } from "./ThreadSidebar"
-export { ThreadMessages } from "./ThreadMessages" 
-export { ThreadMessageInput } from "./ThreadMessageInput"
-export { ThreadIndicator } from "./ThreadIndicator"
+export { ThreadSidebar } from "./thread-sidebar"
+export { ThreadMessages } from "./thread-messages" 
+export { ThreadMessageInput } from "./thread-message-input"
+export { ThreadIndicator } from "./thread-indicator"

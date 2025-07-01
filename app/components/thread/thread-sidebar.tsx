@@ -5,8 +5,8 @@ import { Message } from "@/components/message"
 import { Button } from "@/components/ui/button"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { ThreadMessages } from "./ThreadMessages"
-import { ThreadMessageInput } from "./ThreadMessageInput"
+import { ThreadMessages } from "./thread-messages"
+import { ThreadMessageInput } from "./thread-message-input"
 
 interface ThreadSidebarProps {
   threadId: Id<"threads">

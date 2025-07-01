@@ -60,21 +60,21 @@ messages: defineTable({
 
 ### New Thread Components
 
-1. **ThreadSidebar** (`app/components/thread/ThreadSidebar.tsx`)
+1. **ThreadSidebar** (`app/components/thread/thread-sidebar.tsx`)
    - Main container for thread view
    - Shows parent message and thread replies
    - Handles loading states
 
-2. **ThreadMessages** (`app/components/thread/ThreadMessages.tsx`)
+2. **ThreadMessages** (`app/components/thread/thread-messages.tsx`)
    - Renders list of thread messages
    - Handles empty state
    - Manages message grouping
 
-3. **ThreadMessageInput** (`app/components/thread/ThreadMessageInput.tsx`)
+3. **ThreadMessageInput** (`app/components/thread/thread-message-input.tsx`)
    - Input for sending thread replies
    - Handles form submission and optimistic updates
 
-4. **ThreadIndicator** (`app/components/thread/ThreadIndicator.tsx`)
+4. **ThreadIndicator** (`app/components/thread/thread-indicator.tsx`)
    - Shows reply count and "View Thread" link on parent messages
    - Displays last reply time
 

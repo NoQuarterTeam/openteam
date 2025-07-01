@@ -15,6 +15,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useRecentChannels } from "@/lib/use-recent-channels"
+import { useThreadStore } from "@/lib/use-thread-store"
+import { ThreadSidebar } from "@/components/thread/thread-sidebar"
 import { cn } from "@/lib/utils"
 
 export default function Component() {
