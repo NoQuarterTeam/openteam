@@ -26,8 +26,10 @@ export default defineSchema({
     channelId: v.id("channels"),
     authorId: v.id("users"),
     content: v.optional(v.string()),
+    threadId: v.optional(v.id("threads")),
   })
     .index("by_channel", ["channelId"])
+    .index("by_thread", ["threadId"])
     .searchIndex("search_content", { searchField: "content", filterFields: ["channelId"] }),
 
   userChannelActivity: defineTable({
@@ -70,6 +72,23 @@ export default defineSchema({
   })
     .index("by_to_user", ["toUserId"])
     .index("by_from_user", ["fromUserId"]),
+
+  threads: defineTable({
+    channelId: v.id("channels"),
+    parentMessageId: v.id("messages"),
+    createdBy: v.id("users"),
+    title: v.optional(v.string()),
+  })
+    .index("by_channel", ["channelId"])
+    .index("by_parent_message", ["parentMessageId"]),
+
+  threadActivity: defineTable({
+    threadId: v.id("threads"),
+    userId: v.id("users"),
+    lastReadTime: v.optional(v.number()),
+  })
+    .index("by_thread", ["threadId"])
+    .index("by_user", ["userId"]),
 
   users: defineTable({
     name: v.string(),

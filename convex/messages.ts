@@ -10,6 +10,7 @@ export const list = query({
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
+      .filter((q: any) => q.eq(q.field("threadId"), undefined))
       .order("asc")
       .take(100)
 

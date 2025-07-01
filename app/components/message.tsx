@@ -18,9 +18,13 @@ type MessageData = (typeof api.messages.list._returnType)[number]
 interface Props {
   message: MessageData
   isFirstMessageOfUser: boolean
+  isParentMessage?: boolean
+  isThreadMessage?: boolean
+  onCreateThread?: (messageId: Id<"messages">) => void
+  onOpenThread?: (threadId: Id<"threads">) => void
 }
 
-export function Message({ message, isFirstMessageOfUser }: Props) {
+export function Message({ message, isFirstMessageOfUser, isParentMessage = false, isThreadMessage = false, onCreateThread, onOpenThread }: Props) {
   const user = useQuery(api.auth.loggedInUser)
   const [isMessageHovered, setIsMessageHovered] = useState(false)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
@@ -221,6 +225,16 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
             </WithState>
           </div>
         )}
+
+        {/* Thread Indicator */}
+        {!isThreadMessage && !isParentMessage && onOpenThread && (
+          <ThreadIndicator 
+            messageId={message._id} 
+            channelId={message.channelId} 
+            onOpenThread={onOpenThread} 
+          />
+        )}
+
         <div
           className={cn(
             "-top-4 absolute right-0 gap-0 rounded-lg border bg-background p-1 shadow-xs transition-opacity duration-200",
@@ -267,6 +281,17 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
               <Edit2Icon className="size-3.5" />
             </Button>
           )}
+          {!isThreadMessage && !isParentMessage && onCreateThread && (
+            <Button
+              size="icon"
+              className="size-8"
+              variant="ghost"
+              onClick={() => onCreateThread(message._id)}
+            >
+              <MessageSquareIcon className="size-3.5" />
+            </Button>
+          )}
+          
           {message.author?._id === user?._id && (
             <Button
               size="icon"
