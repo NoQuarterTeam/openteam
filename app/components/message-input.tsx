@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
-import type { Doc, Id } from "@/convex/_generated/dataModel"
+import type { Id } from "@/convex/_generated/dataModel"
 import { ExpandableTextarea, type ExpandableTextareaRef } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
 import { Button } from "./ui/button"
@@ -15,7 +15,15 @@ function isImage(file: File | { name: string }): boolean {
   return /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name)
 }
 
-export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels"> }) {
+export function MessageInput({
+  channelId,
+  isDisabled,
+  threadId,
+}: {
+  isDisabled: boolean
+  channelId: Id<"channels">
+  threadId?: Id<"threads">
+}) {
   const [newMessage, setNewMessage] = useState("")
   const [filePreviews, setFilePreviews] = useState<{ id: string; file: File; url: string; storageId?: Id<"_storage"> }[]>([])
 
@@ -24,38 +32,78 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate((localStore, args) => {
     const { content } = args
     if (!user) return
-    const currentValue = localStore.getQuery(api.messages.list, { channelId: currentChannel._id })
-    if (!currentValue) return
-    const messageId = crypto.randomUUID() as Id<"messages">
-    localStore.setQuery(api.messages.list, { channelId: currentChannel._id }, [
-      ...currentValue,
-      {
-        _id: messageId,
-        authorId: user._id,
-        content,
-        author: user,
-        channelId: currentChannel._id,
-        _creationTime: Date.now(),
-        temp: true,
-        reactions: [],
-        files:
-          args.files?.map(({ name, storageId }, i) => ({
-            _id: crypto.randomUUID() as Id<"files">,
-            name,
-            _creationTime: Date.now(),
-            messageId,
-            url: filePreviews[i]?.url || null,
-            metadata: {
-              _id: crypto.randomUUID() as Id<"_storage">,
+
+    // For thread messages, update the thread messages query
+    if (args.threadId) {
+      const currentValue = localStore.getQuery(api.threads.listMessages, { threadId: args.threadId })
+      if (!currentValue) return
+      const messageId = crypto.randomUUID() as Id<"messages">
+      localStore.setQuery(api.threads.listMessages, { threadId: args.threadId }, [
+        ...currentValue,
+        {
+          _id: messageId,
+          authorId: user._id,
+          content,
+          author: user,
+          channelId,
+          threadId: args.threadId,
+          _creationTime: Date.now(),
+          temp: true,
+          reactions: [],
+          files:
+            args.files?.map(({ name, storageId }, i) => ({
+              _id: crypto.randomUUID() as Id<"files">,
+              name,
               _creationTime: Date.now(),
-              contentType: filePreviews[i]?.file.type || "image/png",
-              sha256: "",
-              size: filePreviews[i]?.file.size || 10,
-            },
-            storageId,
-          })) || [],
-      },
-    ])
+              messageId,
+              url: filePreviews[i]?.url || null,
+              metadata: {
+                _id: crypto.randomUUID() as Id<"_storage">,
+                _creationTime: Date.now(),
+                contentType: filePreviews[i]?.file.type || "image/png",
+                sha256: "",
+                size: filePreviews[i]?.file.size || 10,
+              },
+              storageId,
+            })) || [],
+        },
+      ])
+    } else {
+      // For regular channel messages
+      const currentValue = localStore.getQuery(api.messages.list, { channelId })
+      if (!currentValue) return
+      const messageId = crypto.randomUUID() as Id<"messages">
+      localStore.setQuery(api.messages.list, { channelId }, [
+        ...currentValue,
+        {
+          _id: messageId,
+          authorId: user._id,
+          content,
+          author: user,
+          channelId,
+          _creationTime: Date.now(),
+          temp: true,
+          reactions: [],
+          threadInfo: null,
+          files:
+            args.files?.map(({ name, storageId }, i) => ({
+              _id: crypto.randomUUID() as Id<"files">,
+              name,
+              _creationTime: Date.now(),
+              messageId,
+              url: filePreviews[i]?.url || null,
+              metadata: {
+                _id: crypto.randomUUID() as Id<"_storage">,
+                _creationTime: Date.now(),
+                contentType: filePreviews[i]?.file.type || "image/png",
+                sha256: "",
+                size: filePreviews[i]?.file.size || 10,
+              },
+              storageId,
+            })) || [],
+        },
+      ])
+    }
   })
 
   const generateUploadUrl = useConvexMutation(api.uploads.generateUploadUrl)
@@ -76,9 +124,10 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
 
       setIsLoading(false)
       void sendMessage({
-        channelId: currentChannel._id,
+        channelId,
         content: newMessage.trim(),
         files: filePreviews.map(({ file, storageId }) => ({ name: file.name, storageId: storageId! })),
+        threadId,
       })
       setFilePreviews([])
     } catch {
@@ -124,7 +173,7 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
     setTimeout(() => {
       textAreaRef.current?.focus()
     }, 100)
-  }, [currentChannel._id])
+  }, [channelId])
 
   return (
     <div className="border-t bg-background">
@@ -159,10 +208,10 @@ export function MessageInput({ currentChannel }: { currentChannel: Doc<"channels
 
           <ExpandableTextarea
             ref={textAreaRef}
-            placeholder="Send a message..."
+            placeholder={threadId ? "Reply to thread..." : "Send a message..."}
             onChange={(e) => setNewMessage(e.target.value)}
             rows={1}
-            disabled={!!currentChannel.archivedTime}
+            disabled={isDisabled}
             autoFocus
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {

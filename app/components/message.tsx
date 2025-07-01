@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
-import { ChevronDownIcon, Edit2Icon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
+import { ChevronDownIcon, Edit2Icon, MessageSquareTextIcon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
@@ -8,19 +8,31 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
 import { ExpandableTextarea } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
+import { ThreadIndicator } from "./thread/thread-indicator"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { WithState } from "./with-state"
 
-type MessageData = (typeof api.messages.list._returnType)[number]
+type MessageData = (typeof api.messages.list._returnType)[number] | (typeof api.threads.listMessages._returnType)[number]
 
 interface Props {
   message: MessageData
   isFirstMessageOfUser: boolean
+  isParentMessage?: boolean
+  isThreadMessage?: boolean
+  onCreateThread?: (messageId: Id<"messages">) => void
+  onOpenThread?: (threadId: Id<"threads">) => void
 }
 
-export function Message({ message, isFirstMessageOfUser }: Props) {
+export function Message({
+  message,
+  isFirstMessageOfUser,
+  isParentMessage = false,
+  isThreadMessage = false,
+  onCreateThread,
+  onOpenThread,
+}: Props) {
   const user = useQuery(api.auth.loggedInUser)
   const [isMessageHovered, setIsMessageHovered] = useState(false)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
@@ -91,7 +103,7 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
   return (
     <div
       key={message._id}
-      className="group flex gap-2 px-4 py-1.5 hover:bg-muted/50 dark:hover:bg-muted/10"
+      className={cn("group flex gap-2 px-4 py-1.5 hover:bg-muted/50 dark:hover:bg-muted/10", isParentMessage && "py-4")}
       onMouseEnter={() => {
         if (!isEditing) setIsMessageHovered(true)
       }}
@@ -135,22 +147,32 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
         {!isEditing && message.files && message.files.length > 0 && (
           <div>
             <WithState initialState={true}>
-              {(state, setState) => (
+              {(isImageOpen, setIsImageOpen) => (
                 <>
                   <div className="flex items-center gap-0.5 py-1">
                     <p className="text-xs opacity-50">
                       {message.files[0] ? message.files[0].name : `${message.files.length} files`}
                     </p>
-                    <Button variant="ghost" size="icon" className="size-4 rounded-sm" onClick={() => setState(!state)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-4 rounded-sm"
+                      onClick={() => setIsImageOpen(!isImageOpen)}
+                    >
                       <ChevronDownIcon className="size-3.5 opacity-50" />
                     </Button>
                   </div>
-                  {state && (
-                    <div className="flex flex-wrap gap-2">
-                      {message.files[0] && <MessageFile file={message.files[0]} />}
-                      {message.files.length > 1 &&
-                        message.files.map((file) => <MessageFile key={file._id} file={file} className="h-14 w-14" />)}
-                    </div>
+                  {isImageOpen && message.files.length > 0 && (
+                    <>
+                      {message.files.length === 1 && <MessageFile file={message.files[0]!} />}
+                      {message.files.length > 1 && (
+                        <div className="flex flex-wrap gap-2">
+                          {message.files.map((file) => (
+                            <MessageFile key={file._id} file={file} className="h-14 w-14" />
+                          ))}
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -221,6 +243,15 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
             </WithState>
           </div>
         )}
+
+        {/* Thread Indicator */}
+        {!isThreadMessage &&
+          !isParentMessage &&
+          onOpenThread &&
+          "threadInfo" in message &&
+          message.threadInfo &&
+          message.threadInfo.replyCount > 0 && <ThreadIndicator threadInfo={message.threadInfo} onOpenThread={onOpenThread} />}
+
         <div
           className={cn(
             "-top-4 absolute right-0 gap-0 rounded-lg border bg-background p-1 shadow-xs transition-opacity duration-200",
@@ -267,6 +298,12 @@ export function Message({ message, isFirstMessageOfUser }: Props) {
               <Edit2Icon className="size-3.5" />
             </Button>
           )}
+          {!isThreadMessage && !isParentMessage && onCreateThread && (
+            <Button size="icon" className="size-8" variant="ghost" onClick={() => onCreateThread(message._id)}>
+              <MessageSquareTextIcon className="size-3.5" />
+            </Button>
+          )}
+
           {message.author?._id === user?._id && (
             <Button
               size="icon"
@@ -311,13 +348,27 @@ function MessageFile({ file, className }: { file: MessageFileType; className?: s
 
 function MessageEditor({ message, onClose }: { message: MessageData; onClose: () => void }) {
   const updateMessage = useMutation(api.messages.update).withOptimisticUpdate((localStore, args) => {
-    const currentValue = localStore.getQuery(api.messages.list, { channelId: message.channelId })
-    if (currentValue) {
-      localStore.setQuery(
-        api.messages.list,
-        { channelId: message.channelId },
-        currentValue.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
-      )
+    if (message.threadId) {
+      const currentThread = localStore.getQuery(api.threads.get, { threadId: message.threadId })
+      if (currentThread) {
+        const currentMessages = localStore.getQuery(api.threads.listMessages, { threadId: message.threadId })
+        if (currentMessages) {
+          localStore.setQuery(
+            api.threads.listMessages,
+            { threadId: message.threadId },
+            currentMessages.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
+          )
+        }
+      }
+    } else {
+      const currentValue = localStore.getQuery(api.messages.list, { channelId: message.channelId })
+      if (currentValue) {
+        localStore.setQuery(
+          api.messages.list,
+          { channelId: message.channelId },
+          currentValue.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
+        )
+      }
     }
   })
 

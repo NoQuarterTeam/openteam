@@ -10,13 +10,13 @@ export const list = query({
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
+      .filter((q) => q.eq(q.field("threadId"), undefined))
       .order("asc")
       .take(100)
 
-    // Get author profiles for each message
-    const messagesWithAuthors = await Promise.all(
+    const messagesWithAuthorsAndThreads = await Promise.all(
       messages.map(async (message) => {
-        const [user, dbReactions, dbFiles] = await Promise.all([
+        const [user, dbReactions, dbFiles, thread] = await Promise.all([
           ctx.db.get(message.authorId),
           ctx.db
             .query("messageReactions")
@@ -26,9 +26,13 @@ export const list = query({
             .query("files")
             .withIndex("by_message", (q) => q.eq("messageId", message._id))
             .collect(),
+          ctx.db
+            .query("threads")
+            .withIndex("by_parent_message", (q) => q.eq("parentMessageId", message._id))
+            .first(),
         ])
 
-        const [reactions, files] = await Promise.all([
+        const [reactions, files, image] = await Promise.all([
           Promise.all(
             dbReactions.map(async (reaction) => {
               const user = await ctx.db.get(reaction.userId)
@@ -44,16 +48,48 @@ export const list = query({
               return { ...fileDb, metadata, url: await ctx.storage.getUrl(fileDb.storageId) }
             }),
           ),
+          user?.image && ctx.storage.getUrl(user.image),
         ])
 
-        let image = null
-        if (user?.image) image = await ctx.storage.getUrl(user.image)
+        // Thread info
+        let threadInfo = null
+        if (thread) {
+          const replies = await ctx.db
+            .query("messages")
+            .withIndex("by_thread", (q) => q.eq("threadId", thread._id))
+            .collect()
+          const participants = await Promise.all(
+            replies.map(async (reply) => {
+              const user = await ctx.db.get(reply.authorId)
+              if (!user) return null
+              return { ...user, image: user.image ? await ctx.storage.getUrl(user.image) : null }
+            }),
+          )
+          const uniqueParticipants = [...new Set(participants.filter(Boolean).map((p) => p!._id))]
+          threadInfo = {
+            threadId: thread._id,
+            parentMessageId: thread.parentMessageId,
+            replyCount: replies.length,
+            lastReplyTime: replies.length > 0 ? Math.max(...replies.map((r) => r._creationTime)) : undefined,
+            participants: uniqueParticipants.map((p) => {
+              const user = participants.find((u) => u!._id === p)
+              return user!
+            }),
+          }
+        }
 
-        return { ...message, reactions, files: files.filter(Boolean), temp: false, author: user ? { ...user, image } : null }
+        return {
+          ...message,
+          reactions,
+          files: files.filter(Boolean),
+          temp: false,
+          author: user ? { ...user, image } : null,
+          threadInfo,
+        }
       }),
     )
 
-    return messagesWithAuthors
+    return messagesWithAuthorsAndThreads
   },
 })
 
@@ -62,15 +98,25 @@ export const send = mutation({
     channelId: v.id("channels"),
     content: v.optional(v.string()),
     files: v.optional(v.array(v.object({ name: v.string(), storageId: v.id("_storage") }))),
+    threadId: v.optional(v.id("threads")),
   },
   returns: v.id("messages"),
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx)
 
+    // If threadId is provided, verify the thread exists and get channelId from it
+    let channelId = args.channelId
+    if (args.threadId) {
+      const thread = await ctx.db.get(args.threadId)
+      if (!thread) throw new Error("Thread not found")
+      channelId = thread.channelId
+    }
+
     const message = await ctx.db.insert("messages", {
-      channelId: args.channelId,
+      channelId,
       authorId: userId,
       content: args.content,
+      threadId: args.threadId,
     })
 
     if (args.files) {

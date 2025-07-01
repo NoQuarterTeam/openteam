@@ -7,6 +7,7 @@ import { redirect, useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
 import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
+import { ThreadSidebar } from "@/components/thread/thread-sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -15,6 +16,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useRecentChannels } from "@/lib/use-recent-channels"
+import { useThreadStore } from "@/lib/use-thread-store"
 import { cn } from "@/lib/utils"
 
 export default function Component() {
@@ -24,8 +26,10 @@ export default function Component() {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const [isUserScrolledUp, setIsUserScrolledUp] = useState(false)
   const addChannel = useRecentChannels((s) => s.addChannel)
+  const { currentThreadId, isOpen, openThread, closeThread } = useThreadStore()
 
   const currentChannel = useConvexQuery(api.channels.get, { channelId: channelId! })
+  const createThread = useMutation(api.threads.create)
 
   const { data: messages } = useQuery(convexQuery(api.messages.list, { channelId: channelId! }))
 
@@ -39,6 +43,15 @@ export default function Component() {
   }
 
   const markAsRead = useMutation(api.channels.markAsRead)
+
+  const handleCreateThread = async (messageId: Id<"messages">) => {
+    try {
+      const threadId = await createThread({ parentMessageId: messageId })
+      openThread(threadId)
+    } catch (error) {
+      console.error("Failed to create thread:", error)
+    }
+  }
 
   const isMounted = useRef(false)
   useEffect(() => {
@@ -60,7 +73,12 @@ export default function Component() {
   if (!currentChannel) return null
   return (
     <div className="flex flex-1 p-4">
-      <div className="flex flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs">
+      <div
+        className={cn(
+          "flex flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs transition-all",
+          isOpen ? "mr-2" : "",
+        )}
+      >
         <ChannelHeader key={currentChannel._id} channel={currentChannel} />
 
         <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-none py-2" onScroll={handleScroll}>
@@ -72,14 +90,28 @@ export default function Component() {
                 (!!messages[index - 1] &&
                   new Date(message._creationTime).getTime() - new Date(messages[index - 1]!._creationTime).getTime() >
                     10 * 60 * 1000)
-              return <Message key={message._id} message={message} isFirstMessageOfUser={isFirstMessageOfUser} />
+              return (
+                <Message
+                  key={message._id}
+                  message={message}
+                  isFirstMessageOfUser={isFirstMessageOfUser}
+                  onCreateThread={handleCreateThread}
+                  onOpenThread={openThread}
+                />
+              )
             })}
           </div>
           <div ref={messagesEndRef} />
         </div>
 
-        <MessageInput currentChannel={currentChannel} />
+        <MessageInput channelId={channelId!} isDisabled={!!currentChannel.archivedTime} />
       </div>
+
+      {isOpen && currentThreadId && (
+        <div className="w-96 flex-shrink-0">
+          <ThreadSidebar threadId={currentThreadId} onClose={closeThread} />
+        </div>
+      )}
     </div>
   )
 }
