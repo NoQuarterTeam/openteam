@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
-import { ChevronDownIcon, Edit2Icon, MessageSquareIcon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
+import { ChevronDownIcon, Edit2Icon, MessageSquareTextIcon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
@@ -25,7 +25,14 @@ interface Props {
   onOpenThread?: (threadId: Id<"threads">) => void
 }
 
-export function Message({ message, isFirstMessageOfUser, isParentMessage = false, isThreadMessage = false, onCreateThread, onOpenThread }: Props) {
+export function Message({
+  message,
+  isFirstMessageOfUser,
+  isParentMessage = false,
+  isThreadMessage = false,
+  onCreateThread,
+  onOpenThread,
+}: Props) {
   const user = useQuery(api.auth.loggedInUser)
   const [isMessageHovered, setIsMessageHovered] = useState(false)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
@@ -96,7 +103,7 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
   return (
     <div
       key={message._id}
-      className="group flex gap-2 px-4 py-1.5 hover:bg-muted/50 dark:hover:bg-muted/10"
+      className={cn("group flex gap-2 px-4 py-1.5 hover:bg-muted/50 dark:hover:bg-muted/10", isParentMessage && "py-4")}
       onMouseEnter={() => {
         if (!isEditing) setIsMessageHovered(true)
       }}
@@ -229,11 +236,7 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
 
         {/* Thread Indicator */}
         {!isThreadMessage && !isParentMessage && onOpenThread && (
-          <ThreadIndicator 
-            messageId={message._id} 
-            channelId={message.channelId} 
-            onOpenThread={onOpenThread} 
-          />
+          <ThreadIndicator messageId={message._id} channelId={message.channelId} onOpenThread={onOpenThread} />
         )}
 
         <div
@@ -283,16 +286,11 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
             </Button>
           )}
           {!isThreadMessage && !isParentMessage && onCreateThread && (
-            <Button
-              size="icon"
-              className="size-8"
-              variant="ghost"
-              onClick={() => onCreateThread(message._id)}
-            >
-              <MessageSquareIcon className="size-3.5" />
+            <Button size="icon" className="size-8" variant="ghost" onClick={() => onCreateThread(message._id)}>
+              <MessageSquareTextIcon className="size-3.5" />
             </Button>
           )}
-          
+
           {message.author?._id === user?._id && (
             <Button
               size="icon"

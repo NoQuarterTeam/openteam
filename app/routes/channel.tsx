@@ -7,6 +7,7 @@ import { redirect, useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
 import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
+import { ThreadSidebar } from "@/components/thread/thread-sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -16,7 +17,6 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useRecentChannels } from "@/lib/use-recent-channels"
 import { useThreadStore } from "@/lib/use-thread-store"
-import { ThreadSidebar } from "@/components/thread/thread-sidebar"
 import { cn } from "@/lib/utils"
 
 export default function Component() {
@@ -73,10 +73,12 @@ export default function Component() {
   if (!currentChannel) return null
   return (
     <div className="flex flex-1 p-4">
-      <div className={cn(
-        "flex flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs transition-all",
-        isOpen ? "mr-2" : ""
-      )}>
+      <div
+        className={cn(
+          "flex flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs transition-all",
+          isOpen ? "mr-2" : "",
+        )}
+      >
         <ChannelHeader key={currentChannel._id} channel={currentChannel} />
 
         <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-none py-2" onScroll={handleScroll}>
@@ -89,9 +91,9 @@ export default function Component() {
                   new Date(message._creationTime).getTime() - new Date(messages[index - 1]!._creationTime).getTime() >
                     10 * 60 * 1000)
               return (
-                <Message 
-                  key={message._id} 
-                  message={message} 
+                <Message
+                  key={message._id}
+                  message={message}
                   isFirstMessageOfUser={isFirstMessageOfUser}
                   onCreateThread={handleCreateThread}
                   onOpenThread={openThread}
@@ -102,7 +104,7 @@ export default function Component() {
           <div ref={messagesEndRef} />
         </div>
 
-        <MessageInput currentChannel={currentChannel} />
+        <MessageInput channelId={channelId!} isDisabled={!!currentChannel.archivedTime} />
       </div>
 
       {isOpen && currentThreadId && (

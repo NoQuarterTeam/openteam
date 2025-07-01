@@ -10,7 +10,7 @@ export const list = query({
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
-      .filter((q: any) => q.eq(q.field("threadId"), undefined))
+      .filter((q) => q.eq(q.field("threadId"), undefined))
       .order("asc")
       .take(100)
 
@@ -63,15 +63,25 @@ export const send = mutation({
     channelId: v.id("channels"),
     content: v.optional(v.string()),
     files: v.optional(v.array(v.object({ name: v.string(), storageId: v.id("_storage") }))),
+    threadId: v.optional(v.id("threads")),
   },
   returns: v.id("messages"),
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx)
 
+    // If threadId is provided, verify the thread exists and get channelId from it
+    let channelId = args.channelId
+    if (args.threadId) {
+      const thread = await ctx.db.get(args.threadId)
+      if (!thread) throw new Error("Thread not found")
+      channelId = thread.channelId
+    }
+
     const message = await ctx.db.insert("messages", {
-      channelId: args.channelId,
+      channelId,
       authorId: userId,
       content: args.content,
+      threadId: args.threadId,
     })
 
     if (args.files) {

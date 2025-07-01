@@ -77,7 +77,6 @@ export default defineSchema({
     channelId: v.id("channels"),
     parentMessageId: v.id("messages"),
     createdBy: v.id("users"),
-    title: v.optional(v.string()),
   })
     .index("by_channel", ["channelId"])
     .index("by_parent_message", ["parentMessageId"]),
