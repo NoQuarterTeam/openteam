@@ -74,21 +74,7 @@ export class NotificationService {
     }
   }
 
-  sendNotification({
-    title,
-    body,
-    channelId,
-    channelName,
-    authorName,
-    icon,
-  }: {
-    title: string
-    body: string
-    channelId: Id<"channels">
-    channelName: string
-    authorName: string
-    icon?: string
-  }) {
+  sendNotification({ title, body, channelId, icon }: { title: string; body: string; channelId: Id<"channels">; icon?: string }) {
     if (!this.isSupported() || this.getPermission() !== "granted") {
       return
     }

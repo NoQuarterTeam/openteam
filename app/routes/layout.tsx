@@ -1,6 +1,6 @@
-import { Outlet, useParams } from "react-router"
 import { useQuery } from "convex/react"
 import { useEffect, useRef } from "react"
+import { Outlet, useParams } from "react-router"
 import { Nav } from "@/components/nav"
 import { Sidebar } from "@/components/sidebar"
 import { api } from "@/convex/_generated/api"
@@ -26,8 +26,8 @@ function NotificationHandler() {
   const channels = useQuery(api.channels.list)
   const user = useQuery(api.auth.loggedInUser)
   const { sendNotification, requestPermission, isSupported } = useNotifications()
-  
-  const previousChannelsRef = useRef<typeof channels>()
+
+  const previousChannelsRef = useRef<typeof channels | undefined>(undefined)
   const isInitialLoad = useRef(true)
 
   // Request notification permission on app load
@@ -54,41 +54,28 @@ function NotificationHandler() {
     // Check for channels with increased unread count
     for (const channel of channels) {
       const previousChannel = previousChannels.find((prev: typeof channel) => prev._id === channel._id)
-      
+
       // Skip if this is the current channel (user is actively viewing it)
-      if (channelId === channel._id) {
-        continue
-      }
+      if (channelId === channel._id) continue
 
       // Skip if channel is muted
-      if (channel.isMuted) {
-        continue
-      }
+      if (channel.isMuted) continue
 
       // Check if unread count increased (new message)
       if (previousChannel && channel.unreadCount > previousChannel.unreadCount) {
-        const isDirectMessage = !!channel.dmUser
-        const channelDisplayName = isDirectMessage 
-          ? channel.dmUser.name 
-          : `#${channel.name}`
+        const channelDisplayName = channel.dmUser ? channel.dmUser.name : `#${channel.name}`
 
         // For DMs, show the sender's name as the title
         // For channels, show the channel name as the title
-        const title = isDirectMessage 
-          ? `${channel.dmUser.name} sent you a message`
-          : `New message in ${channelDisplayName}`
+        const title = channel.dmUser ? `${channel.dmUser.name} sent you a message` : `New message in ${channelDisplayName}`
 
-        const body = isDirectMessage
-          ? "Click to view the conversation"
-          : "Click to view the channel"
+        const body = "Click to view the conversation"
 
         sendNotification({
           title,
           body,
           channelId: channel._id,
-          channelName: channelDisplayName,
-          authorName: isDirectMessage ? channel.dmUser.name : "Channel",
-          icon: isDirectMessage ? channel.dmUser.image || undefined : undefined,
+          icon: channel.dmUser ? channel.dmUser.image || undefined : undefined,
         })
       }
     }
