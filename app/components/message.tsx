@@ -221,7 +221,7 @@ export function Message({
                   </PopoverTrigger>
                   <PopoverContent align="start" className="w-full p-0" backdrop="transparent">
                     <EmojiPicker
-                      className="h-[342px]"
+                      className="h-[340px]"
                       onEmojiSelect={({ emoji }) => {
                         if (!user) return
                         const existingReaction = message.reactions.find((r) => r.content === emoji && r.userId === user._id)
@@ -293,7 +293,7 @@ export function Message({
             </PopoverTrigger>
             <PopoverContent align="end" className="w-full p-0" backdrop="transparent">
               <EmojiPicker
-                className="h-[342px]"
+                className="h-[340px]"
                 onEmojiSelect={({ emoji }) => {
                   if (!user) return
                   const existingReaction = message.reactions.find((r) => r.content === emoji && r.userId === user._id)
