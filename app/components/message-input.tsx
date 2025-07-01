@@ -84,6 +84,7 @@ export function MessageInput({
           _creationTime: Date.now(),
           temp: true,
           reactions: [],
+          threadInfo: null,
           files:
             args.files?.map(({ name, storageId }, i) => ({
               _id: crypto.randomUUID() as Id<"files">,

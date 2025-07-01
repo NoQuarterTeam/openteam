@@ -1,7 +1,5 @@
-import { useQuery } from "convex/react"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
-import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
 import { Button } from "../ui/button"
@@ -9,16 +7,17 @@ import { Button } from "../ui/button"
 dayjs.extend(relativeTime)
 
 interface ThreadIndicatorProps {
-  messageId: Id<"messages">
-  channelId: Id<"channels">
+  threadInfo: {
+    threadId: Id<"threads">
+    parentMessageId: Id<"messages">
+    replyCount: number
+    lastReplyTime?: number
+    participants: Array<{ _id: Id<"users">; name: string; image?: string | null }>
+  }
   onOpenThread: (threadId: Id<"threads">) => void
 }
 
-export function ThreadIndicator({ messageId, channelId, onOpenThread }: ThreadIndicatorProps) {
-  const channelThreads = useQuery(api.threads.listChannelThreads, { channelId })
-
-  const threadInfo = channelThreads?.find((t) => t.parentMessageId === messageId)
-
+export function ThreadIndicator({ threadInfo, onOpenThread }: ThreadIndicatorProps) {
   if (!threadInfo || threadInfo.replyCount === 0) return null
 
   return (

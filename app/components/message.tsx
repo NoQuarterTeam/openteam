@@ -14,7 +14,7 @@ import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { WithState } from "./with-state"
 
-type MessageData = (typeof api.messages.list._returnType)[number]
+type MessageData = (typeof api.messages.list._returnType)[number] | (typeof api.threads.listMessages._returnType)[number]
 
 interface Props {
   message: MessageData
@@ -147,22 +147,32 @@ export function Message({
         {!isEditing && message.files && message.files.length > 0 && (
           <div>
             <WithState initialState={true}>
-              {(state, setState) => (
+              {(isImageOpen, setIsImageOpen) => (
                 <>
                   <div className="flex items-center gap-0.5 py-1">
                     <p className="text-xs opacity-50">
                       {message.files[0] ? message.files[0].name : `${message.files.length} files`}
                     </p>
-                    <Button variant="ghost" size="icon" className="size-4 rounded-sm" onClick={() => setState(!state)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-4 rounded-sm"
+                      onClick={() => setIsImageOpen(!isImageOpen)}
+                    >
                       <ChevronDownIcon className="size-3.5 opacity-50" />
                     </Button>
                   </div>
-                  {state && (
-                    <div className="flex flex-wrap gap-2">
-                      {message.files[0] && <MessageFile file={message.files[0]} />}
-                      {message.files.length > 1 &&
-                        message.files.map((file) => <MessageFile key={file._id} file={file} className="h-14 w-14" />)}
-                    </div>
+                  {isImageOpen && message.files.length > 0 && (
+                    <>
+                      {message.files.length === 1 && <MessageFile file={message.files[0]!} />}
+                      {message.files.length > 1 && (
+                        <div className="flex flex-wrap gap-2">
+                          {message.files.map((file) => (
+                            <MessageFile key={file._id} file={file} className="h-14 w-14" />
+                          ))}
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -235,9 +245,12 @@ export function Message({
         )}
 
         {/* Thread Indicator */}
-        {!isThreadMessage && !isParentMessage && onOpenThread && (
-          <ThreadIndicator messageId={message._id} channelId={message.channelId} onOpenThread={onOpenThread} />
-        )}
+        {!isThreadMessage &&
+          !isParentMessage &&
+          onOpenThread &&
+          "threadInfo" in message &&
+          message.threadInfo &&
+          message.threadInfo.replyCount > 0 && <ThreadIndicator threadInfo={message.threadInfo} onOpenThread={onOpenThread} />}
 
         <div
           className={cn(
@@ -335,13 +348,27 @@ function MessageFile({ file, className }: { file: MessageFileType; className?: s
 
 function MessageEditor({ message, onClose }: { message: MessageData; onClose: () => void }) {
   const updateMessage = useMutation(api.messages.update).withOptimisticUpdate((localStore, args) => {
-    const currentValue = localStore.getQuery(api.messages.list, { channelId: message.channelId })
-    if (currentValue) {
-      localStore.setQuery(
-        api.messages.list,
-        { channelId: message.channelId },
-        currentValue.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
-      )
+    if (message.threadId) {
+      const currentThread = localStore.getQuery(api.threads.get, { threadId: message.threadId })
+      if (currentThread) {
+        const currentMessages = localStore.getQuery(api.threads.listMessages, { threadId: message.threadId })
+        if (currentMessages) {
+          localStore.setQuery(
+            api.threads.listMessages,
+            { threadId: message.threadId },
+            currentMessages.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
+          )
+        }
+      }
+    } else {
+      const currentValue = localStore.getQuery(api.messages.list, { channelId: message.channelId })
+      if (currentValue) {
+        localStore.setQuery(
+          api.messages.list,
+          { channelId: message.channelId },
+          currentValue.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
+        )
+      }
     }
   })
 

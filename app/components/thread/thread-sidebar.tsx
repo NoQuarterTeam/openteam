@@ -29,15 +29,11 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
 
       {threadData && (
         <>
-          {/* Parent Message */}
-
-          <Message message={threadData.parentMessage} isFirstMessageOfUser={true} isParentMessage={true} />
-
-          {/* Thread Messages */}
           <div className="flex-1 overflow-y-auto">
+            <Message message={threadData.parentMessage} isFirstMessageOfUser={true} isParentMessage={true} />
             <ThreadMessages messages={messages || []} />
           </div>
-          {/* Thread Input */}
+
           <MessageInput channelId={threadData.thread.channelId} threadId={threadId} isDisabled={false} />
         </>
       )}

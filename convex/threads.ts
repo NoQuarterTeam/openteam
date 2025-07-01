@@ -19,9 +19,7 @@ export const create = mutation({
       .withIndex("by_parent_message", (q) => q.eq("parentMessageId", args.parentMessageId))
       .unique()
 
-    if (existingThread) {
-      return existingThread._id
-    }
+    if (existingThread) return existingThread._id
 
     return await ctx.db.insert("threads", {
       channelId: parentMessage.channelId,
@@ -87,50 +85,9 @@ export const get = query({
         author: author ? { ...author, image: authorImage } : null,
         reactions: reactionsWithUsers.filter(Boolean),
         files: filesWithUrls,
+        threadInfo: null,
       },
     }
-  },
-})
-
-export const listChannelThreads = query({
-  args: { channelId: v.id("channels") },
-  handler: async (ctx, args) => {
-    await requireUser(ctx)
-
-    const threads = await ctx.db
-      .query("threads")
-      .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
-      .collect()
-
-    return await Promise.all(
-      threads.map(async (thread) => {
-        const replies = await ctx.db
-          .query("messages")
-          .withIndex("by_thread", (q) => q.eq("threadId", thread._id))
-          .collect()
-
-        const participants = await Promise.all(
-          replies.map(async (reply) => {
-            const user = await ctx.db.get(reply.authorId)
-            if (!user) return null
-            return { ...user, image: user.image ? await ctx.storage.getUrl(user.image) : null }
-          }),
-        )
-
-        const uniqueParticipants = [...new Set(participants.filter(Boolean).map((p) => p!._id))]
-
-        return {
-          threadId: thread._id,
-          parentMessageId: thread.parentMessageId,
-          replyCount: replies.length,
-          lastReplyTime: replies.length > 0 ? Math.max(...replies.map((r) => r._creationTime)) : undefined,
-          participants: uniqueParticipants.map((p) => {
-            const user = participants.find((u) => u!._id === p)
-            return user!
-          }),
-        }
-      }),
-    )
   },
 })
 
