@@ -258,6 +258,33 @@ export function Message({
             isMessageHovered ? "flex" : "hidden",
           )}
         >
+          {message.author?._id === user?._id && (
+            <Button
+              size="icon"
+              className="size-8"
+              variant="ghost"
+              onClick={() => {
+                setIsEditing(true)
+                setIsMessageHovered(false)
+              }}
+            >
+              <Edit2Icon className="size-3.5" />
+            </Button>
+          )}
+          {message.author?._id === user?._id && (
+            <Button
+              size="icon"
+              className="size-8"
+              variant="ghost"
+              onClick={() => {
+                if (window.confirm("Are you sure you want to delete this message?")) {
+                  deleteMessage({ messageId: message._id })
+                }
+              }}
+            >
+              <TrashIcon className="size-3.5" />
+            </Button>
+          )}
           <Popover modal open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
               <Button size="icon" className="size-8" variant="ghost">
@@ -285,37 +312,9 @@ export function Message({
             </PopoverContent>
           </Popover>
 
-          {message.author?._id === user?._id && (
-            <Button
-              size="icon"
-              className="size-8"
-              variant="ghost"
-              onClick={() => {
-                setIsEditing(true)
-                setIsMessageHovered(false)
-              }}
-            >
-              <Edit2Icon className="size-3.5" />
-            </Button>
-          )}
           {!isThreadMessage && !isParentMessage && onCreateThread && (
             <Button size="icon" className="size-8" variant="ghost" onClick={() => onCreateThread(message._id)}>
               <MessageSquareTextIcon className="size-3.5" />
-            </Button>
-          )}
-
-          {message.author?._id === user?._id && (
-            <Button
-              size="icon"
-              className="size-8"
-              variant="ghost"
-              onClick={() => {
-                if (window.confirm("Are you sure you want to delete this message?")) {
-                  deleteMessage({ messageId: message._id })
-                }
-              }}
-            >
-              <TrashIcon className="size-3.5 text-destructive" />
             </Button>
           )}
         </div>
@@ -328,14 +327,10 @@ type MessageFileType = MessageData["files"][number]
 
 function MessageFile({ file, className }: { file: MessageFileType; className?: string }) {
   return (
-    <a href={file.url || "#"} target="_blank" rel="noopener noreferrer" className={cn("flex max-w-md shrink-0", className)}>
+    <a href={file.url || "#"} target="_blank" rel="noopener noreferrer" className={cn("flex h-[200px] shrink-0", className)}>
       {file.metadata?.contentType?.startsWith("image/") || file.url?.startsWith("blob:") ? (
         <div className="relative">
-          <img
-            src={file.url || "#"}
-            alt={file.name}
-            className="h-full w-full rounded-lg bg-neutral-50 object-cover dark:bg-neutral-700"
-          />
+          <img src={file.url || "#"} alt={file.name} className="h-full rounded-lg object-cover" />
         </div>
       ) : (
         <div className="relative">
