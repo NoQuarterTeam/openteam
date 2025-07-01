@@ -1,6 +1,10 @@
 import { useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
+import DOMPurify from "dompurify"
+import hljs from "highlight.js"
 import { ChevronDownIcon, Edit2Icon, MessageSquareTextIcon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
+import { Marked } from "marked"
+import { markedHighlight } from "marked-highlight"
 import { useEffect, useState } from "react"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
@@ -13,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { WithState } from "./with-state"
+import "highlight.js/styles/github.css"
 
 type MessageData = (typeof api.messages.list._returnType)[number] | (typeof api.threads.listMessages._returnType)[number]
 
@@ -123,7 +128,7 @@ export function Message({
           <div className="w-9 flex-shrink-0" />
         )}
       </div>
-      <div className="relative h-min flex-1">
+      <div className="relative w-full">
         {isFirstMessageOfUser ? (
           <div className="flex gap-2 pb-1.5">
             <span className="font-semibold text-sm leading-4">{message.author?.name || "Unknown"}</span>
@@ -135,12 +140,9 @@ export function Message({
           </p>
         )}
         {!isEditing && message.content && (
-          <p
-            className={cn(
-              "wrap-break-word -my-[6px] whitespace-pre-line font-normal text-sm leading-7",
-              message.temp && "opacity-70",
-            )}
-            dangerouslySetInnerHTML={{ __html: message.content.replace(/\n{2,}/g, "\n") }}
+          <div
+            className={cn("-my-[6px] font-normal text-sm leading-7", message.temp && "opacity-70")}
+            dangerouslySetInnerHTML={{ __html: renderMessageContent(message.content) }}
           />
         )}
         {isEditing && <MessageEditor message={message} onClose={() => setIsEditing(false)} />}
@@ -412,4 +414,21 @@ function MessageEditor({ message, onClose }: { message: MessageData; onClose: ()
       </div>
     </div>
   )
+}
+const marked = new Marked(
+  markedHighlight({
+    async: false,
+    emptyLangClass: "hljs",
+    langPrefix: "hljs language-",
+    highlight(code, lang) {
+      const language = hljs.getLanguage(lang) ? lang : "plaintext"
+      return hljs.highlight(code, { language }).value
+    },
+  }),
+)
+
+function renderMessageContent(content: string) {
+  const rawHtml = marked.parse(content, { async: false, breaks: false, gfm: true })
+  const cleanHtml = DOMPurify.sanitize(rawHtml)
+  return cleanHtml
 }
