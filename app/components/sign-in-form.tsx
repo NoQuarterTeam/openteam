@@ -9,7 +9,7 @@ export function SignInForm() {
   const [flow, setFlow] = useState<"signIn" | "signUp">("signIn")
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-start bg-muted/50 px-4 py-10 sm:px-6 lg:px-8">
+    <div className="flex h-dvh flex-col items-center justify-start bg-muted/50 px-4 py-10 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-4 rounded-xl border bg-background p-8">
         <div className="flex flex-col items-center gap-2">
           <h2 className="font-bold text-2xl text-neutral-900 tracking-tight dark:text-neutral-100">Welcome to OpenTeam</h2>

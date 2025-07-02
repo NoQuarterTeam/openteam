@@ -10,7 +10,7 @@ import { useNotifications } from "@/lib/notifications"
 
 export default function Component() {
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-dvh flex-col">
       <Nav />
 
       <div className="flex w-full flex-1 overflow-hidden">
