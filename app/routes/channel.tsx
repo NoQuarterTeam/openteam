@@ -95,6 +95,9 @@ export default function Component() {
 
     if (isChannelChange) {
       isScrolledUpRef.current = false
+      prevMessagesLengthRef.current = 0
+      scrollAnchorRef.current = null
+      isLoadingMoreRef.current = false
       addChannel(channelId)
       void markAsRead({ channelId })
     }
@@ -139,7 +142,7 @@ export default function Component() {
 
     if (shouldScrollToBottom) {
       requestAnimationFrame(() => {
-        bottomSentinelRef.current?.scrollIntoView()
+        bottomSentinelRef.current?.scrollIntoView({ behavior: "instant" })
       })
       void markAsRead({ channelId })
     }
@@ -199,7 +202,7 @@ export default function Component() {
                   Load more
                 </Button>
               </div>
-            ) : (
+            ) : status === "LoadingFirstPage" ? null : (
               <div className="pb-4 pl-4">
                 <h1 className="font-bold text-3xl">{displayName}</h1>
                 <p className="font-normal text-muted-foreground text-sm">

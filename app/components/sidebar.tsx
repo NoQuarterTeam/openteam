@@ -1,4 +1,6 @@
+import { convexQuery } from "@convex-dev/react-query"
 import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd"
+import { useQueryClient } from "@tanstack/react-query"
 import { useMutation, useQuery } from "convex/react"
 import { useNavigate, useParams } from "react-router"
 import { api } from "@/convex/_generated/api"
@@ -111,13 +113,15 @@ interface ChannelItemProps {
 function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
   const navigate = useNavigate()
   const setIsOpen = useSidebar((s) => s.setIsOpen)
+  const queryClient = useQueryClient()
+
   const onChannelClick = () => {
     navigate(`/${channel._id}`)
     setIsOpen(false)
   }
 
   return (
-    <Draggable key={channel._id} draggableId={channel._id} index={index}>
+    <Draggable draggableId={channel._id} index={index}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
@@ -132,6 +136,9 @@ function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
           )}
           onClick={() => {
             if (!snapshot.isDragging) onChannelClick()
+          }}
+          onMouseEnter={() => {
+            queryClient.prefetchQuery(convexQuery(api.channels.get, { channelId: channel._id }))
           }}
         >
           <div {...provided.dragHandleProps} className="flex flex-1 items-center gap-2">
