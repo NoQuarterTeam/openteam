@@ -110,7 +110,11 @@ interface ChannelItemProps {
 
 function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
   const navigate = useNavigate()
-  const onChannelClick = () => navigate(`/${channel._id}`)
+  const setIsOpen = useSidebar((s) => s.setIsOpen)
+  const onChannelClick = () => {
+    navigate(`/${channel._id}`)
+    setIsOpen(false)
+  }
 
   return (
     <Draggable key={channel._id} draggableId={channel._id} index={index}>
