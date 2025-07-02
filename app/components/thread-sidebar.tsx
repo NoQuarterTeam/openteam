@@ -15,6 +15,7 @@ interface ThreadSidebarProps {
 
 export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
   const { data: threadData } = useQuery(convexQuery(api.threads.get, { threadId }))
+  // For now, use the original listMessages query until we implement full pagination
   const { data: messages } = useQuery(convexQuery(api.threads.listMessages, { threadId }))
 
   return (

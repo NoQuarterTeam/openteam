@@ -1,6 +1,13 @@
 import { ConvexError, v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import { requireUser } from "./auth"
+import type { Doc } from "./_generated/dataModel"
+
+// Define pagination options validator
+const paginationOptsValidator = v.object({
+  numItems: v.number(),
+  cursor: v.union(v.string(), v.null())
+})
 
 export const list = query({
   args: { channelId: v.id("channels") },
@@ -34,7 +41,7 @@ export const list = query({
 
         const [reactions, files, image] = await Promise.all([
           Promise.all(
-            dbReactions.map(async (reaction) => {
+            dbReactions.map(async (reaction: Doc<"messageReactions">) => {
               const user = await ctx.db.get(reaction.userId)
               return { ...reaction, user: { ...user, image: user?.image ? await ctx.storage.getUrl(user.image) : null } }
             }),
@@ -191,4 +198,102 @@ export const update = mutation({
     if (message.authorId !== userId) throw new ConvexError("You are not the author of this message")
     await ctx.db.patch(args.messageId, { content: args.content })
   },
+})
+
+export const listPaginated = query({
+  args: { 
+    channelId: v.id("channels"),
+    paginationOpts: paginationOptsValidator 
+  },
+  handler: async (ctx, args) => {
+    await requireUser(ctx)
+
+    const result = await ctx.db
+      .query("messages")
+      .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
+      .filter((q) => q.eq(q.field("threadId"), undefined))
+      .order("desc") // Newest first for flex-col-reverse
+      .paginate(args.paginationOpts)
+
+    // Transform the page results with authors, reactions, files, threads
+    const messagesWithDetails = await Promise.all(
+      result.page.map(async (message) => {
+        const [user, dbReactions, dbFiles, thread] = await Promise.all([
+          ctx.db.get(message.authorId),
+          ctx.db
+            .query("messageReactions")
+            .withIndex("by_message", (q) => q.eq("messageId", message._id))
+            .collect(),
+          ctx.db
+            .query("files")
+            .withIndex("by_message", (q) => q.eq("messageId", message._id))
+            .collect(),
+          ctx.db
+            .query("threads")
+            .withIndex("by_parent_message", (q) => q.eq("parentMessageId", message._id))
+            .first(),
+        ])
+
+        const [reactions, files, image] = await Promise.all([
+          Promise.all(
+            dbReactions.map(async (reaction) => {
+              const user = await ctx.db.get(reaction.userId)
+              return { ...reaction, user: { ...user, image: user?.image ? await ctx.storage.getUrl(user.image) : null } }
+            }),
+          ),
+          Promise.all(
+            dbFiles.map(async (file) => {
+              const fileDb = await ctx.db.get(file._id)
+              if (!fileDb?.storageId) return null
+              const metadata = await ctx.db.system.get(fileDb.storageId)
+              if (!metadata) return null
+              return { ...fileDb, metadata, url: await ctx.storage.getUrl(fileDb.storageId) }
+            }),
+          ),
+          user?.image && ctx.storage.getUrl(user.image),
+        ])
+
+        // Thread info
+        let threadInfo = null
+        if (thread) {
+          const replies = await ctx.db
+            .query("messages")
+            .withIndex("by_thread", (q) => q.eq("threadId", thread._id))
+            .collect()
+          const participants = await Promise.all(
+            replies.map(async (reply) => {
+              const user = await ctx.db.get(reply.authorId)
+              if (!user) return null
+              return { ...user, image: user.image ? await ctx.storage.getUrl(user.image) : null }
+            }),
+          )
+          const uniqueParticipants = [...new Set(participants.filter(Boolean).map((p) => p!._id))]
+          threadInfo = {
+            threadId: thread._id,
+            parentMessageId: thread.parentMessageId,
+            replyCount: replies.length,
+            lastReplyTime: replies.length > 0 ? Math.max(...replies.map((r) => r._creationTime)) : undefined,
+            participants: uniqueParticipants.map((p) => {
+              const user = participants.find((u) => u!._id === p)
+              return user!
+            }),
+          }
+        }
+
+        return {
+          ...message,
+          reactions,
+          files: files.filter(Boolean),
+          temp: false,
+          author: user ? { ...user, image } : null,
+          threadInfo,
+        }
+      }),
+    )
+
+    return {
+      ...result,
+      page: messagesWithDetails
+    }
+  }
 })

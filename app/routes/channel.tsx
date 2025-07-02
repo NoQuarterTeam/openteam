@@ -22,38 +22,38 @@ import { cn } from "@/lib/utils"
 export default function Component() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
-  const [isUserScrolledUp, setIsUserScrolledUp] = useState(false)
+  const topSentinelRef = useRef<HTMLDivElement>(null)
+  const [isUserScrolledTowardOlder, setIsUserScrolledTowardOlder] = useState(false)
   const addChannel = useRecentChannels((s) => s.addChannel)
   const { currentThreadId, isOpen, closeThread } = useThreadStore()
 
   const { data: currentChannel } = useQuery(convexQuery(api.channels.get, { channelId: channelId! }))
 
+  // For now, use the original list query until we implement full pagination
   const { data: messages } = useQuery(convexQuery(api.messages.list, { channelId: channelId! }))
+
+  // TODO: Implement intersection observer for pagination when ready
 
   const handleScroll = () => {
     if (!messagesContainerRef.current) return
 
-    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 10 // 10px threshold
-
-    setIsUserScrolledUp(!isAtBottom)
+    const { scrollTop } = messagesContainerRef.current
+    
+    const isScrolledTowardOlder = scrollTop > 100
+    
+    setIsUserScrolledTowardOlder(isScrolledTowardOlder)
   }
 
   const markAsRead = useMutation(api.channels.markAsRead)
 
-  const isMounted = useRef(false)
   useEffect(() => {
-    if (isUserScrolledUp) return
-    setTimeout(
-      () => {
-        messagesEndRef.current?.scrollIntoView()
-      },
-      isMounted.current ? 0 : 300,
-    )
-    isMounted.current = true
-  }, [messages, isUserScrolledUp])
+    if (isUserScrolledTowardOlder) return
+    
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = 0
+    }
+  }, [messages?.length, isUserScrolledTowardOlder])
 
   useEffect(() => {
     if (!channelId) return
@@ -64,6 +64,7 @@ export default function Component() {
 
   if (currentChannel === null) return redirect("/")
   if (!currentChannel) return null
+  
   return (
     <div className="flex flex-1 p-4">
       <div
@@ -75,7 +76,11 @@ export default function Component() {
         <ChannelHeader key={currentChannel._id} channel={currentChannel} />
 
         <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-none py-2" onScroll={handleScroll}>
-          <div className="min-h-[500px]">
+          <div className="flex min-h-[500px] flex-col-reverse">
+            <div ref={topSentinelRef} className="h-1" />
+            
+            {/* TODO: Add loading indicator for pagination */}
+            
             {messages?.map((message, index) => {
               const isFirstMessageOfUser =
                 index === 0 ||
@@ -86,7 +91,6 @@ export default function Component() {
               return <Message key={message._id} message={message} isFirstMessageOfUser={isFirstMessageOfUser} />
             })}
           </div>
-          <div ref={messagesEndRef} />
         </div>
 
         <MessageInput channelId={channelId!} isDisabled={!!currentChannel.archivedTime} />
