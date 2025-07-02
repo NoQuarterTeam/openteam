@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react"
+import { optimisticallyUpdateValueInPaginatedQuery, useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
 import { ChevronDownIcon, Edit2Icon, MessageSquareTextIcon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -7,7 +7,6 @@ import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch }
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { renderMessageContent } from "@/lib/marked"
-import { DEFAULT_PAGINATION_NUM_ITEMS } from "@/lib/pagination"
 import { useEditMessage } from "@/lib/use-edit-message"
 import { cn } from "@/lib/utils"
 import { ExpandableTextarea } from "./expandable-textarea"
@@ -53,56 +52,64 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
   const addReaction = useMutation(api.reactions.add).withOptimisticUpdate((localStore, args) => {
     if (!user) return
 
-    const optimisticReaction = {
-      ...args,
-      _id: crypto.randomUUID() as Id<"messageReactions">,
-      _creationTime: Date.now(),
-      userId: user._id,
-      user,
-    }
-
-    // Update paginated query
-    const paginatedValue = localStore.getQuery(api.messages.list, {
-      channelId: message.channelId,
-      paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
+    optimisticallyUpdateValueInPaginatedQuery(localStore, api.messages.list, { channelId: message.channelId }, (currentValue) => {
+      if (message._id === currentValue._id) {
+        return {
+          ...currentValue,
+          reactions: [
+            ...currentValue.reactions,
+            {
+              ...args,
+              _id: crypto.randomUUID() as Id<"messageReactions">,
+              _creationTime: Date.now(),
+              userId: user._id,
+              user,
+            },
+          ],
+        }
+      }
+      return currentValue
     })
-    if (paginatedValue) {
-      localStore.setQuery(
-        api.messages.list,
-        {
-          channelId: message.channelId,
-          paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
-        },
-        {
-          ...paginatedValue,
-          page: paginatedValue.page.map((m: any) =>
-            m._id === message._id ? { ...m, reactions: [...m.reactions, optimisticReaction as any] } : m,
-          ),
-        },
-      )
-    }
   })
   const removeReaction = useMutation(api.reactions.remove).withOptimisticUpdate((localStore, args) => {
-    // Update paginated query
-    const paginatedValue = localStore.getQuery(api.messages.list, {
-      channelId: message.channelId,
-      paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
+    optimisticallyUpdateValueInPaginatedQuery(localStore, api.messages.list, { channelId: message.channelId }, (currentValue) => {
+      if (message._id === currentValue._id) {
+        return {
+          ...currentValue,
+          reactions: currentValue.reactions.filter((reaction) => reaction._id !== args.reactionId),
+        }
+      }
+      return currentValue
     })
-    if (paginatedValue) {
-      localStore.setQuery(
-        api.messages.list,
-        {
-          channelId: message.channelId,
-          paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
-        },
-        {
-          ...paginatedValue,
-          page: paginatedValue.page.map((m) =>
-            m._id === message._id ? { ...m, reactions: m.reactions.filter((reaction) => reaction._id !== args.reactionId) } : m,
-          ),
-        },
-      )
-    }
+  })
+
+  const deleteMessage = useMutation(api.messages.deleteMessage).withOptimisticUpdate((localStore) => {
+    // optimisticallyUpdateValueInPaginatedQuery(localStore, api.messages.list, { channelId: message.channelId }, (currentValue) => {
+    //   if (message._id === currentValue._id) {
+    //     return {
+    //       ...currentValue,
+    //       page: currentValue.page.filter((m) => m._id !== message._id),
+    //     }
+    //   }
+    //   return currentValue
+    // })
+    // const paginatedValue = localStore.getQuery(api.messages.list, {
+    //   channelId: message.channelId,
+    //   paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
+    // })
+    // if (paginatedValue) {
+    //   localStore.setQuery(
+    //     api.messages.list,
+    //     {
+    //       channelId: message.channelId,
+    //       paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
+    //     },
+    //     {
+    //       ...paginatedValue,
+    //       page: paginatedValue.page.filter((m) => m._id !== message._id),
+    //     },
+    //   )
+    // }
   })
 
   const groupedReactions = message.reactions.reduce(
@@ -115,27 +122,6 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
     },
     {} as Record<string, { count: number; reactions: MessageData["reactions"] }>,
   )
-
-  const deleteMessage = useMutation(api.messages.deleteMessage).withOptimisticUpdate((localStore) => {
-    // Update paginated query
-    const paginatedValue = localStore.getQuery(api.messages.list, {
-      channelId: message.channelId,
-      paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
-    })
-    if (paginatedValue) {
-      localStore.setQuery(
-        api.messages.list,
-        {
-          channelId: message.channelId,
-          paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
-        },
-        {
-          ...paginatedValue,
-          page: paginatedValue.page.filter((m) => m._id !== message._id),
-        },
-      )
-    }
-  })
 
   return (
     <div
@@ -393,48 +379,43 @@ function MessageFile({ file, className }: { file: MessageFileType; className?: s
 function MessageEditor({ message, onClose }: { message: MessageData; onClose: () => void }) {
   const updateMessage = useMutation(api.messages.update).withOptimisticUpdate((localStore, args) => {
     if (message.threadId) {
-      // Update thread messages (paginated query)
-      const paginatedThreadMessages = localStore.getQuery(api.threads.listMessages, {
-        threadId: message.threadId,
-        paginationOpts: { numItems: 100, cursor: null },
-      })
-      if (paginatedThreadMessages) {
-        localStore.setQuery(
-          api.threads.listMessages,
-          {
-            threadId: message.threadId,
-            paginationOpts: { numItems: 100, cursor: null },
-          },
-          {
-            ...paginatedThreadMessages,
-            page: paginatedThreadMessages.page.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
-          },
-        )
-      }
+      optimisticallyUpdateValueInPaginatedQuery(
+        localStore,
+        api.threads.listMessages,
+        { threadId: message.threadId },
+        (currentValue) => {
+          if (message._id === currentValue._id) {
+            return {
+              ...currentValue,
+              content: args.content,
+            }
+          }
+          return currentValue
+        },
+      )
     } else {
-      // Update channel messages (paginated query)
-      const paginatedValue = localStore.getQuery(api.messages.list, {
-        channelId: message.channelId,
-        paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
-      })
-      if (paginatedValue) {
-        localStore.setQuery(
-          api.messages.list,
-          { channelId: message.channelId, paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null } },
-          {
-            ...paginatedValue,
-            page: paginatedValue.page.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
-          },
-        )
-      }
+      optimisticallyUpdateValueInPaginatedQuery(
+        localStore,
+        api.messages.list,
+        { channelId: message.channelId },
+        (currentValue) => {
+          if (message._id === currentValue._id) {
+            return {
+              ...currentValue,
+              content: args.content,
+            }
+          }
+          return currentValue
+        },
+      )
     }
   })
 
   const [input, setInput] = useState(message.content || "")
 
   const handleSubmit = async () => {
-    await updateMessage({ messageId: message._id, content: input })
     onClose()
+    await updateMessage({ messageId: message._id, content: input })
   }
 
   useEffect(() => {
