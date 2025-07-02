@@ -128,7 +128,7 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
         {isFirstMessageOfUser ? (
           <div className="flex gap-2 pb-1.5">
             <span className="font-semibold text-sm leading-4">{message.author?.name || "Unknown"}</span>
-            <span className="text-xs leading-4 opacity-50">{dayjs(message._creationTime).format("DD/MM HH:mm")}</span>
+            <span className="text-xs leading-4 opacity-50">{dayjs(message._creationTime).format("HH:mm")}</span>
           </div>
         ) : (
           <p className="-left-10 absolute top-0 hidden text-xs opacity-50 group-hover:block">
