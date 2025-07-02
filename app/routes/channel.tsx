@@ -1,6 +1,4 @@
-import { convexQuery, useConvexMutation } from "@convex-dev/react-query"
-import { useQuery, useQueryClient, useMutation as useTanstackMutation } from "@tanstack/react-query"
-import { useMutation } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { BellIcon, BellOffIcon, EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { redirect, useNavigate, useParams } from "react-router"
@@ -12,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Spinner } from "@/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -28,12 +27,35 @@ export default function Component() {
   const addChannel = useRecentChannels((s) => s.addChannel)
   const { currentThreadId, isOpen, closeThread } = useThreadStore()
 
-  const { data: currentChannel } = useQuery(convexQuery(api.channels.get, { channelId: channelId! }))
+  const currentChannel = useQuery(api.channels.get, { channelId: channelId! })
+  
+  // For now, use the original query to avoid complexity
+  // TODO: Implement full pagination later
+  const messages = useQuery(api.messages.list, { channelId: channelId! })
+  const [isLoadingMore] = useState(false)
+  const hasMore = false
+  
+  const loadMore = async () => {
+    // TODO: Implement pagination loading
+  }
 
-  // For now, use the original list query until we implement full pagination
-  const { data: messages } = useQuery(convexQuery(api.messages.list, { channelId: channelId! }))
+  // Intersection observer for loading older messages
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasMore && !isLoadingMore) {
+          void loadMore()
+        }
+      },
+      { threshold: 0.1 }
+    )
 
-  // TODO: Implement intersection observer for pagination when ready
+    if (topSentinelRef.current) {
+      observer.observe(topSentinelRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [hasMore, isLoadingMore, loadMore])
 
   const handleScroll = () => {
     if (!messagesContainerRef.current) return
@@ -73,13 +95,17 @@ export default function Component() {
           isOpen ? "mr-2" : "",
         )}
       >
-        <ChannelHeader key={currentChannel._id} channel={currentChannel} />
+        <ChannelHeader key={currentChannel?._id} channel={currentChannel} />
 
         <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-none py-2" onScroll={handleScroll}>
           <div className="flex min-h-[500px] flex-col-reverse">
             <div ref={topSentinelRef} className="h-1" />
             
-            {/* TODO: Add loading indicator for pagination */}
+            {isLoadingMore && (
+              <div className="flex justify-center py-2">
+                <Spinner className="size-4" />
+              </div>
+            )}
             
             {messages?.map((message, index) => {
               const isFirstMessageOfUser =
@@ -110,44 +136,10 @@ type ChannelData = NonNullable<typeof api.channels.get._returnType>
 function ChannelHeader({ channel }: { channel: ChannelData }) {
   const [isEditing, setIsEditing] = useState(false)
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
 
-  const archiveChannel = useTanstackMutation({
-    mutationFn: useConvexMutation(api.channels.update),
-    onSuccess: () => {
-      navigate("/")
-      queryClient.invalidateQueries(convexQuery(api.channels.list, {}))
-    },
-    onError: (e) => {
-      console.error(e)
-      toast.error("Failed to archive channel")
-    },
-  })
-
-  const updateChannel = useTanstackMutation({
-    mutationFn: useConvexMutation(api.channels.update),
-    onSuccess: () => {
-      setIsEditing(false)
-    },
-    onError: (e) => {
-      console.error(e)
-      toast.error("Failed to save channel")
-    },
-  })
-
-  const toggleMute = useConvexMutation(api.channels.toggleMute).withOptimisticUpdate((localStore, args) => {
-    const currentValue = localStore.getQuery(api.channels.list, {})
-    if (currentValue) {
-      localStore.setQuery(
-        api.channels.list,
-        {},
-        currentValue.map((c) => (c._id === args.channelId ? { ...c, isMuted: !c.isMuted } : c)),
-      )
-    }
-    const channelStore = localStore.getQuery(api.channels.get, { channelId: args.channelId })
-    if (!channelStore) return null
-    localStore.setQuery(api.channels.get, { channelId: args.channelId }, { ...channel, isMuted: !channel.isMuted })
-  })
+  const archiveChannel = useMutation(api.channels.update)
+  const updateChannel = useMutation(api.channels.update)
+  const toggleMute = useMutation(api.channels.toggleMute)
 
   const handleSaveChannel = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -156,7 +148,14 @@ function ChannelHeader({ channel }: { channel: ChannelData }) {
     const formData = new FormData(e.target as HTMLFormElement)
     const name = formData.get("name") as string | undefined
     if (!name?.trim()) return
-    updateChannel.mutate({ channelId: channel._id, name: name.toLowerCase() })
+    
+    try {
+      await updateChannel({ channelId: channel._id, name: name.toLowerCase() })
+      setIsEditing(false)
+    } catch (e) {
+      console.error(e)
+      toast.error("Failed to save channel")
+    }
   }
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -202,7 +201,7 @@ function ChannelHeader({ channel }: { channel: ChannelData }) {
       <form onSubmit={handleSaveChannel} className={cn("flex items-center gap-2", isEditing ? "flex" : "hidden")}>
         <Input name="name" ref={inputRef} defaultValue={channel.name || ""} />
         <Button type="submit" className="w-20">
-          {updateChannel.isPending ? "Saving..." : "Save"}
+          Save
         </Button>
         <Button type="button" variant="outline" className="w-20" onClick={() => setIsEditing(false)}>
           Cancel
@@ -226,10 +225,16 @@ function ChannelHeader({ channel }: { channel: ChannelData }) {
               Edit
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => {
+              onClick={async () => {
                 if (!channel) return
                 if (confirm("Are you sure you want to archive this channel?")) {
-                  archiveChannel.mutate({ channelId: channel._id, archivedTime: new Date().toISOString() })
+                  try {
+                    await archiveChannel({ channelId: channel._id, archivedTime: new Date().toISOString() })
+                    navigate("/")
+                  } catch (e) {
+                    console.error(e)
+                    toast.error("Failed to archive channel")
+                  }
                 }
               }}
             >

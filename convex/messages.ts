@@ -217,7 +217,7 @@ export const listPaginated = query({
 
     // Transform the page results with authors, reactions, files, threads
     const messagesWithDetails = await Promise.all(
-      result.page.map(async (message) => {
+      result.page.map(async (message: Doc<"messages">) => {
         const [user, dbReactions, dbFiles, thread] = await Promise.all([
           ctx.db.get(message.authorId),
           ctx.db
@@ -234,61 +234,118 @@ export const listPaginated = query({
             .first(),
         ])
 
-        const [reactions, files, image] = await Promise.all([
-          Promise.all(
-            dbReactions.map(async (reaction) => {
-              const user = await ctx.db.get(reaction.userId)
-              return { ...reaction, user: { ...user, image: user?.image ? await ctx.storage.getUrl(user.image) : null } }
-            }),
-          ),
-          Promise.all(
-            dbFiles.map(async (file) => {
-              const fileDb = await ctx.db.get(file._id)
-              if (!fileDb?.storageId) return null
-              const metadata = await ctx.db.system.get(fileDb.storageId)
-              if (!metadata) return null
-              return { ...fileDb, metadata, url: await ctx.storage.getUrl(fileDb.storageId) }
-            }),
-          ),
-          user?.image && ctx.storage.getUrl(user.image),
-        ])
+        const reactions = await Promise.all(
+          dbReactions.map(async (reaction) => ({
+            ...reaction,
+            user: await ctx.db.get(reaction.userId),
+          }))
+        )
 
-        // Thread info
         let threadInfo = null
         if (thread) {
-          const replies = await ctx.db
+          const threadMessageCount = await ctx.db
             .query("messages")
             .withIndex("by_thread", (q) => q.eq("threadId", thread._id))
             .collect()
-          const participants = await Promise.all(
-            replies.map(async (reply) => {
-              const user = await ctx.db.get(reply.authorId)
-              if (!user) return null
-              return { ...user, image: user.image ? await ctx.storage.getUrl(user.image) : null }
-            }),
-          )
-          const uniqueParticipants = [...new Set(participants.filter(Boolean).map((p) => p!._id))]
+
           threadInfo = {
             threadId: thread._id,
-            parentMessageId: thread.parentMessageId,
-            replyCount: replies.length,
-            lastReplyTime: replies.length > 0 ? Math.max(...replies.map((r) => r._creationTime)) : undefined,
-            participants: uniqueParticipants.map((p) => {
-              const user = participants.find((u) => u!._id === p)
-              return user!
-            }),
+            replyCount: threadMessageCount.length,
+            lastReplyTime: threadMessageCount.length > 0 
+              ? Math.max(...threadMessageCount.map(m => m._creationTime))
+              : thread._creationTime,
+            participants: [] // Could add participant data if needed
           }
         }
 
         return {
           ...message,
+          author: user,
           reactions,
-          files: files.filter(Boolean),
-          temp: false,
-          author: user ? { ...user, image } : null,
+          files: dbFiles,
           threadInfo,
         }
-      }),
+      })
+    )
+
+    return {
+      ...result,
+      page: messagesWithDetails
+    }
+  }
+})
+
+// Add a mutation for loading more messages dynamically
+export const loadMoreMessages = query({
+  args: {
+    channelId: v.id("channels"),
+    cursor: v.union(v.string(), v.null()),
+    numItems: v.number()
+  },
+  handler: async (ctx, args) => {
+    await requireUser(ctx)
+
+    const result = await ctx.db
+      .query("messages")
+      .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
+      .filter((q) => q.eq(q.field("threadId"), undefined))
+      .order("desc")
+      .paginate({ 
+        cursor: args.cursor, 
+        numItems: args.numItems 
+      })
+
+    // Transform results same as above
+    const messagesWithDetails = await Promise.all(
+      result.page.map(async (message: Doc<"messages">) => {
+        const [user, dbReactions, dbFiles, thread] = await Promise.all([
+          ctx.db.get(message.authorId),
+          ctx.db
+            .query("messageReactions")
+            .withIndex("by_message", (q) => q.eq("messageId", message._id))
+            .collect(),
+          ctx.db
+            .query("files")
+            .withIndex("by_message", (q) => q.eq("messageId", message._id))
+            .collect(),
+          ctx.db
+            .query("threads")
+            .withIndex("by_parent_message", (q) => q.eq("parentMessageId", message._id))
+            .first(),
+        ])
+
+        const reactions = await Promise.all(
+          dbReactions.map(async (reaction) => ({
+            ...reaction,
+            user: await ctx.db.get(reaction.userId),
+          }))
+        )
+
+        let threadInfo = null
+        if (thread) {
+          const threadMessageCount = await ctx.db
+            .query("messages")
+            .withIndex("by_thread", (q) => q.eq("threadId", thread._id))
+            .collect()
+
+          threadInfo = {
+            threadId: thread._id,
+            replyCount: threadMessageCount.length,
+            lastReplyTime: threadMessageCount.length > 0 
+              ? Math.max(...threadMessageCount.map(m => m._creationTime))
+              : thread._creationTime,
+            participants: []
+          }
+        }
+
+        return {
+          ...message,
+          author: user,
+          reactions,
+          files: dbFiles,
+          threadInfo,
+        }
+      })
     )
 
     return {

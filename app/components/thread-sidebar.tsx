@@ -1,5 +1,4 @@
-import { convexQuery } from "@convex-dev/react-query"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery } from "convex/react"
 import { XIcon } from "lucide-react"
 import { Message } from "@/components/message"
 import { Button } from "@/components/ui/button"
@@ -14,9 +13,8 @@ interface ThreadSidebarProps {
 }
 
 export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
-  const { data: threadData } = useQuery(convexQuery(api.threads.get, { threadId }))
-  // For now, use the original listMessages query until we implement full pagination
-  const { data: messages } = useQuery(convexQuery(api.threads.listMessages, { threadId }))
+  const threadData = useQuery(api.threads.get, { threadId })
+  const messages = useQuery(api.threads.listMessages, { threadId })
 
   return (
     <div className="flex h-full w-96 flex-col rounded-lg border bg-background">

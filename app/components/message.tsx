@@ -44,45 +44,8 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
     }
   }
 
-  const addReaction = useMutation(api.reactions.add).withOptimisticUpdate((localStore, args) => {
-    if (!user) return
-    const currentValue = localStore.getQuery(api.messages.list, { channelId: message.channelId })
-    if (currentValue) {
-      localStore.setQuery(
-        api.messages.list,
-        { channelId: message.channelId },
-        currentValue.map((m) =>
-          m._id === message._id
-            ? {
-                ...m,
-                reactions: [
-                  ...m.reactions,
-                  {
-                    ...args,
-                    _id: crypto.randomUUID() as Id<"messageReactions">,
-                    _creationTime: Date.now(),
-                    userId: user._id,
-                    user,
-                  },
-                ],
-              }
-            : m,
-        ),
-      )
-    }
-  })
-  const removeReaction = useMutation(api.reactions.remove).withOptimisticUpdate((localStore, args) => {
-    const currentValue = localStore.getQuery(api.messages.list, { channelId: message.channelId })
-    if (currentValue) {
-      localStore.setQuery(
-        api.messages.list,
-        { channelId: message.channelId },
-        currentValue.map((m) =>
-          m._id === message._id ? { ...m, reactions: m.reactions.filter((reaction) => reaction._id !== args.reactionId) } : m,
-        ),
-      )
-    }
-  })
+  const addReaction = useMutation(api.reactions.add)
+  const removeReaction = useMutation(api.reactions.remove)
 
   const groupedReactions = message.reactions.reduce(
     (acc, reaction) => {
@@ -95,16 +58,7 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
     {} as Record<string, { count: number; reactions: MessageData["reactions"] }>,
   )
 
-  const deleteMessage = useMutation(api.messages.deleteMessage).withOptimisticUpdate((localStore) => {
-    const currentValue = localStore.getQuery(api.messages.list, { channelId: message.channelId })
-    if (currentValue) {
-      localStore.setQuery(
-        api.messages.list,
-        { channelId: message.channelId },
-        currentValue.filter((m) => m._id !== message._id),
-      )
-    }
-  })
+  const deleteMessage = useMutation(api.messages.deleteMessage)
 
   return (
     <div
@@ -349,35 +303,12 @@ function MessageFile({ file, className }: { file: MessageFileType; className?: s
 }
 
 function MessageEditor({ message, onClose }: { message: MessageData; onClose: () => void }) {
-  const updateMessage = useMutation(api.messages.update).withOptimisticUpdate((localStore, args) => {
-    if (message.threadId) {
-      const currentThread = localStore.getQuery(api.threads.get, { threadId: message.threadId })
-      if (currentThread) {
-        const currentMessages = localStore.getQuery(api.threads.listMessages, { threadId: message.threadId })
-        if (currentMessages) {
-          localStore.setQuery(
-            api.threads.listMessages,
-            { threadId: message.threadId },
-            currentMessages.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
-          )
-        }
-      }
-    } else {
-      const currentValue = localStore.getQuery(api.messages.list, { channelId: message.channelId })
-      if (currentValue) {
-        localStore.setQuery(
-          api.messages.list,
-          { channelId: message.channelId },
-          currentValue.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
-        )
-      }
-    }
-  })
+  const updateMessage = useMutation(api.messages.update)
 
   const [input, setInput] = useState(message.content || "")
 
-  const handleSubmit = () => {
-    void updateMessage({ messageId: message._id, content: input })
+  const handleSubmit = async () => {
+    await updateMessage({ messageId: message._id, content: input })
     onClose()
   }
 

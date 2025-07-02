@@ -1,6 +1,4 @@
-import { convexQuery } from "@convex-dev/react-query"
 import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd"
-import { useQueryClient } from "@tanstack/react-query"
 import { useMutation, useQuery } from "convex/react"
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router"
@@ -14,22 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 export function Sidebar() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
   const channels = useQuery(api.channels.list)
-  const updateChannelOrder = useMutation(api.channels.updateOrder).withOptimisticUpdate((localStore, args) => {
-    const currentValue = localStore.getQuery(api.channels.list, {})
-    if (currentValue && args.channelOrders) {
-      // Create a map of new orders
-      const orderMap = new Map(args.channelOrders.map((order) => [order.channelId, order.order]))
-
-      // Sort channels by new order
-      const sortedChannels = [...currentValue].sort((a, b) => {
-        const orderA = orderMap.get(a._id) ?? a._creationTime
-        const orderB = orderMap.get(b._id) ?? b._creationTime
-        return orderA - orderB
-      })
-
-      localStore.setQuery(api.channels.list, {}, sortedChannels)
-    }
-  })
+  const updateChannelOrder = useMutation(api.channels.updateOrder)
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination || !channels) return
@@ -88,10 +71,9 @@ interface ChannelItemProps {
 
 function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const onChannelClick = () => navigate(`/${channel._id}`)
   const onMouseEnter = () => {
-    queryClient.fetchQuery(convexQuery(api.channels.get, { channelId: channel._id }))
+    // TODO: Add prefetching with native Convex hooks if needed
   }
   return (
     <Draggable key={channel._id} draggableId={channel._id} index={index}>
