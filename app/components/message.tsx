@@ -110,7 +110,7 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
   return (
     <div
       key={message._id}
-      className={cn("group flex gap-2 px-4 ", isParentMessage ? "py-4" : "py-1.5 hover:bg-muted/50 dark:hover:bg-muted/10")}
+      className={cn("group flex gap-2 px-4 ", isParentMessage ? "py-4" : "py-1.5 hover:bg-muted/50 dark:hover:bg-muted/30")}
     >
       <div>
         {isFirstMessageOfUser && message.author ? (
@@ -143,7 +143,7 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
               <div
                 className={cn(
                   "-my-[6px] font-normal text-sm leading-7",
-                  "[&_code]:mb-2 [&_code]:rounded-md",
+                  "[&_code]:rounded-md [&_pre]:py-1.5",
                   message.temp && "opacity-70",
                 )}
                 dangerouslySetInnerHTML={{ __html: renderMessageContent(message.content) }}
@@ -320,12 +320,16 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
 type MessageFileType = MessageData["files"][number]
 
 function MessageFile({ file, className }: { file: MessageFileType; className?: string }) {
+  const isImage = file.metadata?.contentType?.startsWith("image/") || file.url?.startsWith("blob:")
   return (
-    <a href={file.url || "#"} target="_blank" rel="noopener noreferrer" className={cn("flex h-[200px] shrink-0", className)}>
-      {file.metadata?.contentType?.startsWith("image/") || file.url?.startsWith("blob:") ? (
-        <div className="relative">
-          <img src={file.url || "#"} alt={file.name} className="h-full rounded-lg object-cover" />
-        </div>
+    <a
+      href={file.url || "#"}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn("flex shrink-0", isImage && "h-[200px]", className)}
+    >
+      {isImage ? (
+        <img src={file.url || "#"} alt={file.name} className="h-full rounded-lg object-cover" />
       ) : (
         <div className="relative">
           <FilePill name={file.name} />

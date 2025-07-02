@@ -50,7 +50,7 @@ export default function Component() {
       () => {
         messagesEndRef.current?.scrollIntoView()
       },
-      isMounted.current ? 0 : 100,
+      isMounted.current ? 0 : 300,
     )
     isMounted.current = true
     if (channelId) {
