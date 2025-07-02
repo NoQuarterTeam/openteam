@@ -139,6 +139,8 @@ export default function Component() {
   if (currentChannel === null) return redirect("/")
   if (!currentChannel) return null
 
+  const displayName = currentChannel.dmUser ? currentChannel.dmUser.name : currentChannel.name
+
   const lastMessageOfUser = messages.findLast((message) => message.authorId === user?._id)
 
   return (
@@ -179,10 +181,10 @@ export default function Component() {
               </div>
             ) : (
               <div className="pb-4 pl-4">
-                <h1 className="font-bold text-3xl">{currentChannel.name}</h1>
+                <h1 className="font-bold text-3xl">{displayName}</h1>
                 <p className="font-normal text-muted-foreground text-sm">
                   Created {dayjs(currentChannel._creationTime).format("MMMM D, YYYY")}. This is the very beginning of the{" "}
-                  {currentChannel.name} channel.
+                  {displayName} channel.
                 </p>
               </div>
             )}
