@@ -1,4 +1,6 @@
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react"
+import dayjs from "dayjs"
+import advancedFormat from "dayjs/plugin/advancedFormat"
 import { useCallback, useEffect, useMemo, useRef } from "react"
 import { redirect, useParams, useSearchParams } from "react-router"
 import { ChannelHeader } from "@/components/channel-header"
@@ -12,6 +14,8 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { DEFAULT_PAGINATION_NUM_ITEMS } from "@/lib/pagination"
 import { useRecentChannels } from "@/lib/use-recent-channels"
 import { cn } from "@/lib/utils"
+
+dayjs.extend(advancedFormat)
 
 export default function Component() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
@@ -121,6 +125,17 @@ export default function Component() {
     }
   }, [messages.length, status, channelId])
 
+  const groupedMessages = useMemo(() => {
+    return messages.reduce(
+      (acc, message) => {
+        const date = dayjs(message._creationTime).format("YYYY-MM-DD")
+        if (!acc[date]) acc[date] = []
+        acc[date].push(message)
+        return acc
+      },
+      {} as Record<string, typeof messages>,
+    )
+  }, [messages])
   if (currentChannel === null) return redirect("/")
   if (!currentChannel) return null
 
@@ -136,43 +151,68 @@ export default function Component() {
       >
         <ChannelHeader key={currentChannel._id} channel={currentChannel} />
 
-        <div ref={messagesContainerRef} className="relative flex-1 overflow-y-auto overscroll-none py-2" onScroll={handleScroll}>
-          {status === "LoadingMore" ? (
-            <div className="flex justify-center py-2">
-              <Spinner className="size-4" />
-            </div>
-          ) : status === "CanLoadMore" ? (
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const container = messagesContainerRef.current
-                  if (!container) return
-
-                  // Save scroll position and mark that we're loading more
-                  scrollAnchorRef.current = { scrollHeight: container.scrollHeight, scrollTop: container.scrollTop }
-                  isLoadingMoreRef.current = true
-                  loadMore(DEFAULT_PAGINATION_NUM_ITEMS)
-                }}
-              >
-                Load more
-              </Button>
-            </div>
-          ) : null}
+        <div
+          ref={messagesContainerRef}
+          className="relative flex-1 overflow-y-auto overscroll-none pt-9 pb-2"
+          onScroll={handleScroll}
+        >
+          <div className="-mt-6">
+            {status === "LoadingMore" ? (
+              <div className="flex h-12 justify-center pt-2">
+                <Spinner className="size-4" />
+              </div>
+            ) : status === "CanLoadMore" ? (
+              <div className="flex h-12 justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const container = messagesContainerRef.current
+                    if (!container) return
+                    scrollAnchorRef.current = { scrollHeight: container.scrollHeight, scrollTop: container.scrollTop }
+                    isLoadingMoreRef.current = true
+                    loadMore(DEFAULT_PAGINATION_NUM_ITEMS)
+                  }}
+                >
+                  Load more
+                </Button>
+              </div>
+            ) : (
+              <div className="pb-4 pl-4">
+                <h1 className="font-bold text-3xl">{currentChannel.name}</h1>
+                <p className="font-normal text-muted-foreground text-sm">
+                  Created {dayjs(currentChannel._creationTime).format("MMMM D, YYYY")}. This is the very beginning of the{" "}
+                  {currentChannel.name} channel.
+                </p>
+              </div>
+            )}
+          </div>
           <div ref={topSentinelRef} className="h-1" />
 
           <div className="min-h-[500px]">
             {status === "LoadingFirstPage"
               ? null
-              : messages.map((message, index) => {
-                  const isFirstMessageOfUser =
-                    index === 0 ||
-                    messages[index - 1]?.authorId !== message.authorId ||
-                    (!!messages[index - 1] &&
-                      new Date(message._creationTime).getTime() - new Date(messages[index - 1]!._creationTime).getTime() >
-                        10 * 60 * 1000)
-                  return <Message key={message._id} message={message} isFirstMessageOfUser={isFirstMessageOfUser} />
+              : Object.entries(groupedMessages).map(([date, messages], i) => {
+                  return (
+                    <div key={date} className={cn("border-t pt-4 pb-4", i === Object.keys(groupedMessages).length - 1 && "pb-0")}>
+                      <div className="sticky top-0 z-10">
+                        <div className="-top-7 absolute right-0 left-0 flex items-center justify-center">
+                          <p className="rounded-full border bg-background px-3 py-1 text-center text-xs shadow-xs">
+                            {dayjs(date).format("dddd, MMMM D, YYYY")}
+                          </p>
+                        </div>
+                      </div>
+                      {messages.map((message, index) => {
+                        const isFirstMessageOfUser =
+                          index === 0 ||
+                          messages[index - 1]?.authorId !== message.authorId ||
+                          (!!messages[index - 1] &&
+                            new Date(message._creationTime).getTime() - new Date(messages[index - 1]!._creationTime).getTime() >
+                              10 * 60 * 1000)
+                        return <Message key={message._id} message={message} isFirstMessageOfUser={isFirstMessageOfUser} />
+                      })}
+                    </div>
+                  )
                 })}
           </div>
 
