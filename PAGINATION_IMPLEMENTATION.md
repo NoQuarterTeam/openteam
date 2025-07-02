@@ -33,9 +33,9 @@ Successfully implemented infinite scroll pagination using Convex's native query 
 **Changes Made:**
 - ❌ Removed `@convex-dev/react-query` and `@tanstack/react-query` imports
 - ❌ Removed `convexQuery()` wrapper calls
-- ❌ Removed `.withOptimisticUpdate()` patterns
 - ❌ Removed `QueryClient` and `QueryClientProvider` setup
 - ✅ Converted to native `useQuery` and `useMutation` from `convex/react`
+- ✅ **RESTORED** `.withOptimisticUpdate()` patterns for instant UX
 - ✅ Updated all mutation calls to use `await` pattern
 - ✅ Simplified provider setup to use only `ConvexAuthProvider`
 
@@ -47,8 +47,8 @@ Successfully implemented infinite scroll pagination using Convex's native query 
 
 #### 2.3 State Management
 - **Pagination state**: Added cursor and loading state management
-- **Simplified optimistic updates**: Removed complex TanStack Query optimistic updates
-- **Native Convex reactivity**: Now relies on Convex's built-in reactivity
+- **Instant optimistic updates**: Restored `.withOptimisticUpdate()` for instant UX in messaging
+- **Native Convex reactivity**: Leverages Convex's built-in reactivity with optimistic updates
 
 ### 3. UI/UX Improvements
 
@@ -69,15 +69,16 @@ Successfully implemented infinite scroll pagination using Convex's native query 
 1. **Native Convex hooks**: All components converted successfully
 2. **Backend pagination**: Paginated queries implemented and functional
 3. **Layout changes**: Flex-col-reverse implemented for natural message flow
-4. **TypeScript errors**: Major import/syntax errors resolved
-5. **Provider setup**: Clean ConvexAuthProvider setup without TanStack Query
+4. **Instant optimistic updates**: All key interactions feel instant (send, react, edit, delete, mute)
+5. **TypeScript errors**: Major import/syntax errors resolved
+6. **Provider setup**: Clean ConvexAuthProvider setup without TanStack Query
 
 ### What Needs Completion 🔄
 1. **Frontend pagination integration**: Currently using fallback to original `api.messages.list`
 2. **Intersection observer**: Needs connection to actual `loadMoreMessages` query
-3. **Optimistic updates**: Could re-implement using Convex's native optimistic update patterns
-4. **Error handling**: Add proper error states for pagination failures
-5. **Testing**: Verify pagination works end-to-end with real data
+3. **Error handling**: Add proper error states for pagination failures
+4. **Testing**: Verify pagination works end-to-end with real data
+5. **TypeScript cleanup**: Minor implicit `any` type warnings (non-breaking)
 
 ### Recommended Next Implementation Steps
 
@@ -107,8 +108,8 @@ Wire up the intersection observer to actually call `loadMoreMessages` when scrol
 #### Step 3: Add Error States
 Implement loading and error states for pagination operations.
 
-#### Step 4: Re-implement Optimistic Updates (Optional)
-Consider adding back optimistic updates using Convex's native patterns for better UX.
+#### Step 4: TypeScript Cleanup (Optional)
+Clean up minor implicit `any` type warnings for better type safety.
 
 ## 🎯 Architecture Benefits
 

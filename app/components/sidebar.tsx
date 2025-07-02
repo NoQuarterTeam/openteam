@@ -12,7 +12,22 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 export function Sidebar() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
   const channels = useQuery(api.channels.list)
-  const updateChannelOrder = useMutation(api.channels.updateOrder)
+  const updateChannelOrder = useMutation(api.channels.updateOrder).withOptimisticUpdate((localStore, args) => {
+    const currentValue = localStore.getQuery(api.channels.list, {})
+    if (currentValue && args.channelOrders) {
+      // Create a map of new orders
+      const orderMap = new Map(args.channelOrders.map((order) => [order.channelId, order.order]))
+
+      // Sort channels by new order
+      const sortedChannels = [...currentValue].sort((a, b) => {
+        const orderA = orderMap.get(a._id) ?? a._creationTime
+        const orderB = orderMap.get(b._id) ?? b._creationTime
+        return orderA - orderB
+      })
+
+      localStore.setQuery(api.channels.list, {}, sortedChannels)
+    }
+  })
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination || !channels) return

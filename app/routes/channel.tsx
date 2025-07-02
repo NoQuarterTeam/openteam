@@ -139,7 +139,19 @@ function ChannelHeader({ channel }: { channel: ChannelData }) {
 
   const archiveChannel = useMutation(api.channels.update)
   const updateChannel = useMutation(api.channels.update)
-  const toggleMute = useMutation(api.channels.toggleMute)
+  const toggleMute = useMutation(api.channels.toggleMute).withOptimisticUpdate((localStore, args) => {
+    const currentValue = localStore.getQuery(api.channels.list, {})
+    if (currentValue) {
+      localStore.setQuery(
+        api.channels.list,
+        {},
+        currentValue.map((c) => (c._id === args.channelId ? { ...c, isMuted: !c.isMuted } : c)),
+      )
+    }
+    const channelStore = localStore.getQuery(api.channels.get, { channelId: args.channelId })
+    if (!channelStore) return null
+    localStore.setQuery(api.channels.get, { channelId: args.channelId }, { ...channelStore, isMuted: !channelStore.isMuted })
+  })
 
   const handleSaveChannel = async (e: React.FormEvent) => {
     e.preventDefault()

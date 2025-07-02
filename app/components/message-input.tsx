@@ -28,7 +28,82 @@ export function MessageInput({
 
   const user = useQuery(api.auth.loggedInUser)
 
-  const sendMessage = useMutation(api.messages.send)
+  const sendMessage = useMutation(api.messages.send).withOptimisticUpdate((localStore, args) => {
+    const { content } = args
+    if (!user) return
+
+    // For thread messages, update the thread messages query
+    if (args.threadId) {
+      const currentValue = localStore.getQuery(api.threads.listMessages, { threadId: args.threadId })
+      if (!currentValue) return
+      const messageId = crypto.randomUUID() as Id<"messages">
+      localStore.setQuery(api.threads.listMessages, { threadId: args.threadId }, [
+        ...currentValue,
+        {
+          _id: messageId,
+          authorId: user._id,
+          content,
+          author: user,
+          channelId,
+          threadId: args.threadId,
+          _creationTime: Date.now(),
+          temp: true,
+          reactions: [],
+          files:
+            args.files?.map(({ name, storageId }: { name: string; storageId: Id<"_storage"> }, i: number) => ({
+              _id: crypto.randomUUID() as Id<"files">,
+              name,
+              _creationTime: Date.now(),
+              messageId,
+              url: filePreviews[i]?.url || null,
+              metadata: {
+                _id: crypto.randomUUID() as Id<"_storage">,
+                _creationTime: Date.now(),
+                contentType: filePreviews[i]?.file.type || "image/png",
+                sha256: "",
+                size: filePreviews[i]?.file.size || 10,
+              },
+              storageId,
+            })) || [],
+        },
+      ])
+    } else {
+      // For regular channel messages
+      const currentValue = localStore.getQuery(api.messages.list, { channelId })
+      if (!currentValue) return
+      const messageId = crypto.randomUUID() as Id<"messages">
+      localStore.setQuery(api.messages.list, { channelId }, [
+        ...currentValue,
+        {
+          _id: messageId,
+          authorId: user._id,
+          content,
+          author: user,
+          channelId,
+          _creationTime: Date.now(),
+          temp: true,
+          reactions: [],
+          threadInfo: null,
+          files:
+            args.files?.map(({ name, storageId }: { name: string; storageId: Id<"_storage"> }, i: number) => ({
+              _id: crypto.randomUUID() as Id<"files">,
+              name,
+              _creationTime: Date.now(),
+              messageId,
+              url: filePreviews[i]?.url || null,
+              metadata: {
+                _id: crypto.randomUUID() as Id<"_storage">,
+                _creationTime: Date.now(),
+                contentType: filePreviews[i]?.file.type || "image/png",
+                sha256: "",
+                size: filePreviews[i]?.file.size || 10,
+              },
+              storageId,
+            })) || [],
+        },
+      ])
+    }
+  })
 
   const generateUploadUrl = useMutation(api.uploads.generateUploadUrl)
 
