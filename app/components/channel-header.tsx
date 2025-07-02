@@ -100,7 +100,7 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
                     className="size-6 md:size-8"
                     onClick={() => void toggleMute({ channelId: channel._id })}
                   >
-                    <BellOffIcon className="size-4 md:size-6" />
+                    <BellOffIcon />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Muted</TooltipContent>

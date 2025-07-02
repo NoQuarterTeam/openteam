@@ -107,7 +107,7 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
   }, [messages.length, status])
 
   return (
-    <div className="flex h-full w-96 flex-col rounded-lg border bg-background">
+    <div className="flex h-full w-full flex-col rounded-lg border bg-background">
       {/* Thread Header */}
       <div className="flex items-center justify-between border-b px-4 py-2">
         <div className="flex items-center gap-2">

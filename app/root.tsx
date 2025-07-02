@@ -1,4 +1,6 @@
 import { ConvexAuthProvider } from "@convex-dev/auth/react"
+import { ConvexQueryClient } from "@convex-dev/react-query"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ConvexReactClient } from "convex/react"
 import { ThemeProvider } from "next-themes"
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router"
@@ -8,7 +10,16 @@ import "./globals.css"
 import "highlight.js/styles/github-dark.css"
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL)
-
+const convexQueryClient = new ConvexQueryClient(convex)
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      queryKeyHashFn: convexQueryClient.hashFn(),
+      queryFn: convexQueryClient.queryFn(),
+    },
+  },
+})
+convexQueryClient.connect(queryClient)
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html suppressHydrationWarning lang="en" className="dark">
@@ -20,9 +31,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body suppressHydrationWarning className="h-dvh w-screen bg-muted/50 dark:bg-black/50">
         <ConvexAuthProvider client={convex}>
-          <ThemeProvider enableSystem attribute="class">
-            {children}
-          </ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider enableSystem attribute="class">
+              {children}
+            </ThemeProvider>
+          </QueryClientProvider>
         </ConvexAuthProvider>
         <ScrollRestoration />
         <Scripts />

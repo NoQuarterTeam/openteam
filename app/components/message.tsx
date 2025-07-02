@@ -108,7 +108,9 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
     <div
       className={cn(
         "group flex gap-2 px-4 transition-opacity duration-200",
-        isThreadParentMessage ? "border-b bg-yellow-50 py-4" : "py-1.5 hover:bg-muted/50 dark:hover:bg-muted/30",
+        isThreadParentMessage
+          ? "border-b bg-yellow-50 py-4 dark:bg-yellow-800/10"
+          : "py-1.5 hover:bg-muted/50 dark:hover:bg-muted/30",
         message.optimisticStatus === "deleted" && "opacity-0",
       )}
     >
@@ -153,7 +155,7 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
                   "[&_ul]:m-0 [&_ul]:list-disc [&_ul]:pl-4",
                   "[&_ol]:m-0 [&_ol]:list-decimal [&_ol]:pl-4",
                   "[&_pre]:!inline-grid [&_pre]:w-full [&_pre]:py-1",
-                  "[&_code]:!py-2 [&_code]:!px-3[&_code]:my-1 [&_code]:block [&_code]:rounded-md [&_code]:border [&_code]:bg-muted [&_code]:font-mono",
+                  "[&_code]:!py-2 [&_code]:!px-3 [&_code]:my-1 [&_code]:block [&_code]:rounded-md [&_code]:border [&_code]:bg-muted [&_code]:font-mono",
                   "[&_blockquote]:border-muted-foreground/20 [&_blockquote]:border-l-4 [&_blockquote]:pl-2",
                   message.optimisticStatus === "created" && "opacity-70",
                 )}

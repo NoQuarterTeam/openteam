@@ -54,7 +54,7 @@ export function Sidebar() {
   const setIsOpen = useSidebar((s) => s.setIsOpen)
 
   return (
-    <div className="hidden shrink-0 md:block md:w-50">
+    <div className="hidden shrink-0 md:block md:w-40 lg:w-50">
       <div className="flex h-full flex-1 flex-col justify-between rounded-xl p-4 pr-0">
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="channels">

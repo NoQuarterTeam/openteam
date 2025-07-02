@@ -1,3 +1,5 @@
+import { convexQuery } from "@convex-dev/react-query"
+import { useQuery as useQueryTanstack } from "@tanstack/react-query"
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react"
 import dayjs from "dayjs"
 import advancedFormat from "dayjs/plugin/advancedFormat"
@@ -19,26 +21,20 @@ dayjs.extend(advancedFormat)
 
 export default function Component() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
+
+  const user = useQuery(api.auth.loggedInUser)
+  const { data: currentChannel } = useQueryTanstack(convexQuery(api.channels.get, { channelId: channelId! }))
+  // Initial page load
+  const { results, loadMore, status } = usePaginatedQuery(
+    api.messages.list,
+    { channelId: channelId! },
+    { initialNumItems: DEFAULT_PAGINATION_NUM_ITEMS },
+  )
+
   const addChannel = useRecentChannels((s) => s.addChannel)
 
   const [searchParams, setSearchParams] = useSearchParams()
   const currentThreadId = searchParams.get("threadId") as Id<"threads"> | null
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault()
-        setSearchParams((searchParams) => {
-          searchParams.delete("threadId")
-          return searchParams
-        })
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [])
 
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const topSentinelRef = useRef<HTMLDivElement>(null)
@@ -54,16 +50,6 @@ export default function Component() {
 
   // Track channel changes
   const prevChannelIdRef = useRef<string | null>(null)
-
-  const user = useQuery(api.auth.loggedInUser)
-  const currentChannel = useQuery(api.channels.get, { channelId: channelId! })
-
-  // Initial page load
-  const { results, loadMore, status } = usePaginatedQuery(
-    api.messages.list,
-    { channelId: channelId! },
-    { initialNumItems: DEFAULT_PAGINATION_NUM_ITEMS },
-  )
 
   const messages = useMemo(() => [...results].reverse(), [results])
 
@@ -83,6 +69,22 @@ export default function Component() {
   }, [])
 
   const markAsRead = useMutation(api.channels.markAsRead)
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault()
+        setSearchParams((searchParams) => {
+          searchParams.delete("threadId")
+          return searchParams
+        })
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [])
 
   // Handle channel changes - reset state
   useEffect(() => {
@@ -119,6 +121,8 @@ export default function Component() {
 
   // Handle scrolling to bottom for new messages and initial load
   useEffect(() => {
+    if (!channelId) return
+
     const currentLength = messages.length
     const prevLength = prevMessagesLengthRef.current
     prevMessagesLengthRef.current = currentLength
@@ -137,7 +141,7 @@ export default function Component() {
       requestAnimationFrame(() => {
         bottomSentinelRef.current?.scrollIntoView()
       })
-      if (channelId) void markAsRead({ channelId })
+      void markAsRead({ channelId })
     }
   }, [messages.length, status, channelId])
 
@@ -163,8 +167,8 @@ export default function Component() {
     <div className="flex flex-1 p-2 md:p-4">
       <div
         className={cn(
-          "flex flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs transition-all",
-          currentThreadId ? "mr-2" : "",
+          "flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs transition-all",
+          currentThreadId ? "mr-2 hidden md:flex" : "flex",
         )}
       >
         <ChannelHeader key={currentChannel._id} channel={currentChannel} />
@@ -207,7 +211,7 @@ export default function Component() {
           </div>
           <div ref={topSentinelRef} className="h-1" />
 
-          <div className="min-h-[200px]">
+          <div>
             {status === "LoadingFirstPage"
               ? null
               : Object.entries(groupedMessages).map(([date, messages], i) => {
@@ -249,7 +253,7 @@ export default function Component() {
       </div>
 
       {!!currentThreadId && (
-        <div className="w-96 flex-shrink-0">
+        <div className="w-full shrink-0 md:w-72 lg:w-96">
           <ThreadSidebar threadId={currentThreadId} onClose={handleCloseThread} />
         </div>
       )}
