@@ -60,45 +60,50 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
   }, [isEditing])
   return (
     <div className="flex h-13 items-center justify-between gap-2 border-b px-2">
-      <div className="flex items-center gap-2">
-        {channel.dmUser ? (
-          <div className="flex items-center gap-2">
-            <Avatar className="size-8 flex-shrink-0 rounded-lg">
-              <AvatarImage src={channel.dmUser.image || undefined} className="object-cover" />
-              <AvatarFallback className="size-8 rounded-lg text-black dark:text-white">
-                {channel.dmUser.name.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-            <p className={cn("font-medium text-lg", isEditing && "hidden")}>{channel.dmUser.name}</p>
-          </div>
+      <div className="flex items-center gap-1">
+        {isEditing ? (
+          <form onSubmit={handleSaveChannel} className={cn("flex items-center gap-1", isEditing ? "flex" : "hidden")}>
+            <Input name="name" ref={inputRef} defaultValue={channel.name || ""} />
+            <Button type="submit" className="w-20">
+              Save
+            </Button>
+            <Button type="button" variant="outline" className="w-20" onClick={() => setIsEditing(false)}>
+              Cancel
+            </Button>
+          </form>
         ) : (
-          <div className={cn("flex items-center gap-2 pl-2 font-medium text-lg", isEditing && "hidden")}>
-            <p>#</p>
-            <p>
-              {channel.name.toLowerCase()} {channel.archivedTime && "(Archived)"}
-            </p>
-          </div>
-        )}
-        {channel.isMuted && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => void toggleMute({ channelId: channel._id })}>
-                <BellOffIcon className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Muted</TooltipContent>
-          </Tooltip>
+          <>
+            {channel.dmUser ? (
+              <div className="flex items-center gap-2">
+                <Avatar className="size-8 flex-shrink-0 rounded-lg">
+                  <AvatarImage src={channel.dmUser.image || undefined} className="object-cover" />
+                  <AvatarFallback className="size-8 rounded-lg text-black dark:text-white">
+                    {channel.dmUser.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <p className="font-medium text-lg">{channel.dmUser.name}</p>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 pl-2 font-medium text-lg">
+                <p>#</p>
+                <p>
+                  {channel.name.toLowerCase()} {channel.archivedTime && "(Archived)"}
+                </p>
+              </div>
+            )}
+            {channel.isMuted && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={() => void toggleMute({ channelId: channel._id })}>
+                    <BellOffIcon className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Muted</TooltipContent>
+              </Tooltip>
+            )}
+          </>
         )}
       </div>
-      <form onSubmit={handleSaveChannel} className={cn("flex items-center gap-2", isEditing ? "flex" : "hidden")}>
-        <Input name="name" ref={inputRef} defaultValue={channel.name || ""} />
-        <Button type="submit" className="w-20">
-          Save
-        </Button>
-        <Button type="button" variant="outline" className="w-20" onClick={() => setIsEditing(false)}>
-          Cancel
-        </Button>
-      </form>
 
       {!channel.dmUser && (
         <DropdownMenu>
