@@ -1,11 +1,9 @@
 import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd"
 import { useMutation, useQuery } from "convex/react"
-import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
-import { Babble } from "./babble"
 import { NewChannel } from "./new-channel"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 
@@ -66,22 +64,12 @@ export function Sidebar() {
           </Droppable>
         </DragDropContext>
 
-        <div className="space-y-2">
-          <BabbelContainer />
+        <div>
           <NewChannel />
         </div>
       </div>
     </div>
   )
-}
-
-function BabbelContainer() {
-  const [isMounted, setIsMounted] = useState(false)
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  return isMounted ? <Babble /> : null
 }
 
 interface ChannelItemProps {

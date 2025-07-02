@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "convex/react"
-import { MicIcon, MicOffIcon, PhoneIcon, PhoneOffIcon } from "lucide-react"
+import { HeadsetIcon, MicIcon, MicOffIcon, PhoneOffIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
@@ -121,13 +121,24 @@ export function Babble() {
     setIsMuted(newMuteState)
   }
 
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "h" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+        e.preventDefault()
+        void joinBabble()
+      }
+    }
+    document.addEventListener("keydown", down)
+    return () => document.removeEventListener("keydown", down)
+  }, [])
+
   return (
-    <div className="rounded-md border px-2 py-1.5">
-      <div className="flex items-center justify-between">
-        {isBabbling || (babblers?.length && babblers.length > 0) ? (
-          <Tooltip>
+    <div className="flex items-center gap-1">
+      {(isBabbling || (!!babblers?.length && babblers.length > 0)) && (
+        <div className="flex items-center gap-1 rounded-full border px-1 py-1">
+          <Tooltip open={babblers?.length && babblers.length < 3 ? false : undefined}>
             <TooltipTrigger>
-              <div className="mt-1 flex items-center gap-1">
+              <div className="flex items-center gap-1">
                 <div className="-space-x-3 flex items-center">
                   {babblers?.slice(0, 3).map((babbler, i) => (
                     <Avatar key={babbler.userId} className="size-7 border border-background" style={{ zIndex: 3 - i }}>
@@ -151,32 +162,40 @@ export function Babble() {
               ))}
             </TooltipContent>
           </Tooltip>
-        ) : (
-          <p className="font-medium text-sm">Start Babbling</p>
-        )}
 
-        <div className="flex gap-1">
           {isInBabble && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant={isMuted ? "destructive" : "outline"} size="icon" onClick={handleMuteToggle}>
+                <Button
+                  variant={isMuted ? "destructive" : "outline"}
+                  size="icon"
+                  className="size-7 rounded-full"
+                  onClick={handleMuteToggle}
+                >
                   {isMuted ? <MicOffIcon className="h-3 w-3" /> : <MicIcon className="h-3 w-3" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{isMuted ? "Unmute" : "Mute"}</TooltipContent>
             </Tooltip>
           )}
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant={isInBabble ? "destructive" : "outline"} size="icon" onClick={handleBabbleClick}>
-                {isInBabble ? <PhoneOffIcon className="h-3 w-3" /> : <PhoneIcon className="h-3 w-3" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{isConnecting ? "Connecting..." : isInBabble ? "Leave" : "Join"}</TooltipContent>
-          </Tooltip>
         </div>
-      </div>
+      )}
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant={isInBabble ? "destructive" : "outline"} size="icon" onClick={handleBabbleClick}>
+            {isInBabble ? <PhoneOffIcon className="h-3 w-3" /> : <HeadsetIcon className="h-3 w-3" />}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="flex items-center justify-center">
+            <kbd className="px-1 py-0.5 text-sm">⌘</kbd>
+            <kbd className="px-1 py-0.5 text-sm">⇧</kbd>
+            <kbd className="px-1 py-0.5 text-sm">H</kbd>
+          </div>
+          <p>{isConnecting ? "Connecting..." : isInBabble ? "Leave" : "Join Babble"}</p>
+        </TooltipContent>
+      </Tooltip>
     </div>
   )
 }

@@ -1,5 +1,7 @@
 import { useQuery } from "convex/react"
+import { useEffect, useState } from "react"
 import { api } from "@/convex/_generated/api"
+import { Babble } from "./babble"
 import { CommandCenter } from "./command-center"
 import { ProfileModal } from "./profile-modal"
 import { SignOutButton } from "./sign-out-button"
@@ -21,6 +23,8 @@ export function Nav() {
       </div>
 
       <div className="flex items-center gap-2">
+        <BabbelContainer />
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded">
@@ -43,4 +47,13 @@ export function Nav() {
       </div>
     </header>
   )
+}
+
+function BabbelContainer() {
+  const [isMounted, setIsMounted] = useState(false)
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  return isMounted ? <Babble /> : null
 }
