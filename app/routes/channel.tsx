@@ -196,9 +196,13 @@ export default function Component() {
                   return (
                     <div key={date} className={cn("border-t pt-4 pb-4", i === Object.keys(groupedMessages).length - 1 && "pb-0")}>
                       <div className="sticky top-0 z-10">
-                        <div className="-top-7 absolute right-0 left-0 flex items-center justify-center">
+                        <div className="-top-[30px] absolute right-0 left-0 flex items-center justify-center">
                           <p className="rounded-full border bg-background px-3 py-1 text-center text-xs shadow-xs">
-                            {dayjs(date).format("dddd, MMMM D, YYYY")}
+                            {dayjs(date).isSame(dayjs(), "day")
+                              ? "Today"
+                              : dayjs(date).isSame(dayjs().subtract(1, "day"), "day")
+                                ? "Yesterday"
+                                : dayjs(date).format("dddd, MMMM Do")}
                           </p>
                         </div>
                       </div>
