@@ -29,15 +29,63 @@ export default function Component() {
 
   const currentChannel = useQuery(api.channels.get, { channelId: channelId! })
   
-  // For now, use the original query to avoid complexity
-  // TODO: Implement full pagination later
-  const messages = useQuery(api.messages.list, { channelId: channelId! })
-  const [isLoadingMore] = useState(false)
-  const hasMore = false
+  // Pagination state management
+  type MessageWithDetails = NonNullable<typeof api.messages.listPaginated._returnType>["page"][number]
+  const [allMessages, setAllMessages] = useState<MessageWithDetails[]>([])
+  const [cursor, setCursor] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  
+  // Initial page load
+  const firstPageResult = useQuery(api.messages.listPaginated, { 
+    channelId: channelId!, 
+    paginationOpts: { numItems: 50, cursor: null }
+  })
+  
+  // Update state when first page loads
+  useEffect(() => {
+    if (firstPageResult) {
+      setAllMessages(firstPageResult.page || [])
+      setHasMore(!firstPageResult.isDone)
+      setCursor(firstPageResult.continueCursor || null)
+    }
+  }, [firstPageResult])
+  
+  // Load more messages function - using useQuery with manual trigger
+  const [loadMoreTrigger, setLoadMoreTrigger] = useState<{ cursor: string; numItems: number } | null>(null)
+  
+  const loadMoreResult = useQuery(
+    loadMoreTrigger ? api.messages.loadMoreMessages : ("skip" as any),
+    loadMoreTrigger ? {
+      channelId: channelId!,
+      cursor: loadMoreTrigger.cursor,
+      numItems: loadMoreTrigger.numItems
+    } : ("skip" as any)
+  )
+  
+  // Handle load more result
+  useEffect(() => {
+    if (loadMoreResult && loadMoreTrigger) {
+      // Prepend older messages (since we're using flex-col-reverse)
+      setAllMessages(prev => [...loadMoreResult.page, ...prev])
+      setHasMore(!loadMoreResult.isDone)
+      setCursor(loadMoreResult.continueCursor || null)
+      setIsLoadingMore(false)
+      setLoadMoreTrigger(null) // Reset trigger
+    }
+  }, [loadMoreResult, loadMoreTrigger])
   
   const loadMore = async () => {
-    // TODO: Implement pagination loading
+    if (!hasMore || isLoadingMore || !cursor) return
+    
+    setIsLoadingMore(true)
+    setLoadMoreTrigger({
+      cursor,
+      numItems: 50
+    })
   }
+  
+  const messages = allMessages
 
   // Intersection observer for loading older messages
   useEffect(() => {
@@ -82,6 +130,12 @@ export default function Component() {
     closeThread()
     addChannel(channelId)
     void markAsRead({ channelId })
+    
+    // Reset pagination state when channel changes
+    setAllMessages([])
+    setCursor(null)
+    setHasMore(true)
+    setIsLoadingMore(false)
   }, [channelId])
 
   if (currentChannel === null) return redirect("/")
@@ -114,7 +168,7 @@ export default function Component() {
                 (!!messages[index - 1] &&
                   new Date(message._creationTime).getTime() - new Date(messages[index - 1]!._creationTime).getTime() >
                     10 * 60 * 1000)
-              return <Message key={message._id} message={message} isFirstMessageOfUser={isFirstMessageOfUser} />
+              return <Message key={message._id} message={message as any} isFirstMessageOfUser={isFirstMessageOfUser} />
             })}
           </div>
         </div>

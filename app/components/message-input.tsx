@@ -32,76 +32,112 @@ export function MessageInput({
     const { content } = args
     if (!user) return
 
-    // For thread messages, update the thread messages query
+    // For thread messages, update both thread queries
     if (args.threadId) {
+      const messageId = crypto.randomUUID() as Id<"messages">
+      const optimisticThreadMessage = {
+        _id: messageId,
+        authorId: user._id,
+        content,
+        author: user,
+        channelId,
+        threadId: args.threadId,
+        _creationTime: Date.now(),
+        temp: true,
+        reactions: [],
+        files:
+          args.files?.map(({ name, storageId }: { name: string; storageId: Id<"_storage"> }, i: number) => ({
+            _id: crypto.randomUUID() as Id<"files">,
+            name,
+            _creationTime: Date.now(),
+            messageId,
+            url: filePreviews[i]?.url || null,
+            metadata: {
+              _id: crypto.randomUUID() as Id<"_storage">,
+              _creationTime: Date.now(),
+              contentType: filePreviews[i]?.file.type || "image/png",
+              sha256: "",
+              size: filePreviews[i]?.file.size || 10,
+            },
+            storageId,
+          })) || [],
+      }
+      
+      // Update legacy thread query
       const currentValue = localStore.getQuery(api.threads.listMessages, { threadId: args.threadId })
-      if (!currentValue) return
-      const messageId = crypto.randomUUID() as Id<"messages">
-      localStore.setQuery(api.threads.listMessages, { threadId: args.threadId }, [
-        ...currentValue,
-        {
-          _id: messageId,
-          authorId: user._id,
-          content,
-          author: user,
-          channelId,
+      if (currentValue) {
+        localStore.setQuery(api.threads.listMessages, { threadId: args.threadId }, [
+          ...currentValue,
+          optimisticThreadMessage,
+        ])
+      }
+      
+      // Update paginated thread query
+      const paginatedThreadValue = localStore.getQuery(api.threads.listMessagesPaginated, { 
+        threadId: args.threadId,
+        paginationOpts: { numItems: 100, cursor: null }
+      })
+      if (paginatedThreadValue) {
+        localStore.setQuery(api.threads.listMessagesPaginated, { 
           threadId: args.threadId,
-          _creationTime: Date.now(),
-          temp: true,
-          reactions: [],
-          files:
-            args.files?.map(({ name, storageId }: { name: string; storageId: Id<"_storage"> }, i: number) => ({
-              _id: crypto.randomUUID() as Id<"files">,
-              name,
-              _creationTime: Date.now(),
-              messageId,
-              url: filePreviews[i]?.url || null,
-              metadata: {
-                _id: crypto.randomUUID() as Id<"_storage">,
-                _creationTime: Date.now(),
-                contentType: filePreviews[i]?.file.type || "image/png",
-                sha256: "",
-                size: filePreviews[i]?.file.size || 10,
-              },
-              storageId,
-            })) || [],
-        },
-      ])
+          paginationOpts: { numItems: 100, cursor: null }
+        }, {
+          ...paginatedThreadValue,
+          page: [...paginatedThreadValue.page, optimisticThreadMessage]
+        })
+      }
     } else {
-      // For regular channel messages
+      // For regular channel messages - update both paginated and legacy queries
       const currentValue = localStore.getQuery(api.messages.list, { channelId })
-      if (!currentValue) return
+      const paginatedValue = localStore.getQuery(api.messages.listPaginated, { 
+        channelId, 
+        paginationOpts: { numItems: 50, cursor: null }
+      })
+      
       const messageId = crypto.randomUUID() as Id<"messages">
-      localStore.setQuery(api.messages.list, { channelId }, [
-        ...currentValue,
-        {
-          _id: messageId,
-          authorId: user._id,
-          content,
-          author: user,
-          channelId,
-          _creationTime: Date.now(),
-          temp: true,
-          reactions: [],
-          threadInfo: null,
-          files:
-            args.files?.map(({ name, storageId }: { name: string; storageId: Id<"_storage"> }, i: number) => ({
-              _id: crypto.randomUUID() as Id<"files">,
-              name,
+      const optimisticMessage = {
+        _id: messageId,
+        authorId: user._id,
+        content,
+        author: user,
+        channelId,
+        _creationTime: Date.now(),
+        temp: true,
+        reactions: [],
+        threadInfo: null,
+        files:
+          args.files?.map(({ name, storageId }: { name: string; storageId: Id<"_storage"> }, i: number) => ({
+            _id: crypto.randomUUID() as Id<"files">,
+            name,
+            _creationTime: Date.now(),
+            messageId,
+            url: filePreviews[i]?.url || null,
+            metadata: {
+              _id: crypto.randomUUID() as Id<"_storage">,
               _creationTime: Date.now(),
-              messageId,
-              url: filePreviews[i]?.url || null,
-              metadata: {
-                _id: crypto.randomUUID() as Id<"_storage">,
-                _creationTime: Date.now(),
-                contentType: filePreviews[i]?.file.type || "image/png",
-                sha256: "",
-                size: filePreviews[i]?.file.size || 10,
-              },
-              storageId,
-            })) || [],
-        },
-      ])
+              contentType: filePreviews[i]?.file.type || "image/png",
+              sha256: "",
+              size: filePreviews[i]?.file.size || 10,
+            },
+            storageId,
+          })) || [],
+      }
+      
+      // Update legacy query if it exists
+      if (currentValue) {
+        localStore.setQuery(api.messages.list, { channelId }, [...currentValue, optimisticMessage])
+      }
+      
+      // Update paginated query if it exists
+      if (paginatedValue) {
+        localStore.setQuery(api.messages.listPaginated, { 
+          channelId, 
+          paginationOpts: { numItems: 50, cursor: null }
+        }, {
+          ...paginatedValue,
+          page: [optimisticMessage as any, ...paginatedValue.page]
+        })
+      }
     }
   })
 

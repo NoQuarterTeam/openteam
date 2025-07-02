@@ -46,6 +46,16 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
 
   const addReaction = useMutation(api.reactions.add).withOptimisticUpdate((localStore, args) => {
     if (!user) return
+    
+    const optimisticReaction = {
+      ...args,
+      _id: crypto.randomUUID() as Id<"messageReactions">,
+      _creationTime: Date.now(),
+      userId: user._id,
+      user,
+    }
+    
+    // Update legacy list query
     const currentValue = localStore.getQuery(api.messages.list, { channelId: message.channelId })
     if (currentValue) {
       localStore.setQuery(
@@ -53,25 +63,33 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
         { channelId: message.channelId },
         currentValue.map((m) =>
           m._id === message._id
-            ? {
-                ...m,
-                reactions: [
-                  ...m.reactions,
-                  {
-                    ...args,
-                    _id: crypto.randomUUID() as Id<"messageReactions">,
-                    _creationTime: Date.now(),
-                    userId: user._id,
-                    user,
-                  },
-                ],
-              }
+            ? { ...m, reactions: [...m.reactions, optimisticReaction] }
             : m,
         ),
       )
     }
+    
+    // Update paginated query
+    const paginatedValue = localStore.getQuery(api.messages.listPaginated, { 
+      channelId: message.channelId, 
+      paginationOpts: { numItems: 50, cursor: null }
+    })
+    if (paginatedValue) {
+      localStore.setQuery(api.messages.listPaginated, { 
+        channelId: message.channelId, 
+        paginationOpts: { numItems: 50, cursor: null }
+      }, {
+        ...paginatedValue,
+        page: paginatedValue.page.map((m: any) =>
+          m._id === message._id
+            ? { ...m, reactions: [...m.reactions, optimisticReaction as any] }
+            : m,
+        ),
+      })
+    }
   })
   const removeReaction = useMutation(api.reactions.remove).withOptimisticUpdate((localStore, args) => {
+    // Update legacy list query
     const currentValue = localStore.getQuery(api.messages.list, { channelId: message.channelId })
     if (currentValue) {
       localStore.setQuery(
@@ -81,6 +99,23 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
           m._id === message._id ? { ...m, reactions: m.reactions.filter((reaction) => reaction._id !== args.reactionId) } : m,
         ),
       )
+    }
+    
+    // Update paginated query
+    const paginatedValue = localStore.getQuery(api.messages.listPaginated, { 
+      channelId: message.channelId, 
+      paginationOpts: { numItems: 50, cursor: null }
+    })
+    if (paginatedValue) {
+      localStore.setQuery(api.messages.listPaginated, { 
+        channelId: message.channelId, 
+        paginationOpts: { numItems: 50, cursor: null }
+      }, {
+        ...paginatedValue,
+        page: paginatedValue.page.map((m) =>
+          m._id === message._id ? { ...m, reactions: m.reactions.filter((reaction) => reaction._id !== args.reactionId) } : m,
+        ),
+      })
     }
   })
 
@@ -96,6 +131,7 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
   )
 
   const deleteMessage = useMutation(api.messages.deleteMessage).withOptimisticUpdate((localStore) => {
+    // Update legacy list query
     const currentValue = localStore.getQuery(api.messages.list, { channelId: message.channelId })
     if (currentValue) {
       localStore.setQuery(
@@ -103,6 +139,21 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
         { channelId: message.channelId },
         currentValue.filter((m) => m._id !== message._id),
       )
+    }
+    
+    // Update paginated query
+    const paginatedValue = localStore.getQuery(api.messages.listPaginated, { 
+      channelId: message.channelId, 
+      paginationOpts: { numItems: 50, cursor: null }
+    })
+    if (paginatedValue) {
+      localStore.setQuery(api.messages.listPaginated, { 
+        channelId: message.channelId, 
+        paginationOpts: { numItems: 50, cursor: null }
+      }, {
+        ...paginatedValue,
+        page: paginatedValue.page.filter((m) => m._id !== message._id),
+      })
     }
   })
 
@@ -351,18 +402,32 @@ function MessageFile({ file, className }: { file: MessageFileType; className?: s
 function MessageEditor({ message, onClose }: { message: MessageData; onClose: () => void }) {
   const updateMessage = useMutation(api.messages.update).withOptimisticUpdate((localStore, args) => {
     if (message.threadId) {
-      const currentThread = localStore.getQuery(api.threads.get, { threadId: message.threadId })
-      if (currentThread) {
-        const currentMessages = localStore.getQuery(api.threads.listMessages, { threadId: message.threadId })
-        if (currentMessages) {
-          localStore.setQuery(
-            api.threads.listMessages,
-            { threadId: message.threadId },
-            currentMessages.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
-          )
-        }
+      // Update thread messages (legacy query)
+      const currentMessages = localStore.getQuery(api.threads.listMessages, { threadId: message.threadId })
+      if (currentMessages) {
+        localStore.setQuery(
+          api.threads.listMessages,
+          { threadId: message.threadId },
+          currentMessages.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
+        )
+      }
+      
+      // Update thread messages (paginated query)
+      const paginatedThreadMessages = localStore.getQuery(api.threads.listMessagesPaginated, { 
+        threadId: message.threadId,
+        paginationOpts: { numItems: 100, cursor: null }
+      })
+      if (paginatedThreadMessages) {
+        localStore.setQuery(api.threads.listMessagesPaginated, { 
+          threadId: message.threadId,
+          paginationOpts: { numItems: 100, cursor: null }
+        }, {
+          ...paginatedThreadMessages,
+          page: paginatedThreadMessages.page.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
+        })
       }
     } else {
+      // Update channel messages (legacy query)
       const currentValue = localStore.getQuery(api.messages.list, { channelId: message.channelId })
       if (currentValue) {
         localStore.setQuery(
@@ -370,6 +435,21 @@ function MessageEditor({ message, onClose }: { message: MessageData; onClose: ()
           { channelId: message.channelId },
           currentValue.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
         )
+      }
+      
+      // Update channel messages (paginated query)
+      const paginatedValue = localStore.getQuery(api.messages.listPaginated, { 
+        channelId: message.channelId, 
+        paginationOpts: { numItems: 50, cursor: null }
+      })
+      if (paginatedValue) {
+        localStore.setQuery(api.messages.listPaginated, { 
+          channelId: message.channelId, 
+          paginationOpts: { numItems: 50, cursor: null }
+        }, {
+          ...paginatedValue,
+          page: paginatedValue.page.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),
+        })
       }
     }
   })

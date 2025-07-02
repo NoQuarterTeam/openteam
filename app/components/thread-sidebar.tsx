@@ -14,7 +14,14 @@ interface ThreadSidebarProps {
 
 export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
   const threadData = useQuery(api.threads.get, { threadId })
-  const messages = useQuery(api.threads.listMessages, { threadId })
+  
+  // Use paginated query for thread messages
+  const paginatedMessages = useQuery(api.threads.listMessagesPaginated, { 
+    threadId,
+    paginationOpts: { numItems: 100, cursor: null } // Load more messages for threads initially
+  })
+  
+  const messages = paginatedMessages?.page || []
 
   return (
     <div className="flex h-full w-96 flex-col rounded-lg border bg-background">

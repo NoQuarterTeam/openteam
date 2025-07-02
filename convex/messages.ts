@@ -258,25 +258,26 @@ export const listPaginated = query({
           }
         }
 
-        return {
-          ...message,
-          author: user,
-          reactions,
-          files: dbFiles,
-          threadInfo,
-        }
-      })
-    )
+                 return {
+           ...message,
+           author: user,
+           reactions,
+           files: dbFiles,
+           threadInfo,
+           temp: false, // Add temp property for consistency with frontend types
+         }
+       })
+     )
 
-    return {
-      ...result,
-      page: messagesWithDetails
-    }
-  }
-})
+     return {
+       ...result,
+       page: messagesWithDetails
+     }
+   }
+ })
 
-// Add a mutation for loading more messages dynamically
-export const loadMoreMessages = query({
+ // Add a query for loading more messages dynamically
+ export const loadMoreMessages = query({
   args: {
     channelId: v.id("channels"),
     cursor: v.union(v.string(), v.null()),
@@ -344,6 +345,7 @@ export const loadMoreMessages = query({
           reactions,
           files: dbFiles,
           threadInfo,
+          temp: false, // Add temp property for consistency with frontend types
         }
       })
     )
