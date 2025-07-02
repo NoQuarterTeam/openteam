@@ -9,6 +9,8 @@ import { Babble } from "./babble"
 import { NewChannel } from "./new-channel"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 
+type ChannelData = NonNullable<typeof api.channels.list._returnType>[number]
+
 export function Sidebar() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
   const channels = useQuery(api.channels.list)
@@ -48,13 +50,8 @@ export function Sidebar() {
     void updateChannelOrder({ channelOrders })
   }
 
-  const [isMounted, setIsMounted] = useState(false)
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
   return (
-    <div className="w-50 p-4 pr-0">
+    <div className="w-50 shrink-0 p-4 pr-0">
       <div className="flex h-full flex-1 flex-col justify-between rounded-xl">
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="channels">
@@ -70,7 +67,7 @@ export function Sidebar() {
         </DragDropContext>
 
         <div className="space-y-2">
-          {isMounted && <Babble />}
+          <BabbelContainer />
           <NewChannel />
         </div>
       </div>
@@ -78,8 +75,17 @@ export function Sidebar() {
   )
 }
 
+function BabbelContainer() {
+  const [isMounted, setIsMounted] = useState(false)
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  return isMounted ? <Babble /> : null
+}
+
 interface ChannelItemProps {
-  channel: any
+  channel: ChannelData
   index: number
   isActive: boolean
 }
@@ -87,9 +93,7 @@ interface ChannelItemProps {
 function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
   const navigate = useNavigate()
   const onChannelClick = () => navigate(`/${channel._id}`)
-  const onMouseEnter = () => {
-    // TODO: Add prefetching with native Convex hooks if needed
-  }
+
   return (
     <Draggable key={channel._id} draggableId={channel._id} index={index}>
       {(provided, snapshot) => (
@@ -107,7 +111,6 @@ function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
           onClick={() => {
             if (!snapshot.isDragging) onChannelClick()
           }}
-          onMouseEnter={onMouseEnter}
         >
           <div {...provided.dragHandleProps} className="flex flex-1 items-center gap-2">
             {channel.dmUser ? (

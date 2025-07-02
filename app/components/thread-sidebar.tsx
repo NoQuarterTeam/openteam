@@ -1,9 +1,10 @@
-import { useQuery } from "convex/react"
+import { useQuery as useConvexQuery, usePaginatedQuery, useQuery } from "convex/react"
 import { XIcon } from "lucide-react"
 import { Message } from "@/components/message"
 import { Button } from "@/components/ui/button"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { DEFAULT_PAGINATION_NUM_ITEMS } from "@/lib/pagination"
 import { MessageInput } from "./message-input"
 import { Spinner } from "./ui/spinner"
 
@@ -16,12 +17,12 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
   const threadData = useQuery(api.threads.get, { threadId })
 
   // Use paginated query for thread messages
-  const paginatedMessages = useQuery(api.threads.listMessages, {
-    threadId,
-    paginationOpts: { numItems: 100, cursor: null }, // Load more messages for threads initially
-  })
+  const { results } = usePaginatedQuery(api.threads.listMessages, { threadId }, { initialNumItems: DEFAULT_PAGINATION_NUM_ITEMS })
 
-  const messages = paginatedMessages?.page || []
+  const messages = results || []
+
+  const user = useConvexQuery(api.auth.loggedInUser)
+  const lastMessageOfUser = messages?.findLast((message) => message.authorId === user?._id)
 
   return (
     <div className="flex h-full w-96 flex-col rounded-lg border bg-background">
@@ -53,7 +54,12 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
             </div>
           </div>
 
-          <MessageInput channelId={threadData.thread.channelId} threadId={threadId} isDisabled={false} />
+          <MessageInput
+            channelId={threadData.thread.channelId}
+            threadId={threadId}
+            isDisabled={false}
+            lastMessageIdOfUser={lastMessageOfUser?._id}
+          />
         </>
       )}
     </div>

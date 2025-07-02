@@ -5,6 +5,7 @@ import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { useEditMessage } from "@/lib/use-edit-message"
 import { ExpandableTextarea, type ExpandableTextareaRef } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
 import { Button } from "./ui/button"
@@ -18,10 +19,12 @@ export function MessageInput({
   channelId,
   isDisabled,
   threadId,
+  lastMessageIdOfUser,
 }: {
   isDisabled: boolean
   channelId: Id<"channels">
   threadId?: Id<"threads">
+  lastMessageIdOfUser?: Id<"messages">
 }) {
   const [newMessage, setNewMessage] = useState("")
   const [filePreviews, setFilePreviews] = useState<{ id: string; file: File; url: string; storageId?: Id<"_storage"> }[]>([])
@@ -195,6 +198,7 @@ export function MessageInput({
     if (filePreviews[index]) window.URL.revokeObjectURL(filePreviews[index].url)
   }
 
+  const setEditMessageId = useEditMessage((s) => s.setMessageId)
   const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
@@ -245,6 +249,10 @@ export function MessageInput({
               if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                 event.preventDefault()
                 formRef.current?.requestSubmit()
+              }
+              if (event.key === "ArrowUp" && lastMessageIdOfUser) {
+                event.preventDefault()
+                setEditMessageId(lastMessageIdOfUser)
               }
             }}
           />

@@ -1,6 +1,6 @@
 import { useQuery } from "convex/react"
 import { useEffect, useRef } from "react"
-import { Outlet, useParams } from "react-router"
+import { Outlet, useNavigate, useParams } from "react-router"
 import { Nav } from "@/components/nav"
 import { Sidebar } from "@/components/sidebar"
 import { api } from "@/convex/_generated/api"
@@ -25,6 +25,7 @@ function NotificationHandler() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
   const channels = useQuery(api.channels.list)
   const user = useQuery(api.auth.loggedInUser)
+  const navigate = useNavigate()
   const { sendNotification, requestPermission, isSupported } = useNotifications()
 
   const previousChannelsRef = useRef<typeof channels | undefined>(undefined)
@@ -76,6 +77,7 @@ function NotificationHandler() {
           body,
           channelId: channel._id,
           icon: channel.dmUser ? channel.dmUser.image || undefined : undefined,
+          onClick: () => navigate(`/${channel._id}`),
         })
       }
     }

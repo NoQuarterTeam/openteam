@@ -1,305 +1,195 @@
-import { useMutation, useQuery } from "convex/react"
-import { BellIcon, BellOffIcon, EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
-import { redirect, useNavigate, useParams } from "react-router"
-import { toast } from "sonner"
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
+import { redirect, useParams, useSearchParams } from "react-router"
+import { ChannelHeader } from "@/components/channel-header"
 import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
 import { ThreadSidebar } from "@/components/thread-sidebar"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { DEFAULT_PAGINATION_NUM_ITEMS } from "@/lib/pagination"
 import { useRecentChannels } from "@/lib/use-recent-channels"
-import { useThreadStore } from "@/lib/use-thread-store"
 import { cn } from "@/lib/utils"
 
 export default function Component() {
-  type MessageWithDetails = NonNullable<typeof api.messages.list._returnType>["page"][number]
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
+  const addChannel = useRecentChannels((s) => s.addChannel)
+
+  const [searchParams, setSearchParams] = useSearchParams()
+  const currentThreadId = searchParams.get("threadId") as Id<"threads"> | null
 
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const topSentinelRef = useRef<HTMLDivElement>(null)
-  const [isUserScrolledTowardOlder, setIsUserScrolledTowardOlder] = useState(false)
-  const addChannel = useRecentChannels((s) => s.addChannel)
-  const { currentThreadId, isOpen, closeThread } = useThreadStore()
+  const bottomSentinelRef = useRef<HTMLDivElement>(null)
 
+  // Scroll state
+  const isScrolledUpRef = useRef(false)
+
+  // Track pagination state
+  const scrollAnchorRef = useRef<{ scrollHeight: number; scrollTop: number } | null>(null)
+  const prevMessagesLengthRef = useRef(0)
+  const isLoadingMoreRef = useRef(false)
+
+  // Track channel changes
+  const prevChannelIdRef = useRef<string | null>(null)
+
+  const user = useQuery(api.auth.loggedInUser)
   const currentChannel = useQuery(api.channels.get, { channelId: channelId! })
 
-  // Pagination state management
-  const [allMessages, setAllMessages] = useState<MessageWithDetails[]>([])
-  const [cursor, setCursor] = useState<string | null>(null)
-  const [hasMore, setHasMore] = useState(true)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-
   // Initial page load
-  const firstPageResult = useQuery(api.messages.list, {
-    channelId: channelId!,
-    paginationOpts: { numItems: 50, cursor: null },
-  })
+  const { results, loadMore, status } = usePaginatedQuery(
+    api.messages.list,
+    { channelId: channelId! },
+    { initialNumItems: DEFAULT_PAGINATION_NUM_ITEMS },
+  )
 
-  // // Update state when first page loads
-  // useEffect(() => {
-  //   if (firstPageResult) {
-  //     setAllMessages(firstPageResult.page || [])
-  //     setHasMore(!firstPageResult.isDone)
-  //     setCursor(firstPageResult.continueCursor || null)
-  //   }
-  // }, [firstPageResult])
+  const messages = useMemo(() => [...results].reverse(), [results])
 
-  // // Load more messages function - using useQuery with manual trigger
-  // const [loadMoreTrigger, setLoadMoreTrigger] = useState<{ cursor: string; numItems: number } | null>(null)
+  const handleCloseThread = useCallback(() => {
+    setSearchParams((searchParams) => {
+      searchParams.delete("threadId")
+      return searchParams
+    })
+  }, [])
 
-  // const loadMoreResult = useQuery(
-  //   loadMoreTrigger ? api.messages.list : "skip",
-  //   loadMoreTrigger ? { channelId: channelId!, cursor: loadMoreTrigger.cursor, numItems: loadMoreTrigger.numItems } : "skip",
-  // )
-
-  // // Handle load more result
-  // useEffect(() => {
-  //   if (loadMoreResult && loadMoreTrigger) {
-  //     // Prepend older messages (since we're using flex-col-reverse)
-  //     setAllMessages((prev) => [...loadMoreResult.page, ...prev])
-  //     setHasMore(!loadMoreResult.isDone)
-  //     setCursor(loadMoreResult.continueCursor || null)
-  //     setIsLoadingMore(false)
-  //     setLoadMoreTrigger(null) // Reset trigger
-  //   }
-  // }, [loadMoreResult, loadMoreTrigger])
-
-  const loadMore = async () => {
-    if (!hasMore || isLoadingMore || !cursor) return
-
-    setIsLoadingMore(true)
-    // setLoadMoreTrigger({ cursor, numItems: 50 })
-  }
-
-  const messages = allMessages
-
-  // // Intersection observer for loading older messages
-  // useEffect(() => {
-  //   const observer = new IntersectionObserver(
-  //     (entries) => {
-  //       if (entries[0]?.isIntersecting && hasMore && !isLoadingMore) {
-  //         void loadMore()
-  //       }
-  //     },
-  //     { threshold: 0.1 },
-  //   )
-
-  //   if (topSentinelRef.current) {
-  //     observer.observe(topSentinelRef.current)
-  //   }
-
-  //   return () => observer.disconnect()
-  // }, [hasMore, isLoadingMore, loadMore])
-
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     if (!messagesContainerRef.current) return
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
+    const isAtBottom = scrollHeight - scrollTop <= clientHeight + 1 // +1 for rounding
 
-    const { scrollTop } = messagesContainerRef.current
-
-    const isScrolledTowardOlder = scrollTop > 100
-
-    setIsUserScrolledTowardOlder(isScrolledTowardOlder)
-  }
+    isScrolledUpRef.current = !isAtBottom
+  }, [])
 
   const markAsRead = useMutation(api.channels.markAsRead)
 
-  useEffect(() => {
-    if (isUserScrolledTowardOlder) return
-
-    messagesContainerRef.current?.scrollIntoView()
-  }, [messages?.length, isUserScrolledTowardOlder])
-
+  // Handle channel changes - reset state
   useEffect(() => {
     if (!channelId) return
-    closeThread()
-    addChannel(channelId)
-    void markAsRead({ channelId })
 
-    // Reset pagination state when channel changes
-    setAllMessages([])
-    setCursor(null)
-    setHasMore(true)
-    setIsLoadingMore(false)
-  }, [channelId])
+    const isChannelChange = prevChannelIdRef.current !== channelId
+    prevChannelIdRef.current = channelId
+
+    if (isChannelChange) {
+      isScrolledUpRef.current = false
+      addChannel(channelId)
+      void markAsRead({ channelId })
+    }
+  }, [channelId, addChannel, markAsRead])
+
+  // Handle scroll position during pagination (loading older messages)
+  useEffect(() => {
+    if (!isLoadingMoreRef.current || !scrollAnchorRef.current || !messagesContainerRef.current) return
+
+    // Restore scroll position after loading more messages
+    requestAnimationFrame(() => {
+      if (!scrollAnchorRef.current || !messagesContainerRef.current) return
+
+      const { scrollHeight: prevScrollHeight, scrollTop: prevScrollTop } = scrollAnchorRef.current
+      const newScrollHeight = messagesContainerRef.current.scrollHeight
+
+      messagesContainerRef.current.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop
+
+      // Clean up
+      scrollAnchorRef.current = null
+      isLoadingMoreRef.current = false
+    })
+  }, [messages.length])
+
+  // Handle scrolling to bottom for new messages and initial load
+  useEffect(() => {
+    const currentLength = messages.length
+    const prevLength = prevMessagesLengthRef.current
+    prevMessagesLengthRef.current = currentLength
+
+    // Don't scroll if we're loading more messages or still loading first page
+    if (isLoadingMoreRef.current || status === "LoadingFirstPage") return
+
+    // Scroll to bottom if:
+    // 1. Initial load (prevLength === 0) and we have messages and user isn't scrolled up
+    // 2. New messages arrived (currentLength > prevLength) and user is at bottom
+    const shouldScrollToBottom =
+      (prevLength === 0 && currentLength > 0 && !isScrolledUpRef.current) ||
+      (currentLength > prevLength && !isScrolledUpRef.current)
+
+    if (shouldScrollToBottom) {
+      requestAnimationFrame(() => {
+        bottomSentinelRef.current?.scrollIntoView()
+      })
+      if (channelId) void markAsRead({ channelId })
+    }
+  }, [messages.length, status, channelId])
 
   if (currentChannel === null) return redirect("/")
   if (!currentChannel) return null
+
+  const lastMessageOfUser = messages.findLast((message) => message.authorId === user?._id)
 
   return (
     <div className="flex flex-1 p-4">
       <div
         className={cn(
           "flex flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs transition-all",
-          isOpen ? "mr-2" : "",
+          currentThreadId ? "mr-2" : "",
         )}
       >
-        <ChannelHeader key={currentChannel?._id} channel={currentChannel} />
+        <ChannelHeader key={currentChannel._id} channel={currentChannel} />
 
-        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-none py-2" onScroll={handleScroll}>
-          <div className="flex min-h-[500px] flex-col-reverse">
-            <div ref={topSentinelRef} className="h-1" />
+        <div ref={messagesContainerRef} className="relative flex-1 overflow-y-auto overscroll-none py-2" onScroll={handleScroll}>
+          {status === "LoadingMore" ? (
+            <div className="flex justify-center py-2">
+              <Spinner className="size-4" />
+            </div>
+          ) : status === "CanLoadMore" ? (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const container = messagesContainerRef.current
+                  if (!container) return
 
-            {isLoadingMore && (
-              <div className="flex justify-center py-2">
-                <Spinner className="size-4" />
-              </div>
-            )}
-
-            {messages?.map((message, index) => {
-              const isFirstMessageOfUser =
-                index === 0 ||
-                messages[index - 1]?.authorId !== message.authorId ||
-                (!!messages[index - 1] &&
-                  new Date(message._creationTime).getTime() - new Date(messages[index - 1]!._creationTime).getTime() >
-                    10 * 60 * 1000)
-              return <Message key={message._id} message={message as any} isFirstMessageOfUser={isFirstMessageOfUser} />
-            })}
-          </div>
-        </div>
-
-        <MessageInput channelId={channelId!} isDisabled={!!currentChannel.archivedTime} />
-      </div>
-
-      {isOpen && currentThreadId && (
-        <div className="w-96 flex-shrink-0">
-          <ThreadSidebar threadId={currentThreadId} onClose={closeThread} />
-        </div>
-      )}
-    </div>
-  )
-}
-
-type ChannelData = NonNullable<typeof api.channels.get._returnType>
-
-function ChannelHeader({ channel }: { channel: ChannelData }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const navigate = useNavigate()
-
-  const archiveChannel = useMutation(api.channels.update)
-  const updateChannel = useMutation(api.channels.update)
-  const toggleMute = useMutation(api.channels.toggleMute).withOptimisticUpdate((localStore, args) => {
-    const currentValue = localStore.getQuery(api.channels.list, {})
-    if (currentValue) {
-      localStore.setQuery(
-        api.channels.list,
-        {},
-        currentValue.map((c) => (c._id === args.channelId ? { ...c, isMuted: !c.isMuted } : c)),
-      )
-    }
-    const channelStore = localStore.getQuery(api.channels.get, { channelId: args.channelId })
-    if (!channelStore) return null
-    localStore.setQuery(api.channels.get, { channelId: args.channelId }, { ...channelStore, isMuted: !channelStore.isMuted })
-  })
-
-  const handleSaveChannel = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!channel) return
-
-    const formData = new FormData(e.target as HTMLFormElement)
-    const name = formData.get("name") as string | undefined
-    if (!name?.trim()) return
-
-    try {
-      await updateChannel({ channelId: channel._id, name: name.toLowerCase() })
-      setIsEditing(false)
-    } catch (e) {
-      console.error(e)
-      toast.error("Failed to save channel")
-    }
-  }
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (isEditing) {
-      setTimeout(() => {
-        inputRef.current?.focus()
-      }, 250)
-    }
-  }, [isEditing])
-  return (
-    <div className="flex h-13 items-center justify-between gap-2 border-b px-2">
-      <div className="flex items-center gap-2">
-        {channel.dmUser ? (
-          <div className="flex items-center gap-2">
-            <Avatar className="size-8 flex-shrink-0 rounded-lg">
-              <AvatarImage src={channel.dmUser.image || undefined} className="object-cover" />
-              <AvatarFallback className="size-8 rounded-lg text-black dark:text-white">
-                {channel.dmUser.name.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-            <p className={cn("font-medium text-lg", isEditing && "hidden")}>{channel.dmUser.name}</p>
-          </div>
-        ) : (
-          <div className={cn("flex items-center gap-2 pl-2 font-medium text-lg", isEditing && "hidden")}>
-            <p>#</p>
-            <p>
-              {channel.name.toLowerCase()} {channel.archivedTime && "(Archived)"}
-            </p>
-          </div>
-        )}
-        {channel.isMuted && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => void toggleMute({ channelId: channel._id })}>
-                <BellOffIcon className="size-4" />
+                  // Save scroll position and mark that we're loading more
+                  scrollAnchorRef.current = { scrollHeight: container.scrollHeight, scrollTop: container.scrollTop }
+                  isLoadingMoreRef.current = true
+                  loadMore(DEFAULT_PAGINATION_NUM_ITEMS)
+                }}
+              >
+                Load more
               </Button>
-            </TooltipTrigger>
-            <TooltipContent>Muted</TooltipContent>
-          </Tooltip>
-        )}
-      </div>
-      <form onSubmit={handleSaveChannel} className={cn("flex items-center gap-2", isEditing ? "flex" : "hidden")}>
-        <Input name="name" ref={inputRef} defaultValue={channel.name || ""} />
-        <Button type="submit" className="w-20">
-          Save
-        </Button>
-        <Button type="button" variant="outline" className="w-20" onClick={() => setIsEditing(false)}>
-          Cancel
-        </Button>
-      </form>
+            </div>
+          ) : null}
+          <div ref={topSentinelRef} className="h-1" />
 
-      {!channel.dmUser && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild disabled={!!channel?.archivedTime}>
-            <Button variant="ghost" size="icon">
-              <EllipsisVerticalIcon />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => void toggleMute({ channelId: channel._id })}>
-              <BellIcon />
-              {channel.isMuted ? "Unmute" : "Mute"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setIsEditing(true)}>
-              <PencilIcon />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={async () => {
-                if (!channel) return
-                if (confirm("Are you sure you want to archive this channel?")) {
-                  try {
-                    await archiveChannel({ channelId: channel._id, archivedTime: new Date().toISOString() })
-                    navigate("/")
-                  } catch (e) {
-                    console.error(e)
-                    toast.error("Failed to archive channel")
-                  }
-                }
-              }}
-            >
-              <Trash2Icon />
-              Archive
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          <div className="min-h-[500px]">
+            {status === "LoadingFirstPage"
+              ? null
+              : messages.map((message, index) => {
+                  const isFirstMessageOfUser =
+                    index === 0 ||
+                    messages[index - 1]?.authorId !== message.authorId ||
+                    (!!messages[index - 1] &&
+                      new Date(message._creationTime).getTime() - new Date(messages[index - 1]!._creationTime).getTime() >
+                        10 * 60 * 1000)
+                  return <Message key={message._id} message={message} isFirstMessageOfUser={isFirstMessageOfUser} />
+                })}
+          </div>
+
+          <div ref={bottomSentinelRef} />
+        </div>
+
+        <MessageInput
+          channelId={channelId!}
+          isDisabled={!!currentChannel.archivedTime}
+          lastMessageIdOfUser={lastMessageOfUser?._id}
+        />
+      </div>
+
+      {!!currentThreadId && (
+        <div className="w-96 flex-shrink-0">
+          <ThreadSidebar threadId={currentThreadId} onClose={handleCloseThread} />
+        </div>
       )}
     </div>
   )

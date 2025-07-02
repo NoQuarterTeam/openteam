@@ -1,15 +1,13 @@
 import { useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
-import DOMPurify from "dompurify"
-import hljs from "highlight.js"
 import { ChevronDownIcon, Edit2Icon, MessageSquareTextIcon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
-import { Marked } from "marked"
-import { markedHighlight } from "marked-highlight"
 import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { useThreadStore } from "@/lib/use-thread-store"
+import { renderMessageContent } from "@/lib/marked"
+import { useEditMessage } from "@/lib/use-edit-message"
 import { cn } from "@/lib/utils"
 import { ExpandableTextarea } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
@@ -33,18 +31,23 @@ interface Props {
 export function Message({ message, isFirstMessageOfUser, isParentMessage = false, isThreadMessage = false }: Props) {
   const user = useQuery(api.auth.loggedInUser)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
   const createThread = useMutation(api.threads.create)
-  const openThread = useThreadStore((s) => s.openThread)
+  const [_, setSearchParams] = useSearchParams()
 
   const handleCreateThread = async (messageId: Id<"messages">) => {
     try {
       const threadId = await createThread({ parentMessageId: messageId })
-      openThread(threadId)
+      setSearchParams((searchParams) => {
+        searchParams.set("threadId", threadId)
+        return searchParams
+      })
     } catch (error) {
       console.error("Failed to create thread:", error)
     }
   }
+
+  const editMessageId = useEditMessage((s) => s.messageId)
+  const setEditMessageId = useEditMessage((s) => s.setMessageId)
 
   const addReaction = useMutation(api.reactions.add).withOptimisticUpdate((localStore, args) => {
     if (!user) return
@@ -161,8 +164,8 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
             {dayjs(message._creationTime).format("HH:mm")}
           </p>
         )}
-        {isEditing ? (
-          <MessageEditor message={message} onClose={() => setIsEditing(false)} />
+        {editMessageId === message._id ? (
+          <MessageEditor message={message} onClose={() => setEditMessageId(null)} />
         ) : (
           <>
             {message.content && (
@@ -285,19 +288,27 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
             )}
             {/* Thread Indicator */}
             {!isThreadMessage && "threadInfo" in message && message.threadInfo && message.threadInfo.replyCount > 0 && (
-              <ThreadIndicator threadInfo={message.threadInfo} onOpenThread={openThread} />
+              <ThreadIndicator
+                threadInfo={message.threadInfo}
+                onOpenThread={() =>
+                  setSearchParams((searchParams) => {
+                    searchParams.set("threadId", message.threadInfo!.threadId)
+                    return searchParams
+                  })
+                }
+              />
             )}
           </>
         )}
 
         <div
           className={cn(
-            "-top-4 pointer-events-none absolute right-0 gap-0 rounded-lg border bg-background p-1 opacity-0 shadow-xs transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100",
-            // isMessageHovered ? "flex" : "hidden",
+            "-top-4 pointer-events-none absolute right-0 gap-0 rounded-lg border bg-background p-1 opacity-0 shadow-xs transition-opacity duration-200",
+            editMessageId === message._id ? "" : "group-hover:pointer-events-auto group-hover:opacity-100",
           )}
         >
           {message.author?._id === user?._id && (
-            <Button size="icon" className="size-8" variant="ghost" onClick={() => setIsEditing(true)}>
+            <Button size="icon" className="size-8" variant="ghost" onClick={() => setEditMessageId(message._id)}>
               <Edit2Icon className="size-3.5" />
             </Button>
           )}
@@ -460,20 +471,4 @@ function MessageEditor({ message, onClose }: { message: MessageData; onClose: ()
       </div>
     </div>
   )
-}
-const marked = new Marked(
-  markedHighlight({
-    emptyLangClass: "hljs",
-    langPrefix: "hljs language-",
-    highlight(code, lang) {
-      const language = hljs.getLanguage(lang) ? lang : "plaintext"
-      return hljs.highlight(code, { language }).value
-    },
-  }),
-)
-
-function renderMessageContent(content: string) {
-  const rawHtml = marked.parse(content, { async: false, breaks: true, gfm: true })
-  const cleanHtml = DOMPurify.sanitize(rawHtml)
-  return cleanHtml
 }
