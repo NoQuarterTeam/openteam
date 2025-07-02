@@ -2,6 +2,7 @@ import { paginationOptsValidator } from "convex/server"
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import { requireUser } from "./auth"
+import type { OptimisticStatus } from "./optimistic"
 
 export const create = mutation({
   args: {
@@ -82,7 +83,7 @@ export const get = query({
       thread,
       parentMessage: {
         ...parentMessage,
-        temp: false,
+        optimisticStatus: null,
         author: author ? { ...author, image: authorImage } : null,
         reactions: reactionsWithUsers.filter(Boolean),
         files: filesWithUrls,
@@ -146,7 +147,7 @@ export const listMessages = query({
           author: author ? { ...author, image: authorImage } : null,
           reactions: reactionsWithUsers.filter(Boolean),
           files: filesWithUrls,
-          temp: false,
+          optimisticStatus: null as OptimisticStatus,
         }
       }),
     )

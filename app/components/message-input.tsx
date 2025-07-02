@@ -52,7 +52,7 @@ export function MessageInput({
           channelId,
           threadId: args.threadId,
           _creationTime: Date.now(),
-          temp: true,
+          optimisticStatus: "created",
           reactions: [],
           files:
             args.files?.map(({ name, storageId }: { name: string; storageId: Id<"_storage"> }, i: number) => ({
@@ -88,7 +88,7 @@ export function MessageInput({
           author: user,
           channelId,
           _creationTime: Date.now(),
-          temp: true,
+          optimisticStatus: "created",
           reactions: [],
           threadInfo: null,
           files:
@@ -174,12 +174,22 @@ export function MessageInput({
   }
 
   const setEditMessageId = useEditMessage((s) => s.setMessageId)
-  const formRef = useRef<HTMLFormElement>(null)
+  const editMessageId = useEditMessage((s) => s.messageId)
 
   useEffect(() => {
-    setTimeout(() => {
+    if (!editMessageId) {
       textAreaRef.current?.focus()
-    }, 100)
+    }
+  }, [editMessageId])
+
+  const formRef = useRef<HTMLFormElement>(null)
+
+  const previousChannelIdRef = useRef<Id<"channels"> | null>(null)
+  useEffect(() => {
+    if (previousChannelIdRef.current !== channelId) {
+      setEditMessageId(null)
+      previousChannelIdRef.current = channelId
+    }
   }, [channelId])
 
   return (
@@ -225,7 +235,7 @@ export function MessageInput({
                 event.preventDefault()
                 formRef.current?.requestSubmit()
               }
-              if (event.key === "ArrowUp" && lastMessageIdOfUser) {
+              if (event.key === "ArrowUp" && lastMessageIdOfUser && !newMessage) {
                 event.preventDefault()
                 setEditMessageId(lastMessageIdOfUser)
               }

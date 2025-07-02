@@ -3,6 +3,7 @@ import { ConvexError, v } from "convex/values"
 import type { Doc } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 import { requireUser } from "./auth"
+import type { OptimisticStatus } from "./optimistic"
 
 export const list = query({
   args: { channelId: v.id("channels"), paginationOpts: paginationOptsValidator },
@@ -84,7 +85,7 @@ export const list = query({
           ...message,
           reactions,
           files: files.filter(Boolean),
-          temp: false,
+          optimisticStatus: null as OptimisticStatus,
           author: user ? { ...user, image } : null,
           threadInfo,
         }

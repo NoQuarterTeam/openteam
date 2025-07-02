@@ -76,7 +76,7 @@ export default function Component() {
       addChannel(channelId)
       void markAsRead({ channelId })
     }
-  }, [channelId, addChannel, markAsRead])
+  }, [channelId])
 
   // Handle scroll position during pagination (loading older messages)
   useEffect(() => {

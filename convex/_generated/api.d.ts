@@ -18,6 +18,7 @@ import type * as babbles from "../babbles.js";
 import type * as channels from "../channels.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
+import type * as optimistic from "../optimistic.js";
 import type * as reactions from "../reactions.js";
 import type * as router from "../router.js";
 import type * as threads from "../threads.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   channels: typeof channels;
   http: typeof http;
   messages: typeof messages;
+  optimistic: typeof optimistic;
   reactions: typeof reactions;
   router: typeof router;
   threads: typeof threads;

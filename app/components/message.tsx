@@ -6,6 +6,7 @@ import { useSearchParams } from "react-router"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import type { OptimisticStatus } from "@/convex/optimistic"
 import { renderMessageContent } from "@/lib/marked"
 import { useEditMessage } from "@/lib/use-edit-message"
 import { cn } from "@/lib/utils"
@@ -84,32 +85,12 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
   })
 
   const deleteMessage = useMutation(api.messages.deleteMessage).withOptimisticUpdate((localStore) => {
-    // optimisticallyUpdateValueInPaginatedQuery(localStore, api.messages.list, { channelId: message.channelId }, (currentValue) => {
-    //   if (message._id === currentValue._id) {
-    //     return {
-    //       ...currentValue,
-    //       page: currentValue.page.filter((m) => m._id !== message._id),
-    //     }
-    //   }
-    //   return currentValue
-    // })
-    // const paginatedValue = localStore.getQuery(api.messages.list, {
-    //   channelId: message.channelId,
-    //   paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
-    // })
-    // if (paginatedValue) {
-    //   localStore.setQuery(
-    //     api.messages.list,
-    //     {
-    //       channelId: message.channelId,
-    //       paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
-    //     },
-    //     {
-    //       ...paginatedValue,
-    //       page: paginatedValue.page.filter((m) => m._id !== message._id),
-    //     },
-    //   )
-    // }
+    optimisticallyUpdateValueInPaginatedQuery(localStore, api.messages.list, { channelId: message.channelId }, (currentValue) => {
+      if (message._id === currentValue._id) {
+        return { ...currentValue, optimisticStatus: "deleted" as OptimisticStatus }
+      }
+      return currentValue
+    })
   })
 
   const groupedReactions = message.reactions.reduce(
@@ -127,8 +108,9 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
     <div
       key={message._id}
       className={cn(
-        "group flex gap-2 px-4 ",
+        "group flex gap-2 px-4 transition-opacity duration-200",
         isThreadParentMessage ? "border-b bg-yellow-50 py-4" : "py-1.5 hover:bg-muted/50 dark:hover:bg-muted/30",
+        message.optimisticStatus === "deleted" && "opacity-0",
       )}
     >
       <div>
@@ -155,7 +137,7 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
           </p>
         )}
         {editMessageId === message._id ? (
-          <MessageEditor message={message} onClose={() => setEditMessageId(null)} />
+          <MessageEditor message={message} />
         ) : (
           <>
             {message.content && (
@@ -173,7 +155,7 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
                   "[&_ol]:m-0 [&_ol]:list-decimal [&_ol]:pl-4",
                   "[&_code]:!py-2 [&_code]:!px-3 [&_code]:my-1 [&_code]:block [&_code]:rounded-md [&_code]:border [&_code]:bg-muted [&_code]:font-mono",
                   "[&_blockquote]:border-muted-foreground/20 [&_blockquote]:border-l-4 [&_blockquote]:pl-2",
-                  message.temp && "opacity-70",
+                  message.optimisticStatus === "created" && "opacity-70",
                 )}
                 dangerouslySetInnerHTML={{ __html: renderMessageContent(message.content) }}
               />
@@ -202,7 +184,7 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
                           {message.files.length > 1 && (
                             <div className="flex flex-wrap gap-2">
                               {message.files.map((file) => (
-                                <MessageFile key={file._id} file={file} className="h-14 w-14" />
+                                <MessageFile key={file._id} file={file} className="h-14" />
                               ))}
                             </div>
                           )}
@@ -293,29 +275,31 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
 
         <div
           className={cn(
-            "-top-4 pointer-events-none absolute right-0 gap-0 rounded-lg border bg-background p-1 opacity-0 shadow-xs transition-opacity duration-200",
+            "-top-4 pointer-events-none absolute right-0 flex items-center gap-0 rounded-lg border bg-background p-1 opacity-0 shadow-xs transition-opacity duration-200",
             editMessageId === message._id ? "" : "group-hover:pointer-events-auto group-hover:opacity-100",
           )}
         >
           {message.author?._id === user?._id && (
-            <Button size="icon" className="size-8" variant="ghost" onClick={() => setEditMessageId(message._id)}>
-              <Edit2Icon className="size-3.5" />
-            </Button>
+            <>
+              <Button size="icon" className="size-8" variant="ghost" onClick={() => setEditMessageId(message._id)}>
+                <Edit2Icon className="size-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                className="size-8"
+                variant="ghost"
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to delete this message?")) {
+                    deleteMessage({ messageId: message._id })
+                  }
+                }}
+              >
+                <TrashIcon className="size-3.5" />
+              </Button>
+              <div className="h-4 w-px bg-muted" />
+            </>
           )}
-          {message.author?._id === user?._id && (
-            <Button
-              size="icon"
-              className="size-8"
-              variant="ghost"
-              onClick={() => {
-                if (window.confirm("Are you sure you want to delete this message?")) {
-                  deleteMessage({ messageId: message._id })
-                }
-              }}
-            >
-              <TrashIcon className="size-3.5" />
-            </Button>
-          )}
+
           <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
               <Button size="icon" className="size-8" variant="ghost">
@@ -376,7 +360,7 @@ function MessageFile({ file, className }: { file: MessageFileType; className?: s
   )
 }
 
-function MessageEditor({ message, onClose }: { message: MessageData; onClose: () => void }) {
+function MessageEditor({ message }: { message: MessageData }) {
   const updateMessage = useMutation(api.messages.update).withOptimisticUpdate((localStore, args) => {
     if (message.threadId) {
       optimisticallyUpdateValueInPaginatedQuery(
@@ -412,6 +396,9 @@ function MessageEditor({ message, onClose }: { message: MessageData; onClose: ()
   })
 
   const [input, setInput] = useState(message.content || "")
+  const setEditMessageId = useEditMessage((s) => s.setMessageId)
+
+  const onClose = () => setEditMessageId(null)
 
   const handleSubmit = async () => {
     onClose()
