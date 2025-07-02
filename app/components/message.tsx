@@ -106,7 +106,6 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
 
   return (
     <div
-      key={message._id}
       className={cn(
         "group flex gap-2 px-4 transition-opacity duration-200",
         isThreadParentMessage ? "border-b bg-yellow-50 py-4" : "py-1.5 hover:bg-muted/50 dark:hover:bg-muted/30",
