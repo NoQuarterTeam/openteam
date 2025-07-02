@@ -1,12 +1,7 @@
+import { paginationOptsValidator } from "convex/server"
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import { requireUser } from "./auth"
-
-// Define pagination options validator
-const paginationOptsValidator = v.object({
-  numItems: v.number(),
-  cursor: v.union(v.string(), v.null())
-})
 
 export const create = mutation({
   args: {
@@ -98,18 +93,18 @@ export const get = query({
 })
 
 export const listMessages = query({
-  args: { threadId: v.id("threads") },
+  args: { threadId: v.id("threads"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     await requireUser(ctx)
 
-    const messages = await ctx.db
+    const result = await ctx.db
       .query("messages")
       .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
       .order("asc")
-      .collect()
+      .paginate(args.paginationOpts)
 
-    return await Promise.all(
-      messages.map(async (message) => {
+    const messagesWithAuthorsAndFiles = await Promise.all(
+      result.page.map(async (message) => {
         const [author, reactions, files] = await Promise.all([
           ctx.db.get(message.authorId),
           ctx.db
@@ -155,75 +150,7 @@ export const listMessages = query({
         }
       }),
     )
+
+    return { ...result, page: messagesWithAuthorsAndFiles }
   },
-})
-
-export const listMessagesPaginated = query({
-  args: { 
-    threadId: v.id("threads"),
-    paginationOpts: paginationOptsValidator 
-  },
-  handler: async (ctx, args) => {
-    await requireUser(ctx)
-
-    const result = await ctx.db
-      .query("messages")
-      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
-      .order("asc") // Keep chronological order for threads
-      .paginate(args.paginationOpts)
-
-    // Transform results similar to main messages
-    const messagesWithDetails = await Promise.all(
-      result.page.map(async (message) => {
-        const [author, reactions, files] = await Promise.all([
-          ctx.db.get(message.authorId),
-          ctx.db
-            .query("messageReactions")
-            .withIndex("by_message", (q) => q.eq("messageId", message._id))
-            .collect(),
-          ctx.db
-            .query("files")
-            .withIndex("by_message", (q) => q.eq("messageId", message._id))
-            .collect(),
-        ])
-
-        const reactionsWithUsers = await Promise.all(
-          reactions.map(async (reaction) => {
-            const user = await ctx.db.get(reaction.userId)
-            if (!user) return null
-            return {
-              ...reaction,
-              user: { ...user, image: user.image ? await ctx.storage.getUrl(user.image) : null },
-            }
-          }),
-        )
-
-        const filesWithUrls = await Promise.all(
-          files.map(async (file) => ({
-            ...file,
-            url: await ctx.storage.getUrl(file.storageId),
-            metadata: (await ctx.db.system.get(file.storageId))!,
-          })),
-        )
-
-        let authorImage = null
-        if (author?.image) {
-          authorImage = await ctx.storage.getUrl(author.image)
-        }
-
-        return {
-          ...message,
-          author: author ? { ...author, image: authorImage } : null,
-          reactions: reactionsWithUsers.filter(Boolean),
-          files: filesWithUrls,
-          temp: false,
-        }
-      }),
-    )
-
-    return {
-      ...result,
-      page: messagesWithDetails
-    }
-  }
 })

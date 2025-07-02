@@ -1,28 +1,23 @@
+import { paginationOptsValidator } from "convex/server"
 import { ConvexError, v } from "convex/values"
+import type { Doc } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 import { requireUser } from "./auth"
-import type { Doc } from "./_generated/dataModel"
-
-// Define pagination options validator
-const paginationOptsValidator = v.object({
-  numItems: v.number(),
-  cursor: v.union(v.string(), v.null())
-})
 
 export const list = query({
-  args: { channelId: v.id("channels") },
+  args: { channelId: v.id("channels"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     await requireUser(ctx)
 
-    const messages = await ctx.db
+    const result = await ctx.db
       .query("messages")
       .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
       .filter((q) => q.eq(q.field("threadId"), undefined))
-      .order("desc")
-      .take(20)
+      .order("desc") // Newest first for flex-col-reverse
+      .paginate(args.paginationOpts)
 
     const messagesWithAuthorsAndThreads = await Promise.all(
-      messages.reverse().map(async (message) => {
+      result.page.map(async (message) => {
         const [user, dbReactions, dbFiles, thread] = await Promise.all([
           ctx.db.get(message.authorId),
           ctx.db
@@ -96,7 +91,7 @@ export const list = query({
       }),
     )
 
-    return messagesWithAuthorsAndThreads
+    return { ...result, page: messagesWithAuthorsAndThreads }
   },
 })
 
@@ -198,161 +193,4 @@ export const update = mutation({
     if (message.authorId !== userId) throw new ConvexError("You are not the author of this message")
     await ctx.db.patch(args.messageId, { content: args.content })
   },
-})
-
-export const listPaginated = query({
-  args: { 
-    channelId: v.id("channels"),
-    paginationOpts: paginationOptsValidator 
-  },
-  handler: async (ctx, args) => {
-    await requireUser(ctx)
-
-    const result = await ctx.db
-      .query("messages")
-      .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
-      .filter((q) => q.eq(q.field("threadId"), undefined))
-      .order("desc") // Newest first for flex-col-reverse
-      .paginate(args.paginationOpts)
-
-    // Transform the page results with authors, reactions, files, threads
-    const messagesWithDetails = await Promise.all(
-      result.page.map(async (message: Doc<"messages">) => {
-        const [user, dbReactions, dbFiles, thread] = await Promise.all([
-          ctx.db.get(message.authorId),
-          ctx.db
-            .query("messageReactions")
-            .withIndex("by_message", (q) => q.eq("messageId", message._id))
-            .collect(),
-          ctx.db
-            .query("files")
-            .withIndex("by_message", (q) => q.eq("messageId", message._id))
-            .collect(),
-          ctx.db
-            .query("threads")
-            .withIndex("by_parent_message", (q) => q.eq("parentMessageId", message._id))
-            .first(),
-        ])
-
-        const reactions = await Promise.all(
-          dbReactions.map(async (reaction) => ({
-            ...reaction,
-            user: await ctx.db.get(reaction.userId),
-          }))
-        )
-
-        let threadInfo = null
-        if (thread) {
-          const threadMessageCount = await ctx.db
-            .query("messages")
-            .withIndex("by_thread", (q) => q.eq("threadId", thread._id))
-            .collect()
-
-          threadInfo = {
-            threadId: thread._id,
-            replyCount: threadMessageCount.length,
-            lastReplyTime: threadMessageCount.length > 0 
-              ? Math.max(...threadMessageCount.map(m => m._creationTime))
-              : thread._creationTime,
-            participants: [] // Could add participant data if needed
-          }
-        }
-
-                 return {
-           ...message,
-           author: user,
-           reactions,
-           files: dbFiles,
-           threadInfo,
-           temp: false, // Add temp property for consistency with frontend types
-         }
-       })
-     )
-
-     return {
-       ...result,
-       page: messagesWithDetails
-     }
-   }
- })
-
- // Add a query for loading more messages dynamically
- export const loadMoreMessages = query({
-  args: {
-    channelId: v.id("channels"),
-    cursor: v.union(v.string(), v.null()),
-    numItems: v.number()
-  },
-  handler: async (ctx, args) => {
-    await requireUser(ctx)
-
-    const result = await ctx.db
-      .query("messages")
-      .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
-      .filter((q) => q.eq(q.field("threadId"), undefined))
-      .order("desc")
-      .paginate({ 
-        cursor: args.cursor, 
-        numItems: args.numItems 
-      })
-
-    // Transform results same as above
-    const messagesWithDetails = await Promise.all(
-      result.page.map(async (message: Doc<"messages">) => {
-        const [user, dbReactions, dbFiles, thread] = await Promise.all([
-          ctx.db.get(message.authorId),
-          ctx.db
-            .query("messageReactions")
-            .withIndex("by_message", (q) => q.eq("messageId", message._id))
-            .collect(),
-          ctx.db
-            .query("files")
-            .withIndex("by_message", (q) => q.eq("messageId", message._id))
-            .collect(),
-          ctx.db
-            .query("threads")
-            .withIndex("by_parent_message", (q) => q.eq("parentMessageId", message._id))
-            .first(),
-        ])
-
-        const reactions = await Promise.all(
-          dbReactions.map(async (reaction) => ({
-            ...reaction,
-            user: await ctx.db.get(reaction.userId),
-          }))
-        )
-
-        let threadInfo = null
-        if (thread) {
-          const threadMessageCount = await ctx.db
-            .query("messages")
-            .withIndex("by_thread", (q) => q.eq("threadId", thread._id))
-            .collect()
-
-          threadInfo = {
-            threadId: thread._id,
-            replyCount: threadMessageCount.length,
-            lastReplyTime: threadMessageCount.length > 0 
-              ? Math.max(...threadMessageCount.map(m => m._creationTime))
-              : thread._creationTime,
-            participants: []
-          }
-        }
-
-        return {
-          ...message,
-          author: user,
-          reactions,
-          files: dbFiles,
-          threadInfo,
-          temp: false, // Add temp property for consistency with frontend types
-        }
-      })
-    )
-
-    return {
-      ...result,
-      page: messagesWithDetails
-    }
-  }
 })

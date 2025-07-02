@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { BellIcon, BellOffIcon, EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { redirect, useNavigate, useParams } from "react-router"
@@ -19,6 +19,7 @@ import { useThreadStore } from "@/lib/use-thread-store"
 import { cn } from "@/lib/utils"
 
 export default function Component() {
+  type MessageWithDetails = NonNullable<typeof api.messages.list._returnType>["page"][number]
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
 
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -28,90 +29,82 @@ export default function Component() {
   const { currentThreadId, isOpen, closeThread } = useThreadStore()
 
   const currentChannel = useQuery(api.channels.get, { channelId: channelId! })
-  
+
   // Pagination state management
-  type MessageWithDetails = NonNullable<typeof api.messages.listPaginated._returnType>["page"][number]
   const [allMessages, setAllMessages] = useState<MessageWithDetails[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  
+
   // Initial page load
-  const firstPageResult = useQuery(api.messages.listPaginated, { 
-    channelId: channelId!, 
-    paginationOpts: { numItems: 50, cursor: null }
+  const firstPageResult = useQuery(api.messages.list, {
+    channelId: channelId!,
+    paginationOpts: { numItems: 50, cursor: null },
   })
-  
-  // Update state when first page loads
-  useEffect(() => {
-    if (firstPageResult) {
-      setAllMessages(firstPageResult.page || [])
-      setHasMore(!firstPageResult.isDone)
-      setCursor(firstPageResult.continueCursor || null)
-    }
-  }, [firstPageResult])
-  
-  // Load more messages function - using useQuery with manual trigger
-  const [loadMoreTrigger, setLoadMoreTrigger] = useState<{ cursor: string; numItems: number } | null>(null)
-  
-  const loadMoreResult = useQuery(
-    loadMoreTrigger ? api.messages.loadMoreMessages : ("skip" as any),
-    loadMoreTrigger ? {
-      channelId: channelId!,
-      cursor: loadMoreTrigger.cursor,
-      numItems: loadMoreTrigger.numItems
-    } : ("skip" as any)
-  )
-  
-  // Handle load more result
-  useEffect(() => {
-    if (loadMoreResult && loadMoreTrigger) {
-      // Prepend older messages (since we're using flex-col-reverse)
-      setAllMessages(prev => [...loadMoreResult.page, ...prev])
-      setHasMore(!loadMoreResult.isDone)
-      setCursor(loadMoreResult.continueCursor || null)
-      setIsLoadingMore(false)
-      setLoadMoreTrigger(null) // Reset trigger
-    }
-  }, [loadMoreResult, loadMoreTrigger])
-  
+
+  // // Update state when first page loads
+  // useEffect(() => {
+  //   if (firstPageResult) {
+  //     setAllMessages(firstPageResult.page || [])
+  //     setHasMore(!firstPageResult.isDone)
+  //     setCursor(firstPageResult.continueCursor || null)
+  //   }
+  // }, [firstPageResult])
+
+  // // Load more messages function - using useQuery with manual trigger
+  // const [loadMoreTrigger, setLoadMoreTrigger] = useState<{ cursor: string; numItems: number } | null>(null)
+
+  // const loadMoreResult = useQuery(
+  //   loadMoreTrigger ? api.messages.list : "skip",
+  //   loadMoreTrigger ? { channelId: channelId!, cursor: loadMoreTrigger.cursor, numItems: loadMoreTrigger.numItems } : "skip",
+  // )
+
+  // // Handle load more result
+  // useEffect(() => {
+  //   if (loadMoreResult && loadMoreTrigger) {
+  //     // Prepend older messages (since we're using flex-col-reverse)
+  //     setAllMessages((prev) => [...loadMoreResult.page, ...prev])
+  //     setHasMore(!loadMoreResult.isDone)
+  //     setCursor(loadMoreResult.continueCursor || null)
+  //     setIsLoadingMore(false)
+  //     setLoadMoreTrigger(null) // Reset trigger
+  //   }
+  // }, [loadMoreResult, loadMoreTrigger])
+
   const loadMore = async () => {
     if (!hasMore || isLoadingMore || !cursor) return
-    
+
     setIsLoadingMore(true)
-    setLoadMoreTrigger({
-      cursor,
-      numItems: 50
-    })
+    // setLoadMoreTrigger({ cursor, numItems: 50 })
   }
-  
+
   const messages = allMessages
 
-  // Intersection observer for loading older messages
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && hasMore && !isLoadingMore) {
-          void loadMore()
-        }
-      },
-      { threshold: 0.1 }
-    )
+  // // Intersection observer for loading older messages
+  // useEffect(() => {
+  //   const observer = new IntersectionObserver(
+  //     (entries) => {
+  //       if (entries[0]?.isIntersecting && hasMore && !isLoadingMore) {
+  //         void loadMore()
+  //       }
+  //     },
+  //     { threshold: 0.1 },
+  //   )
 
-    if (topSentinelRef.current) {
-      observer.observe(topSentinelRef.current)
-    }
+  //   if (topSentinelRef.current) {
+  //     observer.observe(topSentinelRef.current)
+  //   }
 
-    return () => observer.disconnect()
-  }, [hasMore, isLoadingMore, loadMore])
+  //   return () => observer.disconnect()
+  // }, [hasMore, isLoadingMore, loadMore])
 
   const handleScroll = () => {
     if (!messagesContainerRef.current) return
 
     const { scrollTop } = messagesContainerRef.current
-    
+
     const isScrolledTowardOlder = scrollTop > 100
-    
+
     setIsUserScrolledTowardOlder(isScrolledTowardOlder)
   }
 
@@ -119,10 +112,8 @@ export default function Component() {
 
   useEffect(() => {
     if (isUserScrolledTowardOlder) return
-    
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = 0
-    }
+
+    messagesContainerRef.current?.scrollIntoView()
   }, [messages?.length, isUserScrolledTowardOlder])
 
   useEffect(() => {
@@ -130,7 +121,7 @@ export default function Component() {
     closeThread()
     addChannel(channelId)
     void markAsRead({ channelId })
-    
+
     // Reset pagination state when channel changes
     setAllMessages([])
     setCursor(null)
@@ -140,7 +131,7 @@ export default function Component() {
 
   if (currentChannel === null) return redirect("/")
   if (!currentChannel) return null
-  
+
   return (
     <div className="flex flex-1 p-4">
       <div
@@ -154,13 +145,13 @@ export default function Component() {
         <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-none py-2" onScroll={handleScroll}>
           <div className="flex min-h-[500px] flex-col-reverse">
             <div ref={topSentinelRef} className="h-1" />
-            
+
             {isLoadingMore && (
               <div className="flex justify-center py-2">
                 <Spinner className="size-4" />
               </div>
             )}
-            
+
             {messages?.map((message, index) => {
               const isFirstMessageOfUser =
                 index === 0 ||
@@ -214,7 +205,7 @@ function ChannelHeader({ channel }: { channel: ChannelData }) {
     const formData = new FormData(e.target as HTMLFormElement)
     const name = formData.get("name") as string | undefined
     if (!name?.trim()) return
-    
+
     try {
       await updateChannel({ channelId: channel._id, name: name.toLowerCase() })
       setIsEditing(false)

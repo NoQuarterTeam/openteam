@@ -55,45 +55,39 @@ export function MessageInput({
             metadata: {
               _id: crypto.randomUUID() as Id<"_storage">,
               _creationTime: Date.now(),
-              contentType: filePreviews[i]?.file.type || "image/png",
+              contentType: filePreviews[i]?.file.type || "application/octet-stream",
               sha256: "",
               size: filePreviews[i]?.file.size || 10,
             },
             storageId,
           })) || [],
       }
-      
-      // Update legacy thread query
-      const currentValue = localStore.getQuery(api.threads.listMessages, { threadId: args.threadId })
-      if (currentValue) {
-        localStore.setQuery(api.threads.listMessages, { threadId: args.threadId }, [
-          ...currentValue,
-          optimisticThreadMessage,
-        ])
-      }
-      
+
       // Update paginated thread query
-      const paginatedThreadValue = localStore.getQuery(api.threads.listMessagesPaginated, { 
+      const paginatedThreadValue = localStore.getQuery(api.threads.listMessages, {
         threadId: args.threadId,
-        paginationOpts: { numItems: 100, cursor: null }
+        paginationOpts: { numItems: 100, cursor: null },
       })
       if (paginatedThreadValue) {
-        localStore.setQuery(api.threads.listMessagesPaginated, { 
-          threadId: args.threadId,
-          paginationOpts: { numItems: 100, cursor: null }
-        }, {
-          ...paginatedThreadValue,
-          page: [...paginatedThreadValue.page, optimisticThreadMessage]
-        })
+        localStore.setQuery(
+          api.threads.listMessages,
+          {
+            threadId: args.threadId,
+            paginationOpts: { numItems: 100, cursor: null },
+          },
+          {
+            ...paginatedThreadValue,
+            page: [...paginatedThreadValue.page, optimisticThreadMessage],
+          },
+        )
       }
     } else {
       // For regular channel messages - update both paginated and legacy queries
-      const currentValue = localStore.getQuery(api.messages.list, { channelId })
-      const paginatedValue = localStore.getQuery(api.messages.listPaginated, { 
-        channelId, 
-        paginationOpts: { numItems: 50, cursor: null }
+      const paginatedValue = localStore.getQuery(api.messages.list, {
+        channelId,
+        paginationOpts: { numItems: 50, cursor: null },
       })
-      
+
       const messageId = crypto.randomUUID() as Id<"messages">
       const optimisticMessage = {
         _id: messageId,
@@ -122,21 +116,20 @@ export function MessageInput({
             storageId,
           })) || [],
       }
-      
-      // Update legacy query if it exists
-      if (currentValue) {
-        localStore.setQuery(api.messages.list, { channelId }, [...currentValue, optimisticMessage])
-      }
-      
+
       // Update paginated query if it exists
       if (paginatedValue) {
-        localStore.setQuery(api.messages.listPaginated, { 
-          channelId, 
-          paginationOpts: { numItems: 50, cursor: null }
-        }, {
-          ...paginatedValue,
-          page: [optimisticMessage as any, ...paginatedValue.page]
-        })
+        localStore.setQuery(
+          api.messages.list,
+          {
+            channelId,
+            paginationOpts: { numItems: 50, cursor: null },
+          },
+          {
+            ...paginatedValue,
+            page: [optimisticMessage as any, ...paginatedValue.page],
+          },
+        )
       }
     }
   })
