@@ -1,15 +1,12 @@
 import { useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
-import DOMPurify from "dompurify"
-import hljs from "highlight.js"
 import { ChevronDownIcon, Edit2Icon, MessageSquareTextIcon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
-import { Marked } from "marked"
-import { markedHighlight } from "marked-highlight"
 import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { renderMessageContent } from "@/lib/marked"
 import { useEditMessage } from "@/lib/use-edit-message"
 import { cn } from "@/lib/utils"
 import { ExpandableTextarea } from "./expandable-textarea"
@@ -279,8 +276,8 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
 
         <div
           className={cn(
-            "-top-4 pointer-events-none absolute right-0 gap-0 rounded-lg border bg-background p-1 opacity-0 shadow-xs transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100",
-            // isMessageHovered ? "flex" : "hidden",
+            "-top-4 pointer-events-none absolute right-0 gap-0 rounded-lg border bg-background p-1 opacity-0 shadow-xs transition-opacity duration-200",
+            editMessageId === message._id ? "" : "group-hover:pointer-events-auto group-hover:opacity-100",
           )}
         >
           {message.author?._id === user?._id && (
@@ -433,20 +430,4 @@ function MessageEditor({ message, onClose }: { message: MessageData; onClose: ()
       </div>
     </div>
   )
-}
-const marked = new Marked(
-  markedHighlight({
-    emptyLangClass: "hljs",
-    langPrefix: "hljs language-",
-    highlight(code, lang) {
-      const language = hljs.getLanguage(lang) ? lang : "plaintext"
-      return hljs.highlight(code, { language }).value
-    },
-  }),
-)
-
-function renderMessageContent(content: string) {
-  const rawHtml = marked.parse(content, { async: false, breaks: true, gfm: true })
-  const cleanHtml = DOMPurify.sanitize(rawHtml)
-  return cleanHtml
 }

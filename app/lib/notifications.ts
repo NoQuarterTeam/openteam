@@ -1,30 +1,16 @@
-import { useNavigate } from "react-router"
 import type { Id } from "@/convex/_generated/dataModel"
 
 export type NotificationPermission = "granted" | "denied" | "default"
 
-export class NotificationService {
-  private static instance: NotificationService
-  private navigate?: (path: string) => void
+class NotificationService {
   private audio?: HTMLAudioElement
 
-  private constructor() {
+  constructor() {
     // Initialize notification sound
     if (typeof window !== "undefined") {
       this.audio = new Audio("/notification.mp3")
       this.audio.volume = 0.3 // Set to 30% volume
     }
-  }
-
-  static getInstance(): NotificationService {
-    if (!NotificationService.instance) {
-      NotificationService.instance = new NotificationService()
-    }
-    return NotificationService.instance
-  }
-
-  setNavigate(navigate: (path: string) => void) {
-    this.navigate = navigate
   }
 
   getPermission(): NotificationPermission {
@@ -74,7 +60,19 @@ export class NotificationService {
     }
   }
 
-  sendNotification({ title, body, channelId, icon }: { title: string; body: string; channelId: Id<"channels">; icon?: string }) {
+  sendNotification({
+    title,
+    body,
+    channelId,
+    icon,
+    onClick,
+  }: {
+    title: string
+    body: string
+    channelId: Id<"channels">
+    icon?: string
+    onClick?: () => void
+  }) {
     if (!this.isSupported() || this.getPermission() !== "granted") {
       return
     }
@@ -100,9 +98,7 @@ export class NotificationService {
         window.focus()
 
         // Navigate to the channel
-        if (this.navigate) {
-          this.navigate(`/${channelId}`)
-        }
+        onClick?.()
 
         // Close the notification
         notification.close()
@@ -120,13 +116,9 @@ export class NotificationService {
   }
 }
 
+export const notificationService = new NotificationService()
+
 export function useNotifications() {
-  const navigate = useNavigate()
-  const notificationService = NotificationService.getInstance()
-
-  // Set up navigation for the service
-  notificationService.setNavigate(navigate)
-
   return {
     permission: notificationService.getPermission(),
     isSupported: notificationService.isSupported(),

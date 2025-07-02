@@ -4,8 +4,8 @@ import { useCallback, useId, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
 import type { Id } from "@/convex/_generated/dataModel"
-import { api } from "../../convex/_generated/api"
 import { useNotifications } from "@/lib/notifications"
+import { api } from "../../convex/_generated/api"
 import { Button } from "./ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "./ui/dialog"
 import { DropdownMenuItem } from "./ui/dropdown-menu"
@@ -110,19 +110,18 @@ export function ProfileModal() {
             {/* Notification Settings */}
             {isSupported && (
               <div className="space-y-2">
-                <label className="block font-medium text-neutral-700 text-sm">Notifications</label>
+                <div className="block font-medium text-neutral-700 text-sm">Notifications</div>
                 <div className="flex items-center justify-between rounded-lg border p-3">
                   <div className="flex items-center gap-3">
                     <BellIcon className="size-5 text-neutral-500" />
                     <div>
-                      <p className="font-medium text-sm">Web Notifications</p>
+                      <p className="font-medium text-sm">Browser Notifications</p>
                       <p className="text-neutral-500 text-xs">
-                        {permission === "granted" 
+                        {permission === "granted"
                           ? "Enabled - You'll receive notifications for new messages"
                           : permission === "denied"
-                          ? "Blocked - Enable in your browser settings"
-                          : "Not enabled - Click to enable notifications"
-                        }
+                            ? "Blocked - Enable in your browser settings to receive notifications"
+                            : "Not enabled - Click to enable notifications"}
                       </p>
                     </div>
                   </div>
@@ -154,9 +153,7 @@ export function ProfileModal() {
                     </Button>
                   )}
                   {permission === "granted" && (
-                    <div className="rounded-full bg-green-100 px-2 py-1 font-medium text-green-800 text-xs">
-                      Enabled
-                    </div>
+                    <div className="rounded-full bg-green-100 px-2 py-1 font-medium text-green-800 text-xs">Enabled</div>
                   )}
                 </div>
               </div>
