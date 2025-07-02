@@ -11,6 +11,8 @@ import { Babble } from "./babble"
 import { NewChannel } from "./new-channel"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 
+type ChannelData = NonNullable<typeof api.channels.list._returnType>[number]
+
 export function Sidebar() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
   const channels = useQuery(api.channels.list)
@@ -81,7 +83,7 @@ export function Sidebar() {
 }
 
 interface ChannelItemProps {
-  channel: any
+  channel: ChannelData
   index: number
   isActive: boolean
 }
