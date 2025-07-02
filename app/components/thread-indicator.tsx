@@ -1,8 +1,8 @@
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import type { Id } from "@/convex/_generated/dataModel"
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
-import { Button } from "../ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
+import { Button } from "./ui/button"
 
 dayjs.extend(relativeTime)
 

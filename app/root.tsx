@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes"
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router"
 import { Toaster } from "sonner"
 import type { Route } from "./+types/root"
+import "highlight.js/styles/github-dark.css"
 import "./globals.css"
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL)

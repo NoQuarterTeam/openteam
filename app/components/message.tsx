@@ -12,12 +12,13 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
 import { ExpandableTextarea } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
-import { ThreadIndicator } from "./thread/thread-indicator"
+import { ThreadIndicator } from "./thread-indicator"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { WithState } from "./with-state"
 import "highlight.js/styles/github.css"
+import { useThreadStore } from "@/lib/use-thread-store"
 
 type MessageData = (typeof api.messages.list._returnType)[number] | (typeof api.threads.listMessages._returnType)[number]
 
@@ -26,22 +27,23 @@ interface Props {
   isFirstMessageOfUser: boolean
   isParentMessage?: boolean
   isThreadMessage?: boolean
-  onCreateThread?: (messageId: Id<"messages">) => void
-  onOpenThread?: (threadId: Id<"threads">) => void
 }
 
-export function Message({
-  message,
-  isFirstMessageOfUser,
-  isParentMessage = false,
-  isThreadMessage = false,
-  onCreateThread,
-  onOpenThread,
-}: Props) {
+export function Message({ message, isFirstMessageOfUser, isParentMessage = false, isThreadMessage = false }: Props) {
   const user = useQuery(api.auth.loggedInUser)
-  const [isMessageHovered, setIsMessageHovered] = useState(false)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const createThread = useMutation(api.threads.create)
+  const openThread = useThreadStore((s) => s.openThread)
+
+  const handleCreateThread = async (messageId: Id<"messages">) => {
+    try {
+      const threadId = await createThread({ parentMessageId: messageId })
+      openThread(threadId)
+    } catch (error) {
+      console.error("Failed to create thread:", error)
+    }
+  }
 
   const addReaction = useMutation(api.reactions.add).withOptimisticUpdate((localStore, args) => {
     if (!user) return
@@ -108,13 +110,7 @@ export function Message({
   return (
     <div
       key={message._id}
-      className={cn("group flex gap-2 px-4 py-1.5 hover:bg-muted/50 dark:hover:bg-muted/10", isParentMessage && "py-4")}
-      onMouseEnter={() => {
-        if (!isEditing) setIsMessageHovered(true)
-      }}
-      onMouseLeave={() => {
-        if (!isPopoverOpen) setIsMessageHovered(false)
-      }}
+      className={cn("group flex gap-2 px-4 ", isParentMessage ? "py-4" : "py-1.5 hover:bg-muted/50 dark:hover:bg-muted/10")}
     >
       <div>
         {isFirstMessageOfUser && message.author ? (
@@ -139,137 +135,133 @@ export function Message({
             {dayjs(message._creationTime).format("HH:mm")}
           </p>
         )}
-        {!isEditing && message.content && (
-          <div
-            className={cn("-my-[6px] font-normal text-sm leading-7", message.temp && "opacity-70")}
-            dangerouslySetInnerHTML={{ __html: renderMessageContent(message.content) }}
-          />
-        )}
-        {isEditing && <MessageEditor message={message} onClose={() => setIsEditing(false)} />}
-        {!isEditing && message.files && message.files.length > 0 && (
-          <div>
-            <WithState initialState={true}>
-              {(isImageOpen, setIsImageOpen) => (
-                <>
-                  <div className="flex items-center gap-0.5 py-1">
-                    <p className="text-xs opacity-50">
-                      {message.files[0] ? message.files[0].name : `${message.files.length} files`}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-4 rounded-sm"
-                      onClick={() => setIsImageOpen(!isImageOpen)}
-                    >
-                      <ChevronDownIcon className="size-3.5 opacity-50" />
-                    </Button>
-                  </div>
-                  {isImageOpen && message.files.length > 0 && (
+        {isEditing ? (
+          <MessageEditor message={message} onClose={() => setIsEditing(false)} />
+        ) : (
+          <>
+            {message.content && (
+              <div
+                className={cn(
+                  "-my-[6px] font-normal text-sm leading-7",
+                  "[&_code]:mb-2 [&_code]:rounded-md",
+                  message.temp && "opacity-70",
+                )}
+                dangerouslySetInnerHTML={{ __html: renderMessageContent(message.content) }}
+              />
+            )}
+            {message.files && message.files.length > 0 && (
+              <div>
+                <WithState initialState={true}>
+                  {(isImageOpen, setIsImageOpen) => (
                     <>
-                      {message.files.length === 1 && <MessageFile file={message.files[0]!} />}
-                      {message.files.length > 1 && (
-                        <div className="flex flex-wrap gap-2">
-                          {message.files.map((file) => (
-                            <MessageFile key={file._id} file={file} className="h-14 w-14" />
-                          ))}
-                        </div>
+                      <div className="flex items-center gap-0.5 py-1">
+                        <p className="text-xs opacity-50">
+                          {message.files[0] ? message.files[0].name : `${message.files.length} files`}
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-4 rounded-sm"
+                          onClick={() => setIsImageOpen(!isImageOpen)}
+                        >
+                          <ChevronDownIcon className="size-3.5 opacity-50" />
+                        </Button>
+                      </div>
+                      {isImageOpen && message.files.length > 0 && (
+                        <>
+                          {message.files.length === 1 && <MessageFile file={message.files[0]!} />}
+                          {message.files.length > 1 && (
+                            <div className="flex flex-wrap gap-2">
+                              {message.files.map((file) => (
+                                <MessageFile key={file._id} file={file} className="h-14 w-14" />
+                              ))}
+                            </div>
+                          )}
+                        </>
                       )}
                     </>
                   )}
-                </>
-              )}
-            </WithState>
-          </div>
+                </WithState>
+              </div>
+            )}
+            {Object.entries(groupedReactions).length > 0 && (
+              <div className="flex items-center gap-1 pt-1">
+                {Object.entries(groupedReactions).map(([content, { count, reactions }]) => (
+                  <button
+                    type="button"
+                    disabled={!user}
+                    onClick={() => {
+                      if (!user) return
+                      const existingReaction = message.reactions.find((r) => r.content === content && r.userId === user._id)
+                      if (existingReaction) {
+                        removeReaction({ reactionId: existingReaction._id })
+                      } else {
+                        addReaction({ messageId: message._id, content })
+                      }
+                    }}
+                    key={content}
+                    className={cn(
+                      "flex h-6 items-center justify-center rounded-full border bg-background px-1 py-0.5 font-normal text-xs",
+                      reactions.some((r) => r.userId === user?._id)
+                        ? "border-blue-500 hover:bg-blue-500/10"
+                        : "hover:border-black dark:hover:border-white",
+                    )}
+                  >
+                    <span>{content}</span>
+                    <span className="min-w-4">{count}</span>
+                  </button>
+                ))}
+
+                <WithState initialState={false}>
+                  {(state, setState) => (
+                    <Popover modal open={state} onOpenChange={setState}>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex h-6 w-8 items-center justify-center rounded-full border bg-muted py-0.5 font-normal text-xs hover:border-black dark:hover:border-white"
+                        >
+                          <SmilePlusIcon className="size-3.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-full p-0" backdrop="transparent">
+                        <EmojiPicker
+                          className="h-[340px]"
+                          onEmojiSelect={({ emoji }) => {
+                            if (!user) return
+                            const existingReaction = message.reactions.find((r) => r.content === emoji && r.userId === user._id)
+                            if (existingReaction) {
+                              removeReaction({ reactionId: existingReaction._id })
+                            } else {
+                              addReaction({ messageId: message._id, content: emoji })
+                            }
+                            setState(false)
+                          }}
+                        >
+                          <EmojiPickerSearch />
+                          <EmojiPickerContent />
+                          <EmojiPickerFooter />
+                        </EmojiPicker>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </WithState>
+              </div>
+            )}
+            {/* Thread Indicator */}
+            {!isThreadMessage && "threadInfo" in message && message.threadInfo && message.threadInfo.replyCount > 0 && (
+              <ThreadIndicator threadInfo={message.threadInfo} onOpenThread={openThread} />
+            )}
+          </>
         )}
-
-        {!isEditing && Object.entries(groupedReactions).length > 0 && (
-          <div className="flex items-center gap-1 pt-1">
-            {Object.entries(groupedReactions).map(([content, { count, reactions }]) => (
-              <button
-                type="button"
-                disabled={!user}
-                onClick={() => {
-                  if (!user) return
-                  const existingReaction = message.reactions.find((r) => r.content === content && r.userId === user._id)
-                  if (existingReaction) {
-                    removeReaction({ reactionId: existingReaction._id })
-                  } else {
-                    addReaction({ messageId: message._id, content })
-                  }
-                }}
-                key={content}
-                className={cn(
-                  "flex h-6 items-center justify-center rounded-full border bg-background px-1 py-0.5 font-normal text-xs",
-                  reactions.some((r) => r.userId === user?._id)
-                    ? "border-blue-500 hover:bg-blue-500/10"
-                    : "hover:border-black dark:hover:border-white",
-                )}
-              >
-                <span>{content}</span>
-                <span className="min-w-4">{count}</span>
-              </button>
-            ))}
-
-            <WithState initialState={false}>
-              {(state, setState) => (
-                <Popover modal open={state} onOpenChange={setState}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex h-6 w-8 items-center justify-center rounded-full border bg-muted py-0.5 font-normal text-xs hover:border-black dark:hover:border-white"
-                    >
-                      <SmilePlusIcon className="size-3.5" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-full p-0" backdrop="transparent">
-                    <EmojiPicker
-                      className="h-[340px]"
-                      onEmojiSelect={({ emoji }) => {
-                        if (!user) return
-                        const existingReaction = message.reactions.find((r) => r.content === emoji && r.userId === user._id)
-                        if (existingReaction) {
-                          removeReaction({ reactionId: existingReaction._id })
-                        } else {
-                          addReaction({ messageId: message._id, content: emoji })
-                        }
-                        setState(false)
-                      }}
-                    >
-                      <EmojiPickerSearch />
-                      <EmojiPickerContent />
-                      <EmojiPickerFooter />
-                    </EmojiPicker>
-                  </PopoverContent>
-                </Popover>
-              )}
-            </WithState>
-          </div>
-        )}
-
-        {/* Thread Indicator */}
-        {!isThreadMessage &&
-          !isParentMessage &&
-          onOpenThread &&
-          "threadInfo" in message &&
-          message.threadInfo &&
-          message.threadInfo.replyCount > 0 && <ThreadIndicator threadInfo={message.threadInfo} onOpenThread={onOpenThread} />}
 
         <div
           className={cn(
-            "-top-4 absolute right-0 gap-0 rounded-lg border bg-background p-1 shadow-xs transition-opacity duration-200",
-            isMessageHovered ? "flex" : "hidden",
+            "-top-4 pointer-events-none absolute right-0 gap-0 rounded-lg border bg-background p-1 opacity-0 shadow-xs transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100",
+            // isMessageHovered ? "flex" : "hidden",
           )}
         >
           {message.author?._id === user?._id && (
-            <Button
-              size="icon"
-              className="size-8"
-              variant="ghost"
-              onClick={() => {
-                setIsEditing(true)
-                setIsMessageHovered(false)
-              }}
-            >
+            <Button size="icon" className="size-8" variant="ghost" onClick={() => setIsEditing(true)}>
               <Edit2Icon className="size-3.5" />
             </Button>
           )}
@@ -287,7 +279,7 @@ export function Message({
               <TrashIcon className="size-3.5" />
             </Button>
           )}
-          <Popover modal open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+          <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
             <PopoverTrigger asChild>
               <Button size="icon" className="size-8" variant="ghost">
                 <SmileIcon className="size-3.5" />
@@ -314,8 +306,8 @@ export function Message({
             </PopoverContent>
           </Popover>
 
-          {!isThreadMessage && !isParentMessage && onCreateThread && (
-            <Button size="icon" className="size-8" variant="ghost" onClick={() => onCreateThread(message._id)}>
+          {!isThreadMessage && (
+            <Button size="icon" className="size-8" variant="ghost" onClick={() => handleCreateThread(message._id)}>
               <MessageSquareTextIcon className="size-3.5" />
             </Button>
           )}
