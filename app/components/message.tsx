@@ -25,11 +25,11 @@ type MessageData =
 interface Props {
   message: MessageData
   isFirstMessageOfUser: boolean
-  isParentMessage?: boolean
+  isThreadParentMessage?: boolean
   isThreadMessage?: boolean
 }
 
-export function Message({ message, isFirstMessageOfUser, isParentMessage = false, isThreadMessage = false }: Props) {
+export function Message({ message, isFirstMessageOfUser, isThreadParentMessage = false, isThreadMessage = false }: Props) {
   const user = useQuery(api.auth.loggedInUser)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const createThread = useMutation(api.threads.create)
@@ -140,7 +140,10 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
   return (
     <div
       key={message._id}
-      className={cn("group flex gap-2 px-4 ", isParentMessage ? "py-4" : "py-1.5 hover:bg-muted/50 dark:hover:bg-muted/30")}
+      className={cn(
+        "group flex gap-2 px-4 ",
+        isThreadParentMessage ? "border-b bg-yellow-50 py-4" : "py-1.5 hover:bg-muted/50 dark:hover:bg-muted/30",
+      )}
     >
       <div>
         {isFirstMessageOfUser && message.author ? (
