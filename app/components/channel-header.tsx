@@ -75,9 +75,9 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
           <>
             {channel.dmUser ? (
               <div className="flex items-center gap-2">
-                <Avatar className="size-8 flex-shrink-0 rounded-lg">
+                <Avatar className="size-8 flex-shrink-0 rounded-md">
                   <AvatarImage src={channel.dmUser.image || undefined} className="object-cover" />
-                  <AvatarFallback className="size-8 rounded-lg text-black dark:text-white">
+                  <AvatarFallback className="size-8 rounded-md text-black dark:text-white">
                     {channel.dmUser.name.charAt(0)}
                   </AvatarFallback>
                 </Avatar>

@@ -74,10 +74,10 @@ export function Sidebar() {
         </div>
       </div>
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent side="left">
-          <SheetHeader>
+        <SheetContent side="left" className="gap-2">
+          <SheetHeader className="pb-2">
             <SheetTitle>Channels</SheetTitle>
-            <SheetDescription>Select a channel to view or send messages.</SheetDescription>
+            <SheetDescription className="hidden">Select a channel to view or send messages.</SheetDescription>
           </SheetHeader>
           <div className="px-4">
             <DragDropContext onDragEnd={handleDragEnd}>

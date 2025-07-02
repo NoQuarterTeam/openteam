@@ -167,7 +167,7 @@ export default function Component() {
     <div className="flex flex-1 p-2 md:p-4">
       <div
         className={cn(
-          "flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs transition-all",
+          "flex-1 flex-col overflow-hidden rounded-xl border bg-background shadow-xs transition-all",
           currentThreadId ? "mr-2 hidden md:flex" : "flex",
         )}
       >
