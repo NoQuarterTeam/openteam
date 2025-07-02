@@ -129,13 +129,14 @@ export function MessageInput({
       textAreaRef.current?.clearValue()
 
       setIsLoading(false)
-      await sendMessage({
+      setFilePreviews([])
+      setNewMessage("")
+      void sendMessage({
         channelId,
         content: newMessage.trim(),
         files: filePreviews.map(({ file, storageId }) => ({ name: file.name, storageId: storageId! })),
         threadId,
       })
-      setFilePreviews([])
     } catch {
       toast.error("Failed to send message")
     }
