@@ -11,11 +11,11 @@ export const list = query({
       .query("messages")
       .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
       .filter((q) => q.eq(q.field("threadId"), undefined))
-      .order("asc")
-      .take(100)
+      .order("desc")
+      .take(20)
 
     const messagesWithAuthorsAndThreads = await Promise.all(
-      messages.map(async (message) => {
+      messages.reverse().map(async (message) => {
         const [user, dbReactions, dbFiles, thread] = await Promise.all([
           ctx.db.get(message.authorId),
           ctx.db

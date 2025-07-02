@@ -1,6 +1,6 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query"
 import { useQuery, useQueryClient, useMutation as useTanstackMutation } from "@tanstack/react-query"
-import { useQuery as useConvexQuery, useMutation } from "convex/react"
+import { useMutation } from "convex/react"
 import { BellIcon, BellOffIcon, EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { redirect, useNavigate, useParams } from "react-router"
@@ -28,7 +28,7 @@ export default function Component() {
   const addChannel = useRecentChannels((s) => s.addChannel)
   const { currentThreadId, isOpen, closeThread } = useThreadStore()
 
-  const currentChannel = useConvexQuery(api.channels.get, { channelId: channelId! })
+  const { data: currentChannel } = useQuery(convexQuery(api.channels.get, { channelId: channelId! }))
 
   const { data: messages } = useQuery(convexQuery(api.messages.list, { channelId: channelId! }))
 
@@ -53,11 +53,14 @@ export default function Component() {
       isMounted.current ? 0 : 300,
     )
     isMounted.current = true
-    if (channelId) {
-      addChannel(channelId)
-      void markAsRead({ channelId })
-    }
-  }, [messages, isUserScrolledUp, channelId])
+  }, [messages, isUserScrolledUp])
+
+  useEffect(() => {
+    if (!channelId) return
+    closeThread()
+    addChannel(channelId)
+    void markAsRead({ channelId })
+  }, [channelId])
 
   if (currentChannel === null) return redirect("/")
   if (!currentChannel) return null
