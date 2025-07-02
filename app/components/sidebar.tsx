@@ -3,9 +3,11 @@ import { useMutation, useQuery } from "convex/react"
 import { useNavigate, useParams } from "react-router"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { useSidebar } from "@/lib/use-sidebar"
 import { cn } from "@/lib/utils"
 import { NewChannel } from "./new-channel"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "./ui/sheet"
 
 type ChannelData = NonNullable<typeof api.channels.list._returnType>[number]
 
@@ -48,9 +50,12 @@ export function Sidebar() {
     void updateChannelOrder({ channelOrders })
   }
 
+  const isOpen = useSidebar((s) => s.isOpen)
+  const setIsOpen = useSidebar((s) => s.setIsOpen)
+
   return (
-    <div className="w-50 shrink-0 p-4 pr-0">
-      <div className="flex h-full flex-1 flex-col justify-between rounded-xl">
+    <div className="hidden shrink-0 md:block md:w-50">
+      <div className="flex h-full flex-1 flex-col justify-between rounded-xl p-4 pr-0">
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="channels">
             {(provided) => (
@@ -68,6 +73,31 @@ export function Sidebar() {
           <NewChannel />
         </div>
       </div>
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <SheetContent side="left">
+          <SheetHeader>
+            <SheetTitle>Channels</SheetTitle>
+            <SheetDescription>Select a channel to view or send messages.</SheetDescription>
+          </SheetHeader>
+          <div className="px-4">
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="channels">
+                {(provided) => (
+                  <div className="flex-1 flex-col overflow-y-auto" {...provided.droppableProps} ref={provided.innerRef}>
+                    {channels?.map((channel, index) => (
+                      <ChannelItem key={channel._id} channel={channel} index={index} isActive={channelId === channel._id} />
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
+          </div>
+          <SheetFooter>
+            <NewChannel />
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

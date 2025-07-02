@@ -1,6 +1,8 @@
 import { useQuery } from "convex/react"
+import { MenuIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { api } from "@/convex/_generated/api"
+import { useSidebar } from "@/lib/use-sidebar"
 import { Babble } from "./babble"
 import { CommandCenter } from "./command-center"
 import { ProfileModal } from "./profile-modal"
@@ -13,9 +15,14 @@ export function Nav() {
   const user = useQuery(api.auth.loggedInUser)
   const displayName = user?.name || user?.email
 
+  const toggle = useSidebar((s) => s.toggle)
   return (
-    <header className="flex h-12 items-center justify-between gap-4 border-b bg-background px-4">
-      <div className="flex items-center gap-2 ">
+    <header className="flex h-12 items-center justify-between gap-4 border-b bg-background px-2 md:px-4">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={toggle} className="flex rounded md:hidden">
+          <MenuIcon className="size-4" />
+        </Button>
+
         <h1 className="font-bold text-xl">OpenTeam</h1>
       </div>
       <div className="w-full max-w-2xl">

@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react"
 import { Outlet, useNavigate, useParams } from "react-router"
 import { Nav } from "@/components/nav"
 import { Sidebar } from "@/components/sidebar"
+
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useNotifications } from "@/lib/notifications"

@@ -152,7 +152,8 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
                   "[&_h6]:font-semibold [&_h6]:text-xs",
                   "[&_ul]:m-0 [&_ul]:list-disc [&_ul]:pl-4",
                   "[&_ol]:m-0 [&_ol]:list-decimal [&_ol]:pl-4",
-                  "[&_code]:!py-2 [&_code]:!px-3 [&_code]:my-1 [&_code]:block [&_code]:rounded-md [&_code]:border [&_code]:bg-muted [&_code]:font-mono",
+                  "[&_pre]:!inline-grid [&_pre]:w-full [&_pre]:py-1",
+                  "[&_code]:!py-2 [&_code]:!px-3[&_code]:my-1 [&_code]:block [&_code]:rounded-md [&_code]:border [&_code]:bg-muted [&_code]:font-mono",
                   "[&_blockquote]:border-muted-foreground/20 [&_blockquote]:border-l-4 [&_blockquote]:pl-2",
                   message.optimisticStatus === "created" && "opacity-70",
                 )}

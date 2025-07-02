@@ -160,7 +160,7 @@ export default function Component() {
   const lastMessageOfUser = messages.findLast((message) => message.authorId === user?._id)
 
   return (
-    <div className="flex flex-1 p-4">
+    <div className="flex flex-1 p-2 md:p-4">
       <div
         className={cn(
           "flex flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs transition-all",

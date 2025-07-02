@@ -63,11 +63,11 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
       <div className="flex items-center gap-1">
         {isEditing ? (
           <form onSubmit={handleSaveChannel} className={cn("flex items-center gap-1", isEditing ? "flex" : "hidden")}>
-            <Input name="name" ref={inputRef} defaultValue={channel.name || ""} />
-            <Button type="submit" className="w-20">
+            <Input name="name" ref={inputRef} defaultValue={channel.name || ""} className="h-9" />
+            <Button type="submit" className="h-9 md:w-20">
               Save
             </Button>
-            <Button type="button" variant="outline" className="w-20" onClick={() => setIsEditing(false)}>
+            <Button type="button" variant="outline" className="h-9 md:w-20" onClick={() => setIsEditing(false)}>
               Cancel
             </Button>
           </form>
@@ -94,8 +94,13 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
             {channel.isMuted && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={() => void toggleMute({ channelId: channel._id })}>
-                    <BellOffIcon className="size-4" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6 md:size-8"
+                    onClick={() => void toggleMute({ channelId: channel._id })}
+                  >
+                    <BellOffIcon className="size-4 md:size-6" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Muted</TooltipContent>
@@ -108,7 +113,7 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
       {!channel.dmUser && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={!!channel?.archivedTime}>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="size-7 md:size-8">
               <EllipsisVerticalIcon />
             </Button>
           </DropdownMenuTrigger>
