@@ -207,7 +207,7 @@ export default function Component() {
           </div>
           <div ref={topSentinelRef} className="h-1" />
 
-          <div className="min-h-[500px]">
+          <div className="min-h-[200px]">
             {status === "LoadingFirstPage"
               ? null
               : Object.entries(groupedMessages).map(([date, messages], i) => {

@@ -147,7 +147,7 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
               </div>
             ) : null}
             <div ref={topSentinelRef} className="h-1" />
-            <div className="min-h-[500px]">
+            <div className="min-h-[200px]">
               {status === "LoadingFirstPage"
                 ? null
                 : messages?.map((message, index) => {
