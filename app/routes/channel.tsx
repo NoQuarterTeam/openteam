@@ -24,6 +24,22 @@ export default function Component() {
   const [searchParams, setSearchParams] = useSearchParams()
   const currentThreadId = searchParams.get("threadId") as Id<"threads"> | null
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault()
+        setSearchParams((searchParams) => {
+          searchParams.delete("threadId")
+          return searchParams
+        })
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [])
+
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const topSentinelRef = useRef<HTMLDivElement>(null)
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
