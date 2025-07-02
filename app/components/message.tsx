@@ -9,6 +9,7 @@ import type { Id } from "@/convex/_generated/dataModel"
 import type { OptimisticStatus } from "@/convex/optimistic"
 import { renderMessageContent } from "@/lib/marked"
 import { useEditMessage } from "@/lib/use-edit-message"
+import { useIsMobile } from "@/lib/use-mobile"
 import { cn } from "@/lib/utils"
 import { ExpandableTextarea } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
@@ -31,7 +32,9 @@ interface Props {
 
 export function Message({ message, isFirstMessageOfUser, isThreadParentMessage = false, isThreadMessage = false }: Props) {
   const user = useQuery(api.auth.loggedInUser)
+  const isMobile = useIsMobile()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+  const [isToolbarVisible, setIsToolbarVisible] = useState(false)
   const createThread = useMutation(api.threads.create)
   const [_, setSearchParams] = useSearchParams()
 
@@ -49,6 +52,24 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
 
   const editMessageId = useEditMessage((s) => s.messageId)
   const setEditMessageId = useEditMessage((s) => s.setMessageId)
+
+  // Handle toolbar visibility for mobile
+  const handleMessageClick = () => {
+    if (isMobile) {
+      setIsToolbarVisible(!isToolbarVisible)
+    }
+  }
+  const handleClickOutside = () => {
+    setIsToolbarVisible(false)
+  }
+
+  // Hide toolbar when clicking outside on mobile
+  useEffect(() => {
+    if (!isMobile || !isToolbarVisible) return
+
+    document.addEventListener("click", handleClickOutside)
+    return () => document.removeEventListener("click", handleClickOutside)
+  }, [isMobile, isToolbarVisible])
 
   const addReaction = useMutation(api.reactions.add).withOptimisticUpdate((localStore, args) => {
     if (!user) return
@@ -72,6 +93,7 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
       return currentValue
     })
   })
+
   const removeReaction = useMutation(api.reactions.remove).withOptimisticUpdate((localStore, args) => {
     optimisticallyUpdateValueInPaginatedQuery(localStore, api.messages.list, { channelId: message.channelId }, (currentValue) => {
       if (message._id === currentValue._id) {
@@ -113,6 +135,7 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
           : "py-1.5 hover:bg-muted/50 dark:hover:bg-muted/30",
         message.optimisticStatus === "deleted" && "opacity-0",
       )}
+      onClick={isMobile ? handleMessageClick : undefined}
     >
       <div>
         {isFirstMessageOfUser && message.author ? (
@@ -277,9 +300,16 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
 
         <div
           className={cn(
-            "-top-4 pointer-events-none absolute right-0 flex items-center gap-0 rounded-lg border bg-background p-1 opacity-0 shadow-xs transition-opacity duration-200",
-            editMessageId === message._id ? "" : "group-hover:pointer-events-auto group-hover:opacity-100",
+            "-top-4 absolute right-0 flex items-center gap-0 rounded-lg border bg-background p-1 shadow-xs transition-opacity duration-200",
+            editMessageId === message._id
+              ? "pointer-events-none opacity-0"
+              : isMobile
+                ? isToolbarVisible
+                  ? "pointer-events-auto opacity-100"
+                  : "pointer-events-none opacity-0"
+                : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
           )}
+          onClick={(e) => e.stopPropagation()}
         >
           {message.author?._id === user?._id && (
             <>
