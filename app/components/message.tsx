@@ -6,10 +6,10 @@ import { ChevronDownIcon, Edit2Icon, MessageSquareTextIcon, SmileIcon, SmilePlus
 import { Marked } from "marked"
 import { markedHighlight } from "marked-highlight"
 import { useEffect, useState } from "react"
+import { useSearchParams } from "react-router"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { useThreadStore } from "@/lib/use-thread-store"
 import { cn } from "@/lib/utils"
 import { ExpandableTextarea } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
@@ -33,12 +33,15 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const createThread = useMutation(api.threads.create)
-  const openThread = useThreadStore((s) => s.openThread)
+  const [_, setSearchParams] = useSearchParams()
 
   const handleCreateThread = async (messageId: Id<"messages">) => {
     try {
       const threadId = await createThread({ parentMessageId: messageId })
-      openThread(threadId)
+      setSearchParams((searchParams) => {
+        searchParams.set("threadId", threadId)
+        return searchParams
+      })
     } catch (error) {
       console.error("Failed to create thread:", error)
     }
@@ -258,7 +261,15 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
             )}
             {/* Thread Indicator */}
             {!isThreadMessage && "threadInfo" in message && message.threadInfo && message.threadInfo.replyCount > 0 && (
-              <ThreadIndicator threadInfo={message.threadInfo} onOpenThread={openThread} />
+              <ThreadIndicator
+                threadInfo={message.threadInfo}
+                onOpenThread={() =>
+                  setSearchParams((searchParams) => {
+                    searchParams.set("threadId", message.threadInfo!.threadId)
+                    return searchParams
+                  })
+                }
+              />
             )}
           </>
         )}

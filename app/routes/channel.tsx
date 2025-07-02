@@ -2,8 +2,8 @@ import { convexQuery, useConvexMutation } from "@convex-dev/react-query"
 import { useQuery, useQueryClient, useMutation as useTanstackMutation } from "@tanstack/react-query"
 import { useMutation } from "convex/react"
 import { BellIcon, BellOffIcon, EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
-import { redirect, useNavigate, useParams } from "react-router"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { redirect, useNavigate, useParams, useSearchParams } from "react-router"
 import { toast } from "sonner"
 import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
@@ -16,21 +16,27 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useRecentChannels } from "@/lib/use-recent-channels"
-import { useThreadStore } from "@/lib/use-thread-store"
 import { cn } from "@/lib/utils"
 
 export default function Component() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
-
+  const [searchParams, setSearchParams] = useSearchParams()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const [isUserScrolledUp, setIsUserScrolledUp] = useState(false)
   const addChannel = useRecentChannels((s) => s.addChannel)
-  const { currentThreadId, isOpen, closeThread } = useThreadStore()
+  const currentThreadId = searchParams.get("threadId") as Id<"threads"> | null
 
   const { data: currentChannel } = useQuery(convexQuery(api.channels.get, { channelId: channelId! }))
 
   const { data: messages } = useQuery(convexQuery(api.messages.list, { channelId: channelId! }))
+
+  const handleCloseThread = useCallback(() => {
+    setSearchParams((searchParams) => {
+      searchParams.delete("threadId")
+      return searchParams
+    })
+  }, [])
 
   const handleScroll = () => {
     if (!messagesContainerRef.current) return
@@ -57,7 +63,6 @@ export default function Component() {
 
   useEffect(() => {
     if (!channelId) return
-    closeThread()
     addChannel(channelId)
     void markAsRead({ channelId })
   }, [channelId])
@@ -69,7 +74,7 @@ export default function Component() {
       <div
         className={cn(
           "flex flex-1 flex-col overflow-hidden rounded-lg border bg-background shadow-xs transition-all",
-          isOpen ? "mr-2" : "",
+          currentThreadId ? "mr-2" : "",
         )}
       >
         <ChannelHeader key={currentChannel._id} channel={currentChannel} />
@@ -92,9 +97,9 @@ export default function Component() {
         <MessageInput channelId={channelId!} isDisabled={!!currentChannel.archivedTime} />
       </div>
 
-      {isOpen && currentThreadId && (
+      {!!currentThreadId && (
         <div className="w-96 flex-shrink-0">
-          <ThreadSidebar threadId={currentThreadId} onClose={closeThread} />
+          <ThreadSidebar threadId={currentThreadId} onClose={handleCloseThread} />
         </div>
       )}
     </div>

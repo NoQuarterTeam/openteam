@@ -89,7 +89,9 @@ interface ChannelItemProps {
 function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const onChannelClick = () => navigate(`/${channel._id}`)
+
+  const onChannelClick = () => navigate(`/${channel._id}?`)
+
   const onMouseEnter = () => {
     queryClient.fetchQuery(convexQuery(api.channels.get, { channelId: channel._id }))
   }
