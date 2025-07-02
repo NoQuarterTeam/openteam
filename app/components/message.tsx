@@ -9,6 +9,7 @@ import { useEffect, useState } from "react"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { useThreadStore } from "@/lib/use-thread-store"
 import { cn } from "@/lib/utils"
 import { ExpandableTextarea } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
@@ -17,8 +18,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { WithState } from "./with-state"
-import "highlight.js/styles/github.css"
-import { useThreadStore } from "@/lib/use-thread-store"
 
 type MessageData = (typeof api.messages.list._returnType)[number] | (typeof api.threads.listMessages._returnType)[number]
 
@@ -143,7 +142,17 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
               <div
                 className={cn(
                   "-my-[6px] font-normal text-sm leading-7",
-                  "[&_code]:rounded-md [&_pre]:py-1.5",
+                  "[&_a]:text-blue-500 [&_a]:underline hover:[&_a]:text-blue-600",
+                  "[&_h1]:font-semibold [&_h1]:text-xl [&_h1]:leading-10",
+                  "[&_h2]:font-semibold [&_h2]:text-lg [&_h2]:leading-10",
+                  "[&_h3]:font-semibold [&_h3]:text-base",
+                  "[&_h4]:font-semibold [&_h4]:text-sm",
+                  "[&_h5]:font-semibold [&_h5]:text-xs",
+                  "[&_h6]:font-semibold [&_h6]:text-xs",
+                  "[&_ul]:m-0 [&_ul]:list-disc [&_ul]:pl-4",
+                  "[&_ol]:m-0 [&_ol]:list-decimal [&_ol]:pl-4",
+                  "[&_code]:!py-2 [&_code]:!px-3 [&_code]:my-1 [&_code]:block [&_code]:rounded-md [&_code]:border [&_code]:bg-muted [&_code]:font-mono",
+                  "[&_blockquote]:border-muted-foreground/20 [&_blockquote]:border-l-4 [&_blockquote]:pl-2",
                   message.temp && "opacity-70",
                 )}
                 dangerouslySetInnerHTML={{ __html: renderMessageContent(message.content) }}
@@ -413,7 +422,6 @@ function MessageEditor({ message, onClose }: { message: MessageData; onClose: ()
 }
 const marked = new Marked(
   markedHighlight({
-    async: false,
     emptyLangClass: "hljs",
     langPrefix: "hljs language-",
     highlight(code, lang) {
@@ -424,7 +432,7 @@ const marked = new Marked(
 )
 
 function renderMessageContent(content: string) {
-  const rawHtml = marked.parse(content, { async: false, breaks: false, gfm: true })
+  const rawHtml = marked.parse(content, { async: false, breaks: true, gfm: true })
   const cleanHtml = DOMPurify.sanitize(rawHtml)
   return cleanHtml
 }

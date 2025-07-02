@@ -10,9 +10,10 @@ export type ExpandableTextareaRef = {
 
 export function ExpandableTextarea({
   ref,
+  defaultValue,
   ...props
 }: Omit<React.ComponentProps<typeof Textarea>, "ref"> & { ref?: React.RefObject<ExpandableTextareaRef> }) {
-  const [input, setInput] = React.useState(props.defaultValue || "")
+  const [input, setInput] = React.useState(defaultValue || "")
 
   const textAreaRef = React.useRef<HTMLTextAreaElement>(null)
 
