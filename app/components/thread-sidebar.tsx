@@ -1,5 +1,6 @@
 import { convexQuery } from "@convex-dev/react-query"
 import { useQuery } from "@tanstack/react-query"
+import { useQuery as useConvexQuery } from "convex/react"
 import { XIcon } from "lucide-react"
 import { Message } from "@/components/message"
 import { Button } from "@/components/ui/button"
@@ -16,6 +17,9 @@ interface ThreadSidebarProps {
 export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
   const { data: threadData } = useQuery(convexQuery(api.threads.get, { threadId }))
   const { data: messages } = useQuery(convexQuery(api.threads.listMessages, { threadId }))
+
+  const user = useConvexQuery(api.auth.loggedInUser)
+  const lastMessageOfUser = messages?.findLast((message) => message.authorId === user?._id)
 
   return (
     <div className="flex h-full w-96 flex-col rounded-lg border bg-background">
@@ -47,7 +51,12 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
             </div>
           </div>
 
-          <MessageInput channelId={threadData.thread.channelId} threadId={threadId} isDisabled={false} />
+          <MessageInput
+            channelId={threadData.thread.channelId}
+            threadId={threadId}
+            isDisabled={false}
+            lastMessageIdOfUser={lastMessageOfUser?._id}
+          />
         </>
       )}
     </div>

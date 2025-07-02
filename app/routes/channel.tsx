@@ -1,6 +1,6 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query"
 import { useQuery, useQueryClient, useMutation as useTanstackMutation } from "@tanstack/react-query"
-import { useMutation } from "convex/react"
+import { useQuery as useConvexQuery, useMutation } from "convex/react"
 import { BellIcon, BellOffIcon, EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { redirect, useNavigate, useParams, useSearchParams } from "react-router"
@@ -27,8 +27,9 @@ export default function Component() {
   const addChannel = useRecentChannels((s) => s.addChannel)
   const currentThreadId = searchParams.get("threadId") as Id<"threads"> | null
 
-  const { data: currentChannel } = useQuery(convexQuery(api.channels.get, { channelId: channelId! }))
+  const user = useConvexQuery(api.auth.loggedInUser)
 
+  const { data: currentChannel } = useQuery(convexQuery(api.channels.get, { channelId: channelId! }))
   const { data: messages } = useQuery(convexQuery(api.messages.list, { channelId: channelId! }))
 
   const handleCloseThread = useCallback(() => {
@@ -69,6 +70,9 @@ export default function Component() {
 
   if (currentChannel === null) return redirect("/")
   if (!currentChannel) return null
+
+  const lastMessageOfUser = messages?.findLast((message) => message.authorId === user?._id)
+
   return (
     <div className="flex flex-1 p-4">
       <div
@@ -88,13 +92,18 @@ export default function Component() {
                 (!!messages[index - 1] &&
                   new Date(message._creationTime).getTime() - new Date(messages[index - 1]!._creationTime).getTime() >
                     10 * 60 * 1000)
+
               return <Message key={message._id} message={message} isFirstMessageOfUser={isFirstMessageOfUser} />
             })}
           </div>
           <div ref={messagesEndRef} />
         </div>
 
-        <MessageInput channelId={channelId!} isDisabled={!!currentChannel.archivedTime} />
+        <MessageInput
+          channelId={channelId!}
+          isDisabled={!!currentChannel.archivedTime}
+          lastMessageIdOfUser={lastMessageOfUser?._id}
+        />
       </div>
 
       {!!currentThreadId && (

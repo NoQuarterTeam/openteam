@@ -10,6 +10,7 @@ import { useSearchParams } from "react-router"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { useEditMessage } from "@/lib/use-edit-message"
 import { cn } from "@/lib/utils"
 import { ExpandableTextarea } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
@@ -31,7 +32,6 @@ interface Props {
 export function Message({ message, isFirstMessageOfUser, isParentMessage = false, isThreadMessage = false }: Props) {
   const user = useQuery(api.auth.loggedInUser)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
   const createThread = useMutation(api.threads.create)
   const [_, setSearchParams] = useSearchParams()
 
@@ -46,6 +46,9 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
       console.error("Failed to create thread:", error)
     }
   }
+
+  const editMessageId = useEditMessage((s) => s.messageId)
+  const setEditMessageId = useEditMessage((s) => s.setMessageId)
 
   const addReaction = useMutation(api.reactions.add).withOptimisticUpdate((localStore, args) => {
     if (!user) return
@@ -137,8 +140,8 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
             {dayjs(message._creationTime).format("HH:mm")}
           </p>
         )}
-        {isEditing ? (
-          <MessageEditor message={message} onClose={() => setIsEditing(false)} />
+        {editMessageId === message._id ? (
+          <MessageEditor message={message} onClose={() => setEditMessageId(null)} />
         ) : (
           <>
             {message.content && (
@@ -281,7 +284,7 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
           )}
         >
           {message.author?._id === user?._id && (
-            <Button size="icon" className="size-8" variant="ghost" onClick={() => setIsEditing(true)}>
+            <Button size="icon" className="size-8" variant="ghost" onClick={() => setEditMessageId(message._id)}>
               <Edit2Icon className="size-3.5" />
             </Button>
           )}
