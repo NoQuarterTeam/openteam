@@ -7,6 +7,7 @@ import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch }
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { renderMessageContent } from "@/lib/marked"
+import { DEFAULT_PAGINATION_NUM_ITEMS } from "@/lib/pagination"
 import { useEditMessage } from "@/lib/use-edit-message"
 import { cn } from "@/lib/utils"
 import { ExpandableTextarea } from "./expandable-textarea"
@@ -63,14 +64,14 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
     // Update paginated query
     const paginatedValue = localStore.getQuery(api.messages.list, {
       channelId: message.channelId,
-      paginationOpts: { numItems: 50, cursor: null },
+      paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
     })
     if (paginatedValue) {
       localStore.setQuery(
         api.messages.list,
         {
           channelId: message.channelId,
-          paginationOpts: { numItems: 50, cursor: null },
+          paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
         },
         {
           ...paginatedValue,
@@ -85,14 +86,14 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
     // Update paginated query
     const paginatedValue = localStore.getQuery(api.messages.list, {
       channelId: message.channelId,
-      paginationOpts: { numItems: 50, cursor: null },
+      paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
     })
     if (paginatedValue) {
       localStore.setQuery(
         api.messages.list,
         {
           channelId: message.channelId,
-          paginationOpts: { numItems: 50, cursor: null },
+          paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
         },
         {
           ...paginatedValue,
@@ -119,14 +120,14 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
     // Update paginated query
     const paginatedValue = localStore.getQuery(api.messages.list, {
       channelId: message.channelId,
-      paginationOpts: { numItems: 50, cursor: null },
+      paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
     })
     if (paginatedValue) {
       localStore.setQuery(
         api.messages.list,
         {
           channelId: message.channelId,
-          paginationOpts: { numItems: 50, cursor: null },
+          paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
         },
         {
           ...paginatedValue,
@@ -157,7 +158,7 @@ export function Message({ message, isFirstMessageOfUser, isParentMessage = false
         {isFirstMessageOfUser ? (
           <div className="flex gap-2 pb-1.5">
             <span className="font-semibold text-sm leading-4">{message.author?.name || "Unknown"}</span>
-            <span className="text-xs leading-4 opacity-50">{dayjs(message._creationTime).format("HH:mm")}</span>
+            <span className="text-xs leading-4 opacity-50">{dayjs(message._creationTime).format("DD/MM HH:mm")}</span>
           </div>
         ) : (
           <p className="-left-10 absolute top-0 hidden text-xs opacity-50 group-hover:block">
@@ -411,12 +412,12 @@ function MessageEditor({ message, onClose }: { message: MessageData; onClose: ()
       // Update channel messages (paginated query)
       const paginatedValue = localStore.getQuery(api.messages.list, {
         channelId: message.channelId,
-        paginationOpts: { numItems: 50, cursor: null },
+        paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null },
       })
       if (paginatedValue) {
         localStore.setQuery(
           api.messages.list,
-          { channelId: message.channelId, paginationOpts: { numItems: 50, cursor: null } },
+          { channelId: message.channelId, paginationOpts: { numItems: DEFAULT_PAGINATION_NUM_ITEMS, cursor: null } },
           {
             ...paginatedValue,
             page: paginatedValue.page.map((m) => (m._id === message._id ? { ...m, content: args.content } : m)),

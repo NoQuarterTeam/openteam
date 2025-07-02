@@ -19,7 +19,7 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
   // Use paginated query for thread messages
   const { results } = usePaginatedQuery(api.threads.listMessages, { threadId }, { initialNumItems: DEFAULT_PAGINATION_NUM_ITEMS })
 
-  const messages = results || []
+  const messages = [...results].reverse()
 
   const user = useConvexQuery(api.auth.loggedInUser)
   const lastMessageOfUser = messages?.findLast((message) => message.authorId === user?._id)
@@ -39,7 +39,7 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
 
       {threadData && (
         <>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto overscroll-none">
             <Message message={threadData.parentMessage} isFirstMessageOfUser isParentMessage isThreadMessage />
             <div>
               {messages?.map((message, index) => {

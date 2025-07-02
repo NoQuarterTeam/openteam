@@ -100,7 +100,7 @@ export const listMessages = query({
     const result = await ctx.db
       .query("messages")
       .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
-      .order("asc")
+      .order("desc")
       .paginate(args.paginationOpts)
 
     const messagesWithAuthorsAndFiles = await Promise.all(

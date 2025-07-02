@@ -13,7 +13,7 @@ export const list = query({
       .query("messages")
       .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
       .filter((q) => q.eq(q.field("threadId"), undefined))
-      .order("desc") // Newest first for flex-col-reverse
+      .order("desc")
       .paginate(args.paginationOpts)
 
     const messagesWithAuthorsAndThreads = await Promise.all(

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "convex/react"
+import { insertAtPosition, useMutation, useQuery } from "convex/react"
 import { ArrowRightIcon, PlusIcon, XIcon } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useDropzone } from "react-dropzone"
@@ -38,102 +38,77 @@ export function MessageInput({
     // For thread messages, update both thread queries
     if (args.threadId) {
       const messageId = crypto.randomUUID() as Id<"messages">
-      const optimisticThreadMessage = {
-        _id: messageId,
-        authorId: user._id,
-        content,
-        author: user,
-        channelId,
-        threadId: args.threadId,
-        _creationTime: Date.now(),
-        temp: true,
-        reactions: [],
-        files:
-          args.files?.map(({ name, storageId }: { name: string; storageId: Id<"_storage"> }, i: number) => ({
-            _id: crypto.randomUUID() as Id<"files">,
-            name,
-            _creationTime: Date.now(),
-            messageId,
-            url: filePreviews[i]?.url || null,
-            metadata: {
-              _id: crypto.randomUUID() as Id<"_storage">,
+      insertAtPosition({
+        paginatedQuery: api.threads.listMessages,
+        argsToMatch: { threadId: args.threadId },
+        sortOrder: "desc",
+        sortKeyFromItem: (item) => item._creationTime,
+        localQueryStore: localStore,
+        item: {
+          _id: messageId,
+          authorId: user._id,
+          content,
+          author: user,
+          channelId,
+          threadId: args.threadId,
+          _creationTime: Date.now(),
+          temp: true,
+          reactions: [],
+          files:
+            args.files?.map(({ name, storageId }: { name: string; storageId: Id<"_storage"> }, i: number) => ({
+              _id: crypto.randomUUID() as Id<"files">,
+              name,
               _creationTime: Date.now(),
-              contentType: filePreviews[i]?.file.type || "application/octet-stream",
-              sha256: "",
-              size: filePreviews[i]?.file.size || 10,
-            },
-            storageId,
-          })) || [],
-      }
-
-      // Update paginated thread query
-      const paginatedThreadValue = localStore.getQuery(api.threads.listMessages, {
-        threadId: args.threadId,
-        paginationOpts: { numItems: 100, cursor: null },
+              messageId,
+              url: filePreviews[i]?.url || null,
+              metadata: {
+                _id: crypto.randomUUID() as Id<"_storage">,
+                _creationTime: Date.now(),
+                contentType: filePreviews[i]?.file.type || "application/octet-stream",
+                sha256: "",
+                size: filePreviews[i]?.file.size || 10,
+              },
+              storageId,
+            })) || [],
+        },
       })
-      if (paginatedThreadValue) {
-        localStore.setQuery(
-          api.threads.listMessages,
-          {
-            threadId: args.threadId,
-            paginationOpts: { numItems: 100, cursor: null },
-          },
-          {
-            ...paginatedThreadValue,
-            page: [...paginatedThreadValue.page, optimisticThreadMessage],
-          },
-        )
-      }
     } else {
-      // For regular channel messages - update both paginated and legacy queries
-      const paginatedValue = localStore.getQuery(api.messages.list, {
-        channelId,
-        paginationOpts: { numItems: 50, cursor: null },
-      })
-
       const messageId = crypto.randomUUID() as Id<"messages">
-      const optimisticMessage = {
-        _id: messageId,
-        authorId: user._id,
-        content,
-        author: user,
-        channelId,
-        _creationTime: Date.now(),
-        temp: true,
-        reactions: [],
-        threadInfo: null,
-        files:
-          args.files?.map(({ name, storageId }: { name: string; storageId: Id<"_storage"> }, i: number) => ({
-            _id: crypto.randomUUID() as Id<"files">,
-            name,
-            _creationTime: Date.now(),
-            messageId,
-            url: filePreviews[i]?.url || null,
-            metadata: {
-              _id: crypto.randomUUID() as Id<"_storage">,
-              _creationTime: Date.now(),
-              contentType: filePreviews[i]?.file.type || "image/png",
-              sha256: "",
-              size: filePreviews[i]?.file.size || 10,
-            },
-            storageId,
-          })) || [],
-      }
 
-      // Update paginated query if it exists
-      if (paginatedValue) {
-        localStore.setQuery(
-          api.messages.list,
-          {
-            channelId,
-            paginationOpts: { numItems: 50, cursor: null },
-          },
-          {
-            ...paginatedValue,
-            page: [optimisticMessage as any, ...paginatedValue.page],
-          },
-        )
-      }
+      insertAtPosition({
+        paginatedQuery: api.messages.list,
+        argsToMatch: { channelId },
+        sortOrder: "desc",
+        sortKeyFromItem: (item) => item._creationTime,
+        localQueryStore: localStore,
+        item: {
+          _id: messageId,
+          authorId: user._id,
+          content,
+          author: user,
+          channelId,
+          _creationTime: Date.now(),
+          temp: true,
+          reactions: [],
+          threadInfo: null,
+          files:
+            args.files?.map(({ name, storageId }: { name: string; storageId: Id<"_storage"> }, i: number) => ({
+              _id: crypto.randomUUID() as Id<"files">,
+              name,
+              _creationTime: Date.now(),
+              messageId,
+              url: filePreviews[i]?.url || null,
+              metadata: {
+                _id: crypto.randomUUID() as Id<"_storage">,
+                _creationTime: Date.now(),
+                contentType: filePreviews[i]?.file.type || "image/png",
+                sha256: "",
+                size: filePreviews[i]?.file.size || 10,
+              },
+              storageId,
+            })) || [],
+        },
+      })
     }
   })
 
