@@ -9,7 +9,6 @@ import { ChannelHeader } from "@/components/channel-header"
 import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
 import { ThreadSidebar } from "@/components/thread-sidebar"
-import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -103,6 +102,33 @@ export default function Component() {
     }
   }, [channelId])
 
+  // Set up intersection observer for automatic loading
+  useEffect(() => {
+    if (!topSentinelRef.current || status !== "CanLoadMore") return
+
+    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+      const entry = entries[0]
+      if (entry?.isIntersecting && !isLoadingMoreRef.current) {
+        const container = messagesContainerRef.current
+        if (!container) return
+        scrollAnchorRef.current = { scrollHeight: container.scrollHeight, scrollTop: container.scrollTop }
+        isLoadingMoreRef.current = true
+        loadMore(DEFAULT_PAGINATION_NUM_ITEMS)
+      }
+    }
+
+    const observer = new IntersectionObserver(handleIntersection, {
+      threshold: 0,
+      rootMargin: "100px 0px 0px 0px",
+    })
+
+    observer.observe(topSentinelRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [status])
+
   // Handle scroll position during pagination (loading older messages)
   useEffect(() => {
     if (!isLoadingMoreRef.current || !scrollAnchorRef.current || !messagesContainerRef.current) return
@@ -114,7 +140,7 @@ export default function Component() {
       const { scrollHeight: prevScrollHeight, scrollTop: prevScrollTop } = scrollAnchorRef.current
       const newScrollHeight = messagesContainerRef.current.scrollHeight
 
-      messagesContainerRef.current.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop
+      messagesContainerRef.current.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop - 50
 
       // Clean up
       scrollAnchorRef.current = null
@@ -187,21 +213,7 @@ export default function Component() {
                 <Spinner className="size-4" />
               </div>
             ) : status === "CanLoadMore" ? (
-              <div className="flex h-12 justify-center">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const container = messagesContainerRef.current
-                    if (!container) return
-                    scrollAnchorRef.current = { scrollHeight: container.scrollHeight, scrollTop: container.scrollTop }
-                    isLoadingMoreRef.current = true
-                    loadMore(DEFAULT_PAGINATION_NUM_ITEMS)
-                  }}
-                >
-                  Load more
-                </Button>
-              </div>
+              <div ref={topSentinelRef} className="h-1" />
             ) : status === "LoadingFirstPage" ? null : (
               <div className="pb-4 pl-4">
                 <h1 className="font-bold text-3xl">{displayName}</h1>
@@ -212,7 +224,6 @@ export default function Component() {
               </div>
             )}
           </div>
-          <div ref={topSentinelRef} className="h-1" />
 
           <div>
             {status === "LoadingFirstPage"
