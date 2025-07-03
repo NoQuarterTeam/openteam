@@ -216,7 +216,7 @@ export function MessageInput({
             ))}
           </div>
         )}
-        <div className="flex flex-row items-end gap-2 p-2 md:p-4">
+        <div className="flex flex-row items-end gap-2 p-4">
           <div {...getRootProps()}>
             <input {...getInputProps()} />
             <Button variant="secondary" size="icon">

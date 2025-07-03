@@ -107,9 +107,9 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
   }, [messages.length, status])
 
   return (
-    <div className="flex h-full w-full flex-col rounded-lg border bg-background">
+    <div className="flex h-full w-full shrink-0 flex-col overflow-hidden border bg-background shadow-xs md:w-72 md:rounded-xl lg:w-96">
       {/* Thread Header */}
-      <div className="flex items-center justify-between border-b px-4 py-2">
+      <div className="flex items-center justify-between border-b py-2 pr-2 pl-4">
         <div className="flex items-center gap-2">
           <h3 className="font-semibold">Thread</h3>
           {!threadData && <Spinner className="size-4" />}

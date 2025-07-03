@@ -167,10 +167,10 @@ export default function Component() {
   const lastMessageOfUser = messages.findLast((message) => message.authorId === user?._id)
 
   return (
-    <div className="flex flex-1 p-2 md:p-4">
+    <div className="flex h-full flex-1">
       <div
         className={cn(
-          "flex-1 flex-col overflow-hidden rounded-xl border bg-background shadow-xs transition-all",
+          "flex-1 flex-col overflow-hidden border bg-background shadow-xs transition-all md:rounded-xl",
           currentThreadId ? "mr-2 hidden md:flex" : "flex",
         )}
       >
@@ -255,11 +255,7 @@ export default function Component() {
         />
       </div>
 
-      {!!currentThreadId && (
-        <div className="w-full shrink-0 md:w-72 lg:w-96">
-          <ThreadSidebar threadId={currentThreadId} onClose={handleCloseThread} />
-        </div>
-      )}
+      {!!currentThreadId && <ThreadSidebar threadId={currentThreadId} onClose={handleCloseThread} />}
     </div>
   )
 }

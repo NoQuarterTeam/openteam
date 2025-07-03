@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { Input } from "./ui/input"
+import { SidebarTrigger } from "./ui/sidebar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 
 type ChannelData = NonNullable<typeof api.channels.get._returnType>
@@ -61,6 +62,9 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
   return (
     <div className="flex h-13 items-center justify-between gap-2 border-b px-2">
       <div className="flex items-center gap-1">
+        <div className="flex w-13 items-center justify-center overflow-hidden border-r pr-1">
+          <SidebarTrigger />
+        </div>
         {isEditing ? (
           <form onSubmit={handleSaveChannel} className={cn("flex items-center gap-1", isEditing ? "flex" : "hidden")}>
             <Input name="name" ref={inputRef} defaultValue={channel.name || ""} className="h-9" />
@@ -74,7 +78,7 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
         ) : (
           <>
             {channel.dmUser ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 pl-2">
                 <Avatar className="size-8 flex-shrink-0 rounded-md">
                   <AvatarImage src={channel.dmUser.image || undefined} className="object-cover" />
                   <AvatarFallback className="size-8 rounded-md text-black dark:text-white">

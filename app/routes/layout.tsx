@@ -1,24 +1,25 @@
 import { useQuery } from "convex/react"
 import { useEffect, useRef } from "react"
 import { Outlet, useNavigate, useParams } from "react-router"
-import { Nav } from "@/components/nav"
-import { Sidebar } from "@/components/sidebar"
-
+import { AppSidebar } from "@/components/app-sidebar"
+import { CommandCenter } from "@/components/command-center"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useNotifications } from "@/lib/notifications"
 
 export default function Component() {
   return (
-    <div className="flex h-dvh flex-col">
-      <Nav />
+    <SidebarProvider className="h-svh">
+      <AppSidebar />
 
-      <div className="flex w-full flex-1 overflow-hidden">
-        <Sidebar />
-        <NotificationHandler />
+      <SidebarInset>
         <Outlet />
-      </div>
-    </div>
+      </SidebarInset>
+
+      <NotificationHandler />
+      <CommandCenter />
+    </SidebarProvider>
   )
 }
 

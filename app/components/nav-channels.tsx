@@ -1,19 +1,15 @@
 import { convexQuery } from "@convex-dev/react-query"
-import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd"
+import { DragDropContext, Draggable, Droppable, type DropResult, type Id } from "@hello-pangea/dnd"
 import { useQueryClient } from "@tanstack/react-query"
 import { useMutation, useQuery } from "convex/react"
 import { useNavigate, useParams } from "react-router"
 import { api } from "@/convex/_generated/api"
-import type { Id } from "@/convex/_generated/dataModel"
-import { useSidebar } from "@/lib/use-sidebar"
 import { cn } from "@/lib/utils"
 import { NewChannel } from "./new-channel"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "./ui/sheet"
+import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenuBadge } from "./ui/sidebar"
 
-type ChannelData = NonNullable<typeof api.channels.list._returnType>[number]
-
-export function Sidebar() {
+export function NavChannels() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
   const channels = useQuery(api.channels.list)
   const updateChannelOrder = useMutation(api.channels.updateOrder).withOptimisticUpdate((localStore, args) => {
@@ -52,16 +48,17 @@ export function Sidebar() {
     void updateChannelOrder({ channelOrders })
   }
 
-  const isOpen = useSidebar((s) => s.isOpen)
-  const setIsOpen = useSidebar((s) => s.setIsOpen)
-
   return (
-    <div className="hidden shrink-0 md:block md:w-40 lg:w-50">
-      <div className="flex h-full flex-1 flex-col justify-between rounded-xl p-4 pr-0">
+    <SidebarGroup>
+      <div className="flex items-center justify-between">
+        <SidebarGroupLabel>Channels</SidebarGroupLabel>
+        <NewChannel />
+      </div>
+      <SidebarGroupContent>
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="channels">
             {(provided) => (
-              <div className="flex-1 flex-col overflow-y-auto" {...provided.droppableProps} ref={provided.innerRef}>
+              <div {...provided.droppableProps} ref={provided.innerRef} className="flex flex-col gap-0">
                 {channels?.map((channel, index) => (
                   <ChannelItem key={channel._id} channel={channel} index={index} isActive={channelId === channel._id} />
                 ))}
@@ -70,39 +67,12 @@ export function Sidebar() {
             )}
           </Droppable>
         </DragDropContext>
-
-        <div>
-          <NewChannel />
-        </div>
-      </div>
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent side="left" className="gap-2">
-          <SheetHeader className="pb-2">
-            <SheetTitle>Channels</SheetTitle>
-            <SheetDescription className="hidden">Select a channel to view or send messages.</SheetDescription>
-          </SheetHeader>
-          <div className="px-4">
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="channels">
-                {(provided) => (
-                  <div className="flex-1 flex-col overflow-y-auto" {...provided.droppableProps} ref={provided.innerRef}>
-                    {channels?.map((channel, index) => (
-                      <ChannelItem key={channel._id} channel={channel} index={index} isActive={channelId === channel._id} />
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
-          </div>
-          <SheetFooter>
-            <NewChannel />
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
-    </div>
+      </SidebarGroupContent>
+    </SidebarGroup>
   )
 }
+
+type ChannelData = NonNullable<typeof api.channels.list._returnType>[number]
 
 interface ChannelItemProps {
   channel: ChannelData
@@ -112,12 +82,11 @@ interface ChannelItemProps {
 
 function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
   const navigate = useNavigate()
-  const setIsOpen = useSidebar((s) => s.setIsOpen)
+
   const queryClient = useQueryClient()
 
   const onChannelClick = () => {
     navigate(`/${channel._id}`)
-    setIsOpen(false)
   }
 
   return (
@@ -126,22 +95,23 @@ function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={cn(
-            "flex h-8 w-full cursor-pointer items-center rounded-md border px-2 py-1 text-left font-normal text-sm",
-            isActive
-              ? "border-transparent bg-primary text-primary-foreground"
-              : snapshot.isDragging
-                ? "border-border bg-neutral-50 dark:bg-neutral-900/50"
-                : "border-transparent text-muted-foreground hover:bg-neutral-100 hover:dark:bg-black/80",
-          )}
+          {...provided.dragHandleProps}
           onClick={() => {
             if (!snapshot.isDragging) onChannelClick()
           }}
           onMouseEnter={() => {
             queryClient.prefetchQuery(convexQuery(api.channels.get, { channelId: channel._id }))
           }}
+          className={cn(
+            "flex h-8 w-full cursor-pointer items-center justify-between rounded-md border px-2 py-1 text-left font-normal text-sm",
+            isActive
+              ? "border-transparent bg-primary text-primary-foreground"
+              : snapshot.isDragging
+                ? "border-border bg-neutral-50 dark:bg-neutral-900"
+                : "border-transparent text-muted-foreground hover:bg-neutral-100 hover:dark:bg-black/80",
+          )}
         >
-          <div {...provided.dragHandleProps} className="flex flex-1 items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             {channel.dmUser ? (
               <>
                 <Avatar className="size-5 rounded">
@@ -158,15 +128,15 @@ function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
                 {channel.name.toLowerCase()}
               </>
             )}
-
-            {/* Unread count */}
-            {!isActive && channel.unreadCount > 0 && (
-              <div className="ml-auto rounded bg-primary/10 px-1.5 py-0.5 font-medium text-primary text-xs">
-                {channel.unreadCount}
-                {channel.unreadCount > 100 && "+"}
-              </div>
-            )}
           </div>
+
+          {/* Unread count */}
+          {!isActive && channel.unreadCount > 0 && (
+            <SidebarMenuBadge>
+              {channel.unreadCount}
+              {channel.unreadCount > 100 && "+"}
+            </SidebarMenuBadge>
+          )}
         </div>
       )}
     </Draggable>

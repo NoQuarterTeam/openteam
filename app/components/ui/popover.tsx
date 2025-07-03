@@ -25,8 +25,8 @@ function PopoverContent({
       <div className="relative">
         <div
           className={cn(
-            "fixed inset-0 animate-fade-in",
-            backdrop === "opaque" ? "bg-black/25" : backdrop === "blur" ? "bg-black/25 backdrop-blur-sm" : "",
+            "fixed inset-0 z-50 animate-fade-in",
+            backdrop === "opaque" ? "bg-black/25" : backdrop === "blur" ? "bg-black/25 backdrop-blur-xs" : "",
           )}
         />
         <PopoverPrimitive.Content

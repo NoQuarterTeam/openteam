@@ -41,21 +41,6 @@ export function CommandCenter() {
   const otherChannels = channels.filter((c) => !recentChannelIds.find((id) => id === c._id))
   return (
     <>
-      {/* <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="outline" className="h-8 w-full font-normal" onClick={() => setOpen(true)}>
-            <SearchIcon className="size-3.5" />
-            Find
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent className="!py-0 px-2.5">
-          <div className="flex items-center gap-1">
-            <kbd className="text-lg">⌘</kbd>
-            <kbd className="text-sm">K</kbd>
-          </div>
-        </TooltipContent>
-      </Tooltip> */}
-
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="Channels, people, files..." value={search} onValueChange={setSearch} />
         <CommandList className="py-2">

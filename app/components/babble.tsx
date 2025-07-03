@@ -103,8 +103,8 @@ export function Babble() {
   const handleBabbleClick = async () => {
     try {
       if (isInBabble) {
-        void leaveBabble()
         webrtcServiceRef.current?.disconnectAll()
+        await leaveBabble()
       } else {
         await joinBabble()
       }
@@ -125,77 +125,89 @@ export function Babble() {
     const down = (e: KeyboardEvent) => {
       if (e.key === "h" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
         e.preventDefault()
-        void joinBabble()
+        void handleBabbleClick()
       }
     }
     document.addEventListener("keydown", down)
     return () => document.removeEventListener("keydown", down)
   }, [])
 
+  if (!isInBabble && !isBabbling) {
+    return (
+      <Button variant="outline" onClick={handleBabbleClick}>
+        Start Babble
+        <HeadsetIcon />
+      </Button>
+    )
+  }
+
   return (
-    <div className="flex items-center gap-1">
-      {(isBabbling || (!!babblers?.length && babblers.length > 0)) && (
-        <div className="flex items-center gap-1 rounded-full border px-1 py-1">
-          <Tooltip open={babblers?.length && babblers.length < 3 ? false : undefined}>
-            <TooltipTrigger>
-              <div className="flex items-center gap-1">
-                <div className="-space-x-3 flex items-center">
-                  {babblers?.slice(0, 3).map((babbler, i) => (
-                    <Avatar key={babbler.userId} className="size-7 border border-background" style={{ zIndex: 3 - i }}>
-                      <AvatarImage src={babbler.user.image || undefined} className="object-cover" />
-                      <AvatarFallback className="size-7 text-xs">{babbler.user.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                  ))}
-                </div>
-                {babblers?.length && babblers.length > 3 && <div className="text-xs">+{babblers.length - 3}</div>}
-              </div>
+    <div className="flex items-center justify-between rounded-full border bg-background p-1.5 shadow-xs">
+      <Babblers babblers={babblers} />
+      <div className="flex items-center gap-1">
+        {isInBabble && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant={isMuted ? "warning" : "outline"} size="icon" className="rounded-full" onClick={handleMuteToggle}>
+                {isMuted ? <MicOffIcon /> : <MicIcon />}
+              </Button>
             </TooltipTrigger>
-            <TooltipContent align="start" className="py-2">
-              {babblers?.map((babbler) => (
-                <div key={babbler.userId} className="flex items-center gap-1">
-                  <Avatar className="size-5">
-                    <AvatarImage src={babbler.user.image || undefined} className="object-cover" />
-                    <AvatarFallback className="size-5 text-xs">{babbler.user.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <p className="text-sm">{babbler.user.name}</p>
-                </div>
-              ))}
+            <TooltipContent>{isMuted ? "Unmute" : "Mute"}</TooltipContent>
+          </Tooltip>
+        )}
+        {isInBabble ? (
+          <Button variant="destructive" size="icon" className="rounded-full" onClick={handleBabbleClick}>
+            <PhoneOffIcon />
+          </Button>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" className="rounded-full" onClick={handleBabbleClick}>
+                <HeadsetIcon />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="px-2.5 pt-0.5">
+              <div className="flex items-center justify-center">
+                <kbd className="px-1 py-0.5 text-base">⌘</kbd>
+                <kbd className="px-1 py-0.5 text-base">⇧</kbd>
+                <kbd className="px-1 py-0.5 text-base">H</kbd>
+              </div>
+              <p>{isConnecting ? "Connecting..." : isInBabble ? "Leave" : "Join Babble"}</p>
             </TooltipContent>
           </Tooltip>
-
-          {isInBabble && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={isMuted ? "destructive" : "outline"}
-                  size="icon"
-                  className="size-7 rounded-full"
-                  onClick={handleMuteToggle}
-                >
-                  {isMuted ? <MicOffIcon className="h-3 w-3" /> : <MicIcon className="h-3 w-3" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isMuted ? "Unmute" : "Mute"}</TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-      )}
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant={isInBabble ? "destructive" : "outline"} size="icon" onClick={handleBabbleClick}>
-            {isInBabble ? <PhoneOffIcon className="h-3 w-3" /> : <HeadsetIcon className="h-3 w-3" />}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <div className="flex items-center justify-center">
-            <kbd className="px-1 py-0.5 text-sm">⌘</kbd>
-            <kbd className="px-1 py-0.5 text-sm">⇧</kbd>
-            <kbd className="px-1 py-0.5 text-sm">H</kbd>
-          </div>
-          <p>{isConnecting ? "Connecting..." : isInBabble ? "Leave" : "Join Babble"}</p>
-        </TooltipContent>
-      </Tooltip>
+        )}
+      </div>
     </div>
+  )
+}
+
+function Babblers({ babblers }: { babblers: typeof api.babbles.getBabblers._returnType | undefined }) {
+  return (
+    <Tooltip open={babblers?.length && babblers.length < 3 ? false : undefined}>
+      <TooltipTrigger>
+        <div className="flex items-center gap-1">
+          <div className="-space-x-3 flex items-center">
+            {babblers?.slice(0, 3).map((babbler, i) => (
+              <Avatar key={babbler.userId} className="size-8 border border-background" style={{ zIndex: 3 - i }}>
+                <AvatarImage src={babbler.user.image || undefined} className="object-cover" />
+                <AvatarFallback className="size-8 text-xs">{babbler.user.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+            ))}
+          </div>
+          {babblers?.length && babblers.length > 3 && <div className="text-xs">+{babblers.length - 3}</div>}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent align="start" className="py-2">
+        {babblers?.map((babbler) => (
+          <div key={babbler.userId} className="flex items-center gap-1">
+            <Avatar className="size-5">
+              <AvatarImage src={babbler.user.image || undefined} className="object-cover" />
+              <AvatarFallback className="size-5 text-xs">{babbler.user.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <p className="text-sm">{babbler.user.name}</p>
+          </div>
+        ))}
+      </TooltipContent>
+    </Tooltip>
   )
 }
