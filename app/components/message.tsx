@@ -194,6 +194,12 @@ export const Message = memo(function _Message({
                   "dark:[&_code:not(.hljs)]:!bg-neutral-700 dark:[&_code:not(.hljs)]:!text-neutral-200",
                   // Blockquotes
                   "[&_blockquote]:border-muted-foreground/20 [&_blockquote]:border-l-4 [&_blockquote]:pl-2",
+                  "[&_img]:max-w-md [&_img]:rounded-lg [&_img]:object-contain",
+                  "[&_table]:w-full [&_table]:rounded-lg [&_table]:border [&_table]:shadow-xs",
+                  "[&_th]:bg-muted [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold",
+                  "[&_td]:p-2 [&_td]:text-sm",
+                  "[&_tr]:border-b",
+                  "[&_tr:last-child]:border-b-0",
                   message.optimisticStatus === "created" && "opacity-70",
                 )}
                 dangerouslySetInnerHTML={{ __html: renderMessageContent(message.content) }}
