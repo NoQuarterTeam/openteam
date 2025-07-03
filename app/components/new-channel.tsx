@@ -11,14 +11,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 export function NewChannel() {
   const [open, setOpen] = React.useState(false)
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover modal open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button size="icon" variant="ghost" className="size-7" title="Create channel">
           <PlusIcon className="size-3.5" />
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent backdrop="opaque" className="p-2" align="start" side="right">
+      <PopoverContent backdrop="opaque" className="p-2">
         <NewChannelForm onClose={() => setOpen(false)} />
       </PopoverContent>
     </Popover>

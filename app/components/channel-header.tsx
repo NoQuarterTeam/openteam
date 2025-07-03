@@ -114,42 +114,44 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
         )}
       </div>
 
-      {!channel.dmUser && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild disabled={!!channel?.archivedTime}>
-            <Button variant="ghost" size="icon" className="size-7 md:size-8">
-              <EllipsisVerticalIcon />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => void toggleMute({ channelId: channel._id })}>
-              <BellIcon />
-              {channel.isMuted ? "Unmute" : "Mute"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setIsEditing(true)}>
-              <PencilIcon />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={async () => {
-                if (!channel) return
-                if (confirm("Are you sure you want to archive this channel?")) {
-                  try {
-                    await archiveChannel({ channelId: channel._id, archivedTime: new Date().toISOString() })
-                    navigate("/")
-                  } catch (e) {
-                    console.error(e)
-                    toast.error("Failed to archive channel")
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild disabled={!!channel?.archivedTime}>
+          <Button variant="ghost" size="icon" className="size-7 md:size-8">
+            <EllipsisVerticalIcon />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => void toggleMute({ channelId: channel._id })}>
+            <BellIcon />
+            {channel.isMuted ? "Unmute" : "Mute"}
+          </DropdownMenuItem>
+          {!channel.dmUser && (
+            <>
+              <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                <PencilIcon />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  if (!channel) return
+                  if (confirm("Are you sure you want to archive this channel?")) {
+                    try {
+                      await archiveChannel({ channelId: channel._id, archivedTime: new Date().toISOString() })
+                      navigate("/")
+                    } catch (e) {
+                      console.error(e)
+                      toast.error("Failed to archive channel")
+                    }
                   }
-                }
-              }}
-            >
-              <Trash2Icon />
-              Archive
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+                }}
+              >
+                <Trash2Icon />
+                Archive
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }

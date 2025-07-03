@@ -232,9 +232,14 @@ export function MessageInput({
             disabled={isDisabled}
             autoFocus
             onKeyDown={(event) => {
+              // Only submit on Enter for desktop (non-mobile devices)
               if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                event.preventDefault()
-                formRef.current?.requestSubmit()
+                // Check if this is a mobile device by testing for touch capability
+                const isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0
+                if (!isMobile) {
+                  event.preventDefault()
+                  formRef.current?.requestSubmit()
+                }
               }
               if (event.key === "ArrowUp" && lastMessageIdOfUser && !newMessage) {
                 event.preventDefault()

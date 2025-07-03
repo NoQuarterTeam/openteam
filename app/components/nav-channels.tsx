@@ -4,10 +4,11 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useMutation, useQuery } from "convex/react"
 import { useNavigate, useParams } from "react-router"
 import { api } from "@/convex/_generated/api"
+import { useIsMobile } from "@/lib/use-mobile"
 import { cn } from "@/lib/utils"
 import { NewChannel } from "./new-channel"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
-import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenuBadge } from "./ui/sidebar"
+import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, useSidebar } from "./ui/sidebar"
 
 export function NavChannels() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
@@ -85,8 +86,12 @@ function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
 
   const queryClient = useQueryClient()
 
+  const isMobile = useIsMobile()
+  const sidebar = useSidebar()
+
   const onChannelClick = () => {
     navigate(`/${channel._id}`)
+    if (isMobile) sidebar.setOpenMobile(false)
   }
 
   return (
@@ -103,7 +108,7 @@ function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
             queryClient.prefetchQuery(convexQuery(api.channels.get, { channelId: channel._id }))
           }}
           className={cn(
-            "flex h-8 w-full cursor-pointer items-center justify-between rounded-md border px-2 py-1 text-left font-normal text-sm",
+            "flex h-8 w-full cursor-pointer items-center justify-between rounded-md border px-2 py-1 pr-3 text-left font-normal text-sm",
             isActive
               ? "border-transparent bg-primary text-primary-foreground"
               : snapshot.isDragging
@@ -132,10 +137,10 @@ function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
 
           {/* Unread count */}
           {!isActive && channel.unreadCount > 0 && (
-            <SidebarMenuBadge>
+            <p className="text-xs">
               {channel.unreadCount}
               {channel.unreadCount > 100 && "+"}
-            </SidebarMenuBadge>
+            </p>
           )}
         </div>
       )}
