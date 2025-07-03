@@ -5,7 +5,7 @@ import { useNavigate } from "react-router"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
 import { cn } from "@/lib/utils"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
+import { Avatar } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { Input } from "./ui/input"
@@ -79,12 +79,7 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
           <>
             {channel.dmUser ? (
               <div className="flex items-center gap-2 pl-2">
-                <Avatar className="size-8 flex-shrink-0 rounded-md">
-                  <AvatarImage src={channel.dmUser.image || undefined} className="object-cover" />
-                  <AvatarFallback className="size-8 rounded-md text-black dark:text-white">
-                    {channel.dmUser.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
+                <Avatar image={channel.dmUser.image} name={channel.dmUser.name} className="size-8 flex-shrink-0 rounded-md" />
                 <p className="font-medium text-lg">{channel.dmUser.name}</p>
               </div>
             ) : (

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router"
 import { api } from "@/convex/_generated/api"
 import { useRecentChannels } from "@/lib/use-recent-channels"
 import { NewChannelForm } from "./new-channel"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
+import { Avatar } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList } from "./ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
@@ -57,12 +57,7 @@ export function CommandCenter() {
               >
                 {channel.dmUser ? (
                   <>
-                    <Avatar className="size-5 rounded">
-                      <AvatarImage src={channel.dmUser.image || undefined} className="object-cover" />
-                      <AvatarFallback className="size-5 rounded text-black text-xs dark:text-white">
-                        {channel.dmUser.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <Avatar image={channel.dmUser.image} name={channel.dmUser.name} className="size-5 rounded" />
                     <p>{channel.dmUser.name}</p>
                   </>
                 ) : (

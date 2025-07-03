@@ -1,7 +1,7 @@
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 import type { Id } from "@/convex/_generated/dataModel"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
+import { Avatar } from "./ui/avatar"
 import { Button } from "./ui/button"
 
 dayjs.extend(relativeTime)
@@ -24,10 +24,7 @@ export function ThreadIndicator({ threadInfo, onOpenThread }: ThreadIndicatorPro
     <Button size="sm" className="-ml-1 mt-0.5 h-7 pl-1" variant="ghost" onClick={() => onOpenThread(threadInfo.threadId)}>
       <div className="flex items-center gap-0.5">
         {threadInfo.participants.map((p) => (
-          <Avatar key={p._id} className="size-5 rounded-sm">
-            <AvatarImage src={p.image || undefined} />
-            <AvatarFallback className="size-5 rounded-sm">{p.name.charAt(0)}</AvatarFallback>
-          </Avatar>
+          <Avatar key={p._id} image={p.image} name={p.name} className="size-5 rounded-sm" />
         ))}
       </div>
       <span className="font-medium text-blue-700 text-xs dark:text-blue-500">

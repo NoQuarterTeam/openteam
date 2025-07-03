@@ -7,7 +7,7 @@ import { api } from "@/convex/_generated/api"
 import { useIsMobile } from "@/lib/use-mobile"
 import { cn } from "@/lib/utils"
 import { NewChannel } from "./new-channel"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
+import { Avatar } from "./ui/avatar"
 import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, useSidebar } from "./ui/sidebar"
 
 export function NavChannels() {
@@ -119,12 +119,7 @@ function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
           <div className="flex items-center justify-center gap-2">
             {channel.dmUser ? (
               <>
-                <Avatar className="size-5 rounded">
-                  <AvatarImage src={channel.dmUser.image || undefined} className="object-cover" />
-                  <AvatarFallback className="size-5 rounded text-black text-xs dark:text-white">
-                    {channel.dmUser.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
+                <Avatar image={channel.dmUser.image} name={channel.dmUser.name} className="size-5 rounded" />
                 {channel.dmUser.name}
               </>
             ) : (

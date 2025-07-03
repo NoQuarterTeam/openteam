@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
 import { WebRTCService } from "@/lib/webrtc"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
+import { Avatar } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 
@@ -188,10 +188,13 @@ function Babblers({ babblers }: { babblers: typeof api.babbles.getBabblers._retu
         <div className="flex items-center gap-1">
           <div className="-space-x-3 flex items-center">
             {babblers?.slice(0, 3).map((babbler, i) => (
-              <Avatar key={babbler.userId} className="size-8 border border-background" style={{ zIndex: 3 - i }}>
-                <AvatarImage src={babbler.user.image || undefined} className="object-cover" />
-                <AvatarFallback className="size-8 text-xs">{babbler.user.name.charAt(0)}</AvatarFallback>
-              </Avatar>
+              <Avatar
+                key={babbler.userId}
+                image={babbler.user.image}
+                name={babbler.user.name}
+                className="size-8 border border-background"
+                style={{ zIndex: 3 - i }}
+              />
             ))}
           </div>
           {babblers?.length && babblers.length > 3 && <div className="text-xs">+{babblers.length - 3}</div>}
@@ -200,10 +203,7 @@ function Babblers({ babblers }: { babblers: typeof api.babbles.getBabblers._retu
       <TooltipContent align="start" className="py-2">
         {babblers?.map((babbler) => (
           <div key={babbler.userId} className="flex items-center gap-1">
-            <Avatar className="size-5">
-              <AvatarImage src={babbler.user.image || undefined} className="object-cover" />
-              <AvatarFallback className="size-5 text-xs">{babbler.user.name.charAt(0)}</AvatarFallback>
-            </Avatar>
+            <Avatar image={babbler.user.image} name={babbler.user.name} className="size-5" />
             <p className="text-sm">{babbler.user.name}</p>
           </div>
         ))}
