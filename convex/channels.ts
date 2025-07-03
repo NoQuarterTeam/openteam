@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values"
+import dayjs from "dayjs"
 import { mutation, query } from "./_generated/server"
 import { requireUser } from "./auth"
 
@@ -126,9 +127,15 @@ export const update = mutation({
   handler: async (ctx, args) => {
     await requireUser(ctx)
 
+    const channel = await ctx.db.get(args.channelId)
+    if (!channel) throw new ConvexError("Channel not found")
+
     const data: any = {}
     if (args.name) data.name = args.name
-    if (args.archivedTime) data.archivedTime = args.archivedTime
+    if (args.archivedTime) {
+      data.archivedTime = args.archivedTime
+      data.name = `${channel.name} (archived - ${dayjs(args.archivedTime).format()})`
+    }
 
     return await ctx.db.patch(args.channelId, data)
   },
