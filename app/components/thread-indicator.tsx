@@ -21,13 +21,13 @@ export function ThreadIndicator({ threadInfo, onOpenThread }: ThreadIndicatorPro
   if (!threadInfo || threadInfo.replyCount === 0) return null
 
   return (
-    <Button size="sm" className="-ml-1 mt-0.5 h-7 pl-1" variant="ghost" onClick={() => onOpenThread(threadInfo.threadId)}>
+    <Button size="sm" className="group -ml-1 mt-0.5 h-7 pl-1" variant="ghost" onClick={() => onOpenThread(threadInfo.threadId)}>
       <div className="flex items-center gap-0.5">
         {threadInfo.participants.map((p) => (
           <Avatar key={p._id} image={p.image} name={p.name} className="size-5 rounded-sm" />
         ))}
       </div>
-      <span className="font-medium text-blue-700 text-xs dark:text-blue-500">
+      <span className="font-medium text-blue-700 text-xs group-hover:underline dark:text-blue-500">
         {threadInfo.replyCount} {threadInfo.replyCount === 1 ? "reply" : "replies"}
       </span>
       {threadInfo.lastReplyTime && (

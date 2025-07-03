@@ -120,12 +120,12 @@ function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
             {channel.dmUser ? (
               <>
                 <Avatar image={channel.dmUser.image} name={channel.dmUser.name} className="size-5 rounded" />
-                {channel.dmUser.name}
+                <span className={cn(channel.isMuted && "opacity-60")}>{channel.dmUser.name}</span>
               </>
             ) : (
               <>
                 <div className="w-5 text-center">#</div>
-                {channel.name.toLowerCase()}
+                <span className={cn(channel.isMuted && "opacity-60")}>{channel.name.toLowerCase()}</span>
               </>
             )}
           </div>
