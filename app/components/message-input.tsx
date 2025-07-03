@@ -116,19 +116,14 @@ export function MessageInput({
 
   const textAreaRef = useRef<ExpandableTextareaRef>(null)
 
-  const [isLoading, setIsLoading] = useState(false)
-
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if ((!newMessage.trim() && filePreviews.length === 0) || filePreviews.some(({ storageId }) => !storageId)) return
 
     try {
-      setIsLoading(true)
-
       textAreaRef.current?.resetHeight()
-      textAreaRef.current?.clearValue()
+      setNewMessage("")
 
-      setIsLoading(false)
       setFilePreviews([])
       setNewMessage("")
       void sendMessage({
@@ -227,35 +222,27 @@ export function MessageInput({
           <ExpandableTextarea
             ref={textAreaRef}
             placeholder={threadId ? "Reply to thread..." : "Send a message..."}
-            onChange={(e) => setNewMessage(e.target.value)}
-            rows={1}
-            disabled={isDisabled}
-            autoFocus
-            onKeyDown={(event) => {
-              // Only submit on Enter for desktop (non-mobile devices)
-              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                // Check if this is a mobile device by testing for touch capability
-                const isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0
-                if (!isMobile) {
-                  event.preventDefault()
-                  formRef.current?.requestSubmit()
-                }
-              }
-              if (event.key === "ArrowUp" && lastMessageIdOfUser && !newMessage) {
-                event.preventDefault()
+            onChangeValue={setNewMessage}
+            onSubmitMobile={() => {
+              formRef.current?.requestSubmit()
+            }}
+            onArrowUp={() => {
+              if (lastMessageIdOfUser && !newMessage) {
                 setEditMessageId(lastMessageIdOfUser)
               }
             }}
+            value={newMessage}
+            rows={1}
+            disabled={isDisabled}
+            autoFocus
           />
 
           <Button
             type="submit"
             size="icon"
-            disabled={
-              (!newMessage.trim() && filePreviews.length === 0) || isLoading || filePreviews.some(({ storageId }) => !storageId)
-            }
+            disabled={(!newMessage.trim() && filePreviews.length === 0) || filePreviews.some(({ storageId }) => !storageId)}
           >
-            {isLoading ? <Spinner className="size-4" /> : <ArrowRightIcon />}
+            <ArrowRightIcon />
           </Button>
         </div>
       </form>

@@ -1,7 +1,7 @@
 import { optimisticallyUpdateValueInPaginatedQuery, useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
 import { ChevronDownIcon, Edit2Icon, MessageSquareTextIcon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useSearchParams } from "react-router"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
@@ -432,47 +432,36 @@ function MessageEditor({ message }: { message: MessageData }) {
 
   const onClose = () => setEditMessageId(null)
 
-  const handleSubmit = async () => {
+  const formRef = useRef<HTMLFormElement>(null)
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    formRef.current?.reset()
     onClose()
     await updateMessage({ messageId: message._id, content: input })
   }
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault()
-        onClose()
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [])
-
   return (
-    <div className="space-y-2 rounded-lg border bg-background p-2">
+    <form onSubmit={handleSubmit} ref={formRef} className="space-y-2 rounded-lg border bg-background p-2">
       <ExpandableTextarea
         placeholder="Edit message"
-        onChange={(event) => setInput(event.target.value)}
+        onChangeValue={setInput}
+        value={input}
+        onEscape={onClose}
+        onSubmitMobile={() => {
+          formRef.current?.requestSubmit()
+        }}
         defaultValue={message.content}
         rows={1}
         autoFocus
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-            event.preventDefault()
-            handleSubmit()
-          }
-        }}
       />
       <div className="flex gap-2">
         <Button size="sm" variant="ghost" onClick={onClose}>
           Cancel
         </Button>
-        <Button size="sm" onClick={handleSubmit}>
+        <Button size="sm" type="submit">
           Save
         </Button>
       </div>
-    </div>
+    </form>
   )
 }
