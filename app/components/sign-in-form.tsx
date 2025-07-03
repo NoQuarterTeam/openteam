@@ -16,6 +16,14 @@ export function SignInForm() {
           <GitHubIcon />
           Sign in with GitHub
         </Button>
+        <div className="flex items-center gap-2">
+          <div className="h-px w-full bg-border" />
+          <span className="text-muted-foreground text-sm">or</span>
+          <div className="h-px w-full bg-border" />
+        </div>
+        <Button variant="outline" className="w-full" onClick={() => void signIn("anonymous")}>
+          Create guest account
+        </Button>
         {/* <hr />
         <form
           className="space-y-6"

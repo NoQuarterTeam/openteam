@@ -1,4 +1,5 @@
 import GitHub from "@auth/core/providers/github"
+import { Anonymous } from "@convex-dev/auth/providers/Anonymous"
 import { Password } from "@convex-dev/auth/providers/Password"
 import { convexAuth, getAuthUserId } from "@convex-dev/auth/server"
 import { ConvexError } from "convex/values"
@@ -9,6 +10,16 @@ const ParamsSchema = z.object({ email: z.string().email(), name: z.string().opti
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
+    Anonymous({
+      profile() {
+        const id = Math.random().toString(36).substring(2, 8)
+        return {
+          isAnonymous: true,
+          name: `Guest ${id}`,
+          email: `guest-${id}@noquarter.co`,
+        }
+      },
+    }),
     GitHub({
       async profile(githubProfile) {
         const allowedDomain = process.env.ALLOWED_DOMAIN
@@ -39,19 +50,16 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   ],
   callbacks: {
     async createOrUpdateUser(ctx: MutationCtx, args) {
-      if (args.existingUserId) {
-        return args.existingUserId
+      if (args.existingUserId) return args.existingUserId
+
+      if (args.profile.email) {
+        const existingUser = await ctx.db
+          .query("users")
+          .filter((q) => q.eq(q.field("email"), args.profile.email))
+          .first()
+
+        if (existingUser) return existingUser._id
       }
-
-      const existingUser = await ctx.db
-        .query("users")
-        .filter((q) => q.eq(q.field("email"), args.profile.email))
-        .first()
-
-      if (existingUser) {
-        return existingUser._id
-      }
-
       const user = await ctx.db.insert("users", {
         name: args.profile.name as string,
         email: args.profile.email as string,
