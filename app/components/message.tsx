@@ -59,14 +59,14 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
       setIsToolbarVisible(!isToolbarVisible)
     }
   }
-  const handleClickOutside = () => {
-    setIsToolbarVisible(false)
-  }
 
   // Hide toolbar when clicking outside on mobile
   useEffect(() => {
     if (!isMobile || !isToolbarVisible) return
 
+    const handleClickOutside = () => {
+      setIsToolbarVisible(false)
+    }
     document.addEventListener("click", handleClickOutside)
     return () => document.removeEventListener("click", handleClickOutside)
   }, [isMobile, isToolbarVisible])
@@ -178,9 +178,9 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
                   "[&_ul]:m-0 [&_ul]:list-disc [&_ul]:pl-4",
                   "[&_ol]:m-0 [&_ol]:list-decimal [&_ol]:pl-4",
                   "[&_pre]:!inline-grid [&_pre]:!bg-transparent [&_pre]:w-full [&_pre]:py-1",
-                  // Code blocks with hljs (syntax highlighted)
+                  // Code blocks WITH hljs (syntax highlighted)
                   "[&_code.hljs]:!py-2 [&_code.hljs]:!px-3 [&_code.hljs]:!bg-neutral-900 [&_code.hljs]:!text-white [&_code.hljs]:my-1 [&_code.hljs]:block [&_code.hljs]:rounded-md [&_code.hljs]:border [&_code.hljs]:font-mono [&_code.hljs]:shadow-sm",
-                  // Code blocks without hljs (plain code)
+                  // Code blocks WITHOUT hljs (plain code)
                   "[&_code:not(.hljs)]:!py-0.5 [&_code:not(.hljs)]:!px-1.5 [&_code:not(.hljs)]:!bg-neutral-100 [&_code:not(.hljs)]:!border [&_code:not(.hljs)]:my-0.5 [&_code:not(.hljs)]:inline [&_code:not(.hljs)]:rounded-sm [&_code:not(.hljs)]:font-mono [&_code:not(.hljs)]:text-neutral-800 [&_code:not(.hljs)]:text-sm",
                   "dark:[&_code:not(.hljs)]:!bg-neutral-700 dark:[&_code:not(.hljs)]:!text-neutral-200",
                   // Blockquotes
