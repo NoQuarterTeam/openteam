@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils"
 import { ExpandableTextarea } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
 import { ThreadIndicator } from "./thread-indicator"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { WithState } from "./with-state"
@@ -144,12 +143,17 @@ export const Message = memo(function _Message({
     >
       <div>
         {isFirstMessageOfUser && message.author ? (
-          <Avatar className="size-9 flex-shrink-0 rounded-lg">
-            <AvatarImage src={message.author.image || undefined} className="object-cover" />
-            <AvatarFallback className="size-9 rounded-lg text-black dark:text-white">
-              {message.author.name.charAt(0) || "U"}
-            </AvatarFallback>
-          </Avatar>
+          message.author.image ? (
+            <img
+              src={message.author.image || undefined}
+              className="size-9 flex-shrink-0 rounded-lg object-cover"
+              alt={message.author.name}
+            />
+          ) : (
+            <div className="flex size-9 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground text-sm">
+              {message.author.name.charAt(0)}
+            </div>
+          )
         ) : (
           <div className="w-9 flex-shrink-0" />
         )}
