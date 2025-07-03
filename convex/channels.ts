@@ -170,17 +170,21 @@ export const get = query({
     const channel = await ctx.db.get(args.channelId)
     if (!channel) return null
 
-    const userChannelActivity = await ctx.db
-      .query("userChannelActivity")
-      .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
-      .filter((q) => q.eq(q.field("userId"), userId))
-      .first()
+    const [userChannelActivity, createdBy] = await Promise.all([
+      ctx.db
+        .query("userChannelActivity")
+        .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
+        .filter((q) => q.eq(q.field("userId"), userId))
+        .first(),
+      ctx.db.get(channel.createdBy),
+    ])
 
     const isMuted = !!userChannelActivity?.isMuted
 
     const dmUser = channel.userId ? await ctx.db.get(channel.userId) : null
     return {
       ...channel,
+      createdBy,
       isMuted,
       dmUser: dmUser ? { ...dmUser, image: dmUser?.image ? await ctx.storage.getUrl(dmUser.image) : null } : null,
     }

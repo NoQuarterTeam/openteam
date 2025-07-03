@@ -8,7 +8,7 @@ export default defineSchema({
     name: v.string(),
     createdBy: v.id("users"),
     archivedTime: v.optional(v.string()),
-    userId: v.optional(v.id("users")),
+    userId: v.optional(v.id("users")), // FOR DMS
   })
     .index("by_name", ["name"])
     .index("by_user_id", ["userId"]),
