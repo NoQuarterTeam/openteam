@@ -1,6 +1,7 @@
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useQuery } from "convex/react"
-import { ChevronsUpDown, LogOut } from "lucide-react"
+import { ChevronsUpDown, LogOut, MoonIcon, SunIcon } from "lucide-react"
+import { useTheme } from "next-themes"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -14,6 +15,7 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
 import { api } from "@/convex/_generated/api"
 import { ProfileModal } from "./profile-modal"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
 export function NavUser() {
   const user = useQuery(api.auth.loggedInUser)
@@ -31,7 +33,7 @@ export function NavUser() {
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user?.image || undefined} alt={user?.name || ""} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg"></AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user?.name}</span>
@@ -59,8 +61,9 @@ export function NavUser() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
+            <DropdownMenuGroup className="flex flex-col gap-1 pb-1">
               <ProfileModal />
+              <NavThemeSwitcher />
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
 
@@ -72,5 +75,29 @@ export function NavUser() {
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
+  )
+}
+
+export function NavThemeSwitcher() {
+  const { theme, setTheme } = useTheme()
+  const isDark = theme === "dark"
+  return (
+    <div className="relative flex items-center justify-between pr-1 pl-2 text-sm">
+      <div className="flex items-center gap-2">
+        {isDark ? <MoonIcon className="size-4 text-muted-foreground" /> : <SunIcon className="size-4 text-muted-foreground" />}
+        <p className="text-black dark:text-white">Theme</p>
+      </div>
+      <Select value={theme || "light"} onValueChange={setTheme}>
+        <SelectTrigger size="sm">
+          <SelectValue />
+        </SelectTrigger>
+
+        <SelectContent>
+          <SelectItem value="light">Light</SelectItem>
+          <SelectItem value="dark">Dark</SelectItem>
+          <SelectItem value="system">System</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
   )
 }
