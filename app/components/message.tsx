@@ -1,7 +1,7 @@
 import { optimisticallyUpdateValueInPaginatedQuery, useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
 import { ChevronDownIcon, Edit2Icon, MessageSquareTextIcon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { memo, useEffect, useRef, useState } from "react"
 import { useSearchParams } from "react-router"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
@@ -30,7 +30,12 @@ interface Props {
   isThreadMessage?: boolean
 }
 
-export function Message({ message, isFirstMessageOfUser, isThreadParentMessage = false, isThreadMessage = false }: Props) {
+export const Message = memo(function _Message({
+  message,
+  isFirstMessageOfUser,
+  isThreadParentMessage = false,
+  isThreadMessage = false,
+}: Props) {
   const user = useQuery(api.auth.loggedInUser)
   const isMobile = useIsMobile()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
@@ -373,7 +378,7 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
       </div>
     </div>
   )
-}
+})
 
 type MessageFileType = MessageData["files"][number]
 
