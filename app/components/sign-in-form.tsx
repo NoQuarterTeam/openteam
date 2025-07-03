@@ -1,12 +1,10 @@
 import { useAuthActions } from "@convex-dev/auth/react"
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { GitHubIcon } from "./github-icon"
-import { Input } from "./ui/input"
 
 export function SignInForm() {
   const { signIn } = useAuthActions()
-  const [flow, setFlow] = useState<"signIn" | "signUp">("signIn")
+  // const [flow, setFlow] = useState<"signIn" | "signUp">("signIn")
 
   return (
     <div className="flex h-dvh flex-col items-center justify-start bg-muted/50 px-4 py-10 sm:px-6 lg:px-8">
@@ -18,7 +16,7 @@ export function SignInForm() {
           <GitHubIcon />
           Sign in with GitHub
         </Button>
-        <hr />
+        {/* <hr />
         <form
           className="space-y-6"
           onSubmit={(e) => {
@@ -40,7 +38,7 @@ export function SignInForm() {
           <Button variant="link" className="w-full" onClick={() => setFlow(flow === "signIn" ? "signUp" : "signIn")}>
             {flow === "signIn" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
           </Button>
-        </form>
+        </form> */}
       </div>
     </div>
   )

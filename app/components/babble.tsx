@@ -192,7 +192,7 @@ function Babblers({ babblers }: { babblers: typeof api.babbles.getBabblers._retu
                 key={babbler.userId}
                 image={babbler.user.image}
                 name={babbler.user.name}
-                className="size-8 border border-background"
+                className="size-8 rounded-full border"
                 style={{ zIndex: 3 - i }}
               />
             ))}
