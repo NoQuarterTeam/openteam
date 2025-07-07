@@ -1,22 +1,23 @@
 import { ConvexError, v } from "convex/values"
 import dayjs from "dayjs"
 import { mutation, query } from "./_generated/server"
-import { requireUser } from "./auth"
+import { canManageTeamChannel, requireUser } from "./auth"
 
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await requireUser(ctx)
+    const user = await requireUser(ctx)
 
     const [channels, channelOrders] = await Promise.all([
       ctx.db
         .query("channels")
+        .withIndex("by_team", (q) => q.eq("teamId", user.teamId))
         .filter((q) => q.eq(q.field("archivedTime"), undefined))
         .order("asc")
         .collect(),
       ctx.db
         .query("channelOrders")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
         .collect(),
     ])
 
@@ -34,7 +35,7 @@ export const list = query({
         const userChannelActivity = await ctx.db
           .query("userChannelActivity")
           .withIndex("by_channel", (q) => q.eq("channelId", channel._id))
-          .filter((q) => q.eq(q.field("userId"), userId))
+          .filter((q) => q.eq(q.field("userId"), user._id))
           .first()
 
         const unreadMessages = userChannelActivity?.lastReadMessageTime
@@ -43,7 +44,7 @@ export const list = query({
               .withIndex("by_channel", (q) => q.eq("channelId", channel._id))
               .filter((q) =>
                 q.and(
-                  q.neq(q.field("authorId"), userId),
+                  q.neq(q.field("authorId"), user._id),
                   q.gte(q.field("_creationTime"), userChannelActivity.lastReadMessageTime!),
                 ),
               )
@@ -51,7 +52,7 @@ export const list = query({
           : await ctx.db
               .query("messages")
               .withIndex("by_channel", (q) => q.eq("channelId", channel._id))
-              .filter((q) => q.neq(q.field("authorId"), userId))
+              .filter((q) => q.neq(q.field("authorId"), user._id))
               .take(100)
 
         return {
@@ -68,11 +69,11 @@ export const list = query({
 export const markAsRead = mutation({
   args: { channelId: v.id("channels") },
   handler: async (ctx, args) => {
-    const userId = await requireUser(ctx)
+    const user = await canManageTeamChannel(ctx, args.channelId)
     const channelActivity = await ctx.db
       .query("userChannelActivity")
       .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
-      .filter((q) => q.eq(q.field("userId"), userId))
+      .filter((q) => q.eq(q.field("userId"), user._id))
       .first()
 
     if (!channelActivity) {
@@ -80,7 +81,7 @@ export const markAsRead = mutation({
         channelId: args.channelId,
         isFavourite: false,
         isMuted: false,
-        userId,
+        userId: user._id,
         lastReadMessageTime: Date.now(),
       })
     } else {
@@ -92,31 +93,28 @@ export const markAsRead = mutation({
 export const create = mutation({
   args: { name: v.string() },
   handler: async (ctx, args) => {
-    const userId = await requireUser(ctx)
+    const user = await requireUser(ctx)
 
+    if (!user.teamId) throw new ConvexError("User is not part of a team")
     // Check if channel already exists
     const existing = await ctx.db
       .query("channels")
-      .withIndex("by_name", (q) => q.eq("name", args.name))
+      .withIndex("by_team_name", (q) => q.eq("teamId", user.teamId).eq("name", args.name))
       .first()
 
-    if (existing) throw new ConvexError("Channel already exists")
+    if (existing) throw new ConvexError("Channel already exists with this name")
 
-    const channelId = await ctx.db.insert("channels", { name: args.name, createdBy: userId })
+    const channelId = await ctx.db.insert("channels", { name: args.name, createdBy: user._id, teamId: user.teamId })
 
     // Get the current max order for this user and add the new channel at the end
     const userChannelOrders = await ctx.db
       .query("channelOrders")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect()
 
     const maxOrder = Math.max(...userChannelOrders.map((order) => order.order), -1)
 
-    await ctx.db.insert("channelOrders", {
-      channelId,
-      userId,
-      order: maxOrder + 1,
-    })
+    await ctx.db.insert("channelOrders", { channelId, userId: user._id, order: maxOrder + 1 })
 
     return channelId
   },
@@ -144,7 +142,7 @@ export const update = mutation({
 export const toggleMute = mutation({
   args: { channelId: v.id("channels") },
   handler: async (ctx, args) => {
-    const userId = await requireUser(ctx)
+    const user = await canManageTeamChannel(ctx, args.channelId)
 
     const channel = await ctx.db.get(args.channelId)
     if (!channel) throw new ConvexError("Channel not found")
@@ -152,7 +150,7 @@ export const toggleMute = mutation({
     const userChannelActivity = await ctx.db
       .query("userChannelActivity")
       .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
-      .filter((q) => q.eq(q.field("userId"), userId))
+      .filter((q) => q.eq(q.field("userId"), user._id))
       .first()
 
     if (!userChannelActivity) {
@@ -160,7 +158,7 @@ export const toggleMute = mutation({
         channelId: args.channelId,
         isFavourite: false,
         isMuted: true,
-        userId,
+        userId: user._id,
         lastReadMessageTime: Date.now(),
       })
     } else {
@@ -172,7 +170,7 @@ export const toggleMute = mutation({
 export const get = query({
   args: { channelId: v.id("channels") },
   handler: async (ctx, args) => {
-    const userId = await requireUser(ctx)
+    const user = await canManageTeamChannel(ctx, args.channelId)
 
     const channel = await ctx.db.get(args.channelId)
     if (!channel) return null
@@ -181,7 +179,7 @@ export const get = query({
       ctx.db
         .query("userChannelActivity")
         .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
-        .filter((q) => q.eq(q.field("userId"), userId))
+        .filter((q) => q.eq(q.field("userId"), user._id))
         .first(),
       ctx.db.get(channel.createdBy),
     ])
@@ -200,32 +198,27 @@ export const get = query({
 
 export const updateOrder = mutation({
   args: {
-    channelOrders: v.array(
-      v.object({
-        channelId: v.id("channels"),
-        order: v.number(),
-      }),
-    ),
+    channelOrders: v.array(v.object({ channelId: v.id("channels"), order: v.number() })),
   },
   handler: async (ctx, args) => {
-    const userId = await requireUser(ctx)
+    const user = await requireUser(ctx)
 
     // Update or create channel orders for the user
     for (const { channelId, order } of args.channelOrders) {
+      const channel = await ctx.db.get(channelId)
+      if (!channel) throw new ConvexError("Channel not found")
+      if (channel.teamId !== user.teamId) throw new ConvexError("You are not the author of this channel")
+
       const existingOrder = await ctx.db
         .query("channelOrders")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
         .filter((q) => q.eq(q.field("channelId"), channelId))
         .first()
 
       if (existingOrder) {
         await ctx.db.patch(existingOrder._id, { order })
       } else {
-        await ctx.db.insert("channelOrders", {
-          channelId,
-          userId,
-          order,
-        })
+        await ctx.db.insert("channelOrders", { channelId, userId: user._id, order })
       }
     }
   },

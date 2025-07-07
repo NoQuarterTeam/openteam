@@ -16,7 +16,7 @@ export function ProfileModal() {
   const user = useQuery(api.auth.loggedInUser)
 
   const [name, setName] = useState(user?.name || user?.email || "")
-  const [isUploading, setIsUploading] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   const updateProfile = useMutation(api.users.update)
   const generateUploadUrl = useMutation(api.uploads.generateUploadUrl)
@@ -24,15 +24,14 @@ export function ProfileModal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsUploading(true)
+    setIsUpdating(true)
     try {
       await updateProfile({ name: name.trim() })
       toast.success("Profile updated!")
-      setOpen(false)
     } catch {
       toast.error("Failed to update profile")
     } finally {
-      setIsUploading(false)
+      setIsUpdating(false)
     }
   }
 
@@ -50,6 +49,7 @@ export function ProfileModal() {
 
     const { storageId } = (await result.json()) as { storageId: Id<"_storage"> }
     await updateProfile({ image: storageId })
+    toast.success("Profile image updated!")
   }, [])
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -87,7 +87,9 @@ export function ProfileModal() {
             </div>
             <div {...getRootProps()}>
               <input {...getInputProps()} />
-              <Button size="sm">{user?.image ? "Change Photo" : "Upload Photo"}</Button>
+              <Button variant="outline" size="sm">
+                {user?.image ? "Change Photo" : "Upload Photo"}
+              </Button>
             </div>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -166,8 +168,8 @@ export function ProfileModal() {
                   Cancel
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={!name.trim() || isUploading}>
-                {isUploading ? "Saving..." : "Save"}
+              <Button type="submit" disabled={!name.trim() || name === user?.name || isUpdating}>
+                {isUpdating ? "Saving..." : "Save"}
               </Button>
             </DialogFooter>
           </form>

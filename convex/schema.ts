@@ -4,13 +4,24 @@ import { v } from "convex/values"
 
 export default defineSchema({
   ...authTables,
+
+  teams: defineTable({
+    name: v.string(),
+    image: v.optional(v.id("_storage")),
+    createdBy: v.id("users"),
+  })
+    .index("by_name", ["name"])
+    .index("by_user", ["createdBy"]),
+
   channels: defineTable({
     name: v.string(),
     createdBy: v.id("users"),
     archivedTime: v.optional(v.string()),
     userId: v.optional(v.id("users")), // FOR DMS
+    teamId: v.optional(v.id("teams")),
   })
-    .index("by_name", ["name"])
+    .index("by_team_name", ["teamId", "name"])
+    .index("by_team", ["teamId"])
     .index("by_user_id", ["userId"]),
 
   channelOrders: defineTable({
@@ -62,7 +73,11 @@ export default defineSchema({
   babblers: defineTable({
     userId: v.id("users"),
     joinedAt: v.number(),
-  }).index("by_user", ["userId"]),
+    teamId: v.id("teams"),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_team", ["userId", "teamId"])
+    .index("by_team", ["teamId"]),
 
   babbleSignals: defineTable({
     fromUserId: v.id("users"),
@@ -97,6 +112,8 @@ export default defineSchema({
     phone: v.optional(v.string()),
     phoneVerificationTime: v.optional(v.number()),
     githubId: v.optional(v.number()),
+    teamId: v.optional(v.id("teams")),
+    isAnonymous: v.optional(v.boolean()),
   })
     .index("by_email", ["email"])
     .index("by_phone", ["phone"])

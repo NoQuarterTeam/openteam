@@ -15,6 +15,7 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
 import { api } from "@/convex/_generated/api"
 import { ProfileModal } from "./profile-modal"
+import { TeamModal } from "./team-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
 export function NavUser() {
@@ -55,10 +56,12 @@ export function NavUser() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup className="flex flex-col gap-1 pb-1">
+            <DropdownMenuGroup>
               <ProfileModal />
-              <NavThemeSwitcher />
+              <TeamModal />
             </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <NavThemeSwitcher />
             <DropdownMenuSeparator />
 
             <DropdownMenuItem onClick={() => void actions.signOut()}>

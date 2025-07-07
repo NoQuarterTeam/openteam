@@ -1,5 +1,5 @@
 import { paginationOptsValidator } from "convex/server"
-import { v } from "convex/values"
+import { ConvexError, v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import { requireUser } from "./auth"
 import type { OptimisticStatus } from "./optimistic"
@@ -10,7 +10,7 @@ export const create = mutation({
   },
   returns: v.id("threads"),
   handler: async (ctx, args) => {
-    const userId = await requireUser(ctx)
+    const user = await requireUser(ctx)
 
     const parentMessage = await ctx.db.get(args.parentMessageId)
     if (!parentMessage) throw new Error("Parent message not found")
@@ -26,7 +26,7 @@ export const create = mutation({
     return await ctx.db.insert("threads", {
       channelId: parentMessage.channelId,
       parentMessageId: args.parentMessageId,
-      createdBy: userId,
+      createdBy: user._id,
     })
   },
 })
@@ -34,13 +34,17 @@ export const create = mutation({
 export const get = query({
   args: { threadId: v.id("threads") },
   handler: async (ctx, args) => {
-    await requireUser(ctx)
+    const user = await requireUser(ctx)
 
     const thread = await ctx.db.get(args.threadId)
-    if (!thread) return null
+    if (!thread) throw new ConvexError("Thread not found")
 
     const parentMessage = await ctx.db.get(thread.parentMessageId)
-    if (!parentMessage) return null
+    if (!parentMessage) throw new ConvexError("Parent message not found")
+
+    const channel = await ctx.db.get(parentMessage.channelId)
+    if (!channel) throw new ConvexError("Channel not found")
+    if (channel.teamId !== user.teamId) throw new ConvexError("You are not the author of this message")
 
     // Get author and files for parent message
     const [author, reactions, files] = await Promise.all([
@@ -96,7 +100,14 @@ export const get = query({
 export const listMessages = query({
   args: { threadId: v.id("threads"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    await requireUser(ctx)
+    const user = await requireUser(ctx)
+
+    const thread = await ctx.db.get(args.threadId)
+    if (!thread) throw new ConvexError("Thread not found")
+
+    const channel = await ctx.db.get(thread.channelId)
+    if (!channel) throw new ConvexError("Channel not found")
+    if (channel.teamId !== user.teamId) throw new ConvexError("You are not the author of this message")
 
     const result = await ctx.db
       .query("messages")
