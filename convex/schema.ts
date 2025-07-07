@@ -18,7 +18,7 @@ export default defineSchema({
     createdBy: v.id("users"),
     archivedTime: v.optional(v.string()),
     userId: v.optional(v.id("users")), // FOR DMS
-    teamId: v.optional(v.id("teams")),
+    teamId: v.id("teams"),
   })
     .index("by_team_name", ["teamId", "name"])
     .index("by_team", ["teamId"])
