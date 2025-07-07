@@ -54,17 +54,29 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       if (!args.existingUserId) {
         const user = await ctx.db.get(args.userId)
         if (!user) throw new ConvexError("User not found")
-        const team = await ctx.db.insert("teams", { name: `${user.name}'s Team`, createdBy: args.userId })
-        await ctx.db.patch(args.userId, { teamId: team })
+
+        let teamId: Id<"teams"> | null = null
+        if (user.isAnonymous) {
+          const team = await ctx.db.query("teams").first()
+          teamId = team!._id
+        } else {
+          teamId = await ctx.db.insert("teams", { name: `${user.name}'s Team`, createdBy: args.userId })
+        }
+        await ctx.db.patch(args.userId, { teamId })
 
         const existingChannels = await ctx.db
           .query("channels")
-          .withIndex("by_team", (q) => q.eq("teamId", team))
+          .withIndex("by_team", (q) => q.eq("teamId", teamId))
           .first()
         if (!existingChannels) {
-          await ctx.db.insert("channels", { name: "general", createdBy: args.userId, teamId: team })
+          await ctx.db.insert("channels", { name: "general", createdBy: args.userId, teamId })
         }
-        await ctx.db.insert("channels", { name: args.userId, createdBy: args.userId, userId: args.userId, teamId: team })
+        await ctx.db.insert("channels", {
+          name: args.userId,
+          createdBy: args.userId,
+          userId: args.userId,
+          teamId,
+        })
       }
     },
   },
