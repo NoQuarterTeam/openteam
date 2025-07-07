@@ -115,7 +115,7 @@ export default defineSchema({
     teamId: v.optional(v.id("teams")),
     isAnonymous: v.optional(v.boolean()),
   })
-    .index("by_email", ["email"])
-    .index("by_phone", ["phone"])
+    .index("email", ["email"])
+    .index("phone", ["phone"])
     .searchIndex("search_name", { searchField: "name" }),
 })
