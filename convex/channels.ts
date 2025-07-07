@@ -7,11 +7,12 @@ export const list = query({
   args: {},
   handler: async (ctx) => {
     const user = await requireUser(ctx)
+    if (!user.teamId) throw new ConvexError("User is not part of a team")
 
     const [channels, channelOrders] = await Promise.all([
       ctx.db
         .query("channels")
-        .withIndex("by_team", (q) => q.eq("teamId", user.teamId))
+        .withIndex("by_team", (q) => q.eq("teamId", user.teamId!))
         .filter((q) => q.eq(q.field("archivedTime"), undefined))
         .order("asc")
         .collect(),
@@ -99,7 +100,7 @@ export const create = mutation({
     // Check if channel already exists
     const existing = await ctx.db
       .query("channels")
-      .withIndex("by_team_name", (q) => q.eq("teamId", user.teamId).eq("name", args.name))
+      .withIndex("by_team_name", (q) => q.eq("teamId", user.teamId!).eq("name", args.name))
       .first()
 
     if (existing) throw new ConvexError("Channel already exists with this name")
