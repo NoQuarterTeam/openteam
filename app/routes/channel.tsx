@@ -13,6 +13,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { DEFAULT_PAGINATION_NUM_ITEMS } from "@/lib/pagination"
+import { useEditMessage } from "@/lib/use-edit-message"
 import { useRecentChannels } from "@/lib/use-recent-channels"
 import { cn } from "@/lib/utils"
 
@@ -173,6 +174,19 @@ export default function Component() {
       void markAsRead({ channelId })
     }
   }, [messages.length, status, channelId])
+
+  const lastMessageId = messages.at(-1)?._id
+
+  const editingMessageId = useEditMessage((s) => s.messageId)
+  useEffect(() => {
+    if (!lastMessageId || editingMessageId) return
+    if (lastMessageId === editingMessageId) {
+      // scroll to the bottom of the page
+      requestAnimationFrame(() => {
+        bottomSentinelRef.current?.scrollIntoView({ behavior: "instant" })
+      })
+    }
+  }, [lastMessageId])
 
   const groupedMessages = useMemo(() => {
     return messages.reduce(
