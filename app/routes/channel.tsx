@@ -175,7 +175,7 @@ export default function Component() {
     }
   }, [messages.length, status, channelId])
 
-  const lastMessageId = messages.at(-1)?._id
+  const lastMessageId = messages.findLast((m) => !m.optimisticStatus)?._id
 
   const editingMessageId = useEditMessage((s) => s.messageId)
 
@@ -205,7 +205,7 @@ export default function Component() {
 
   const displayName = currentChannel.dmUser ? currentChannel.dmUser.name : currentChannel.name
 
-  const lastMessageOfUser = messages.findLast((message) => message.authorId === user?._id)
+  const lastMessageOfUser = messages.findLast((message) => message.authorId === user?._id && !message.optimisticStatus)
 
   return (
     <div className="flex h-full flex-1">
