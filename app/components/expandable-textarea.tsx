@@ -27,9 +27,8 @@ export function ExpandableTextarea({
   React.useEffect(() => {
     adjustHeight()
 
-    setTimeout(() => {
-      textAreaRef.current?.focus()
-    }, 100)
+    textAreaRef.current?.focus()
+    textAreaRef.current?.setSelectionRange(textAreaRef.current.value.length, textAreaRef.current.value.length)
   }, [])
 
   const adjustHeight = () => {

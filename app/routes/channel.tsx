@@ -3,7 +3,7 @@ import { useQuery as useQueryTanstack } from "@tanstack/react-query"
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react"
 import dayjs from "dayjs"
 import advancedFormat from "dayjs/plugin/advancedFormat"
-import { useCallback, useEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import { redirect, useParams, useSearchParams } from "react-router"
 import { ChannelHeader } from "@/components/channel-header"
 import { Message } from "@/components/message"
@@ -131,7 +131,7 @@ export default function Component() {
   }, [status])
 
   // Handle scroll position during pagination (loading older messages)
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isLoadingMoreRef.current || !scrollAnchorRef.current || !messagesContainerRef.current) return
 
     // Restore scroll position after loading more messages
@@ -150,7 +150,7 @@ export default function Component() {
   }, [messages.length])
 
   // Handle scrolling to bottom for new messages and initial load
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!channelId) return
 
     const currentLength = messages.length
@@ -178,15 +178,16 @@ export default function Component() {
   const lastMessageId = messages.at(-1)?._id
 
   const editingMessageId = useEditMessage((s) => s.messageId)
-  useEffect(() => {
-    if (!lastMessageId || editingMessageId) return
+
+  useLayoutEffect(() => {
+    if (!lastMessageId || !editingMessageId) return
+
     if (lastMessageId === editingMessageId) {
-      // scroll to the bottom of the page
       requestAnimationFrame(() => {
-        bottomSentinelRef.current?.scrollIntoView({ behavior: "instant" })
+        bottomSentinelRef.current?.scrollIntoView({ behavior: "instant", block: "end" })
       })
     }
-  }, [lastMessageId])
+  }, [lastMessageId, editingMessageId])
 
   const groupedMessages = useMemo(() => {
     return messages.reduce(

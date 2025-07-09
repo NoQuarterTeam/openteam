@@ -54,9 +54,9 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
 
   useEffect(() => {
     if (isEditing) {
-      setTimeout(() => {
-        inputRef.current?.focus()
-      }, 250)
+      requestAnimationFrame(() => {
+        inputRef.current?.select()
+      })
     }
   }, [isEditing])
   return (
@@ -67,7 +67,18 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
         </div>
         {isEditing ? (
           <form onSubmit={handleSaveChannel} className={cn("flex items-center gap-1", isEditing ? "flex" : "hidden")}>
-            <Input name="name" ref={inputRef} defaultValue={channel.name || ""} className="h-9" />
+            <Input
+              name="name"
+              ref={inputRef}
+              defaultValue={channel.name || ""}
+              className="h-9"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setIsEditing(false)
+                  e.preventDefault()
+                }
+              }}
+            />
             <Button type="submit" className="h-9 md:w-20">
               Save
             </Button>
@@ -115,7 +126,7 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
             <EllipsisVerticalIcon />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" onCloseAutoFocus={(e) => e.preventDefault()}>
           <DropdownMenuItem onClick={() => void toggleMute({ channelId: channel._id })}>
             <BellIcon />
             {channel.isMuted ? "Unmute" : "Mute"}
