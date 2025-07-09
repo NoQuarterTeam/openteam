@@ -3,6 +3,7 @@ import tailwindcss from "@tailwindcss/vite"
 import { defineConfig } from "vite"
 import babel from "vite-plugin-babel"
 import devtoolsJson from "vite-plugin-devtools-json"
+import { VitePWA } from "vite-plugin-pwa"
 import tsconfigPaths from "vite-tsconfig-paths"
 
 export default defineConfig({
@@ -16,6 +17,12 @@ export default defineConfig({
       babelConfig: {
         presets: ["@babel/preset-typescript"],
         plugins: [["babel-plugin-react-compiler"]],
+      },
+    }),
+    VitePWA({
+      registerType: "autoUpdate",
+      devOptions: {
+        enabled: true,
       },
     }),
   ],
