@@ -24,8 +24,9 @@ export default function Component() {
 }
 
 function NotificationHandler() {
-  const { channelId } = useParams<{ channelId: Id<"channels"> }>()
-  const channels = useQuery(api.channels.list)
+  const { channelId, teamId } = useParams<{ channelId: Id<"channels">; teamId: Id<"teams"> }>()
+
+  const channels = useQuery(api.channels.list, teamId ? { teamId } : "skip")
   const user = useQuery(api.auth.loggedInUser)
   const navigate = useNavigate()
   const { sendNotification, requestPermission, isSupported } = useNotifications()
@@ -79,7 +80,7 @@ function NotificationHandler() {
           body,
           channelId: channel._id,
           icon: channel.dmUser ? channel.dmUser.image || undefined : undefined,
-          onClick: () => navigate(`/${channel._id}`),
+          onClick: () => navigate(`/${channel.teamId}/${channel._id}`),
         })
       }
     }

@@ -1,34 +1,43 @@
 import { ConvexError, v } from "convex/values"
+import { getManyVia } from "convex-helpers/server/relationships"
 import type { Id } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
-import { requireUser } from "./auth"
+import { canManageTeam, requireUser } from "./auth"
 
+export const create = mutation({
+  args: { name: v.string() },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx)
+    const team = await ctx.db.insert("teams", {
+      name: args.name,
+      createdBy: user._id,
+    })
+    await ctx.db.insert("userTeams", { userId: user._id, teamId: team, role: "admin" })
+
+    await ctx.db.insert("channels", { name: "general", createdBy: user._id, teamId: team })
+    await ctx.db.insert("channels", { name: user._id, createdBy: user._id, userId: user._id, teamId: team })
+    return team
+  },
+})
 export const update = mutation({
   args: {
+    teamId: v.id("teams"),
     name: v.optional(v.string()),
     image: v.optional(v.id("_storage")),
   },
-  handler: async (ctx, args) => {
-    const user = await requireUser(ctx)
-    if (!user.teamId) throw new ConvexError("User is not part of a team")
+  handler: async (ctx, { teamId, ...input }) => {
+    await canManageTeam(ctx, teamId)
 
-    const team = await ctx.db.get(user.teamId)
-    if (!team) throw new ConvexError("Team not found")
-
-    const existing = await ctx.db.get(team._id)
-
-    if (!existing) throw new ConvexError("User not found")
-
-    return await ctx.db.patch(existing._id, args)
+    return await ctx.db.patch(teamId, input)
   },
 })
 
 export const get = query({
-  handler: async (ctx) => {
-    const user = await requireUser(ctx)
+  args: { teamId: v.id("teams") },
+  handler: async (ctx, args) => {
+    await canManageTeam(ctx, args.teamId)
 
-    if (!user.teamId) throw new ConvexError("User is not part of a team")
-    const team = await ctx.db.get(user.teamId)
+    const team = await ctx.db.get(args.teamId)
     if (!team) throw new ConvexError("Team not found")
 
     let image = null
@@ -37,5 +46,54 @@ export const get = query({
     }
 
     return { ...team, image }
+  },
+})
+export const getPublic = query({
+  args: { teamId: v.id("teams") },
+  handler: async (ctx, args) => {
+    const team = await ctx.db.get(args.teamId)
+    if (!team) throw new ConvexError("Team not found")
+
+    let image = null
+    if (team.image) {
+      image = await ctx.storage.getUrl(team.image as Id<"_storage">)
+    }
+
+    return { ...team, image }
+  },
+})
+
+export const myTeams = query({
+  handler: async (ctx) => {
+    const user = await requireUser(ctx)
+    const teams = await getManyVia(ctx.db, "userTeams", "teamId", "by_user", user._id, "userId")
+    return await Promise.all(
+      teams
+        .filter((team) => !!team)
+        .map(async (team) => ({
+          ...team,
+          image: team.image ? await ctx.storage.getUrl(team.image as Id<"_storage">) : null,
+        })),
+    )
+  },
+})
+
+export const listMembers = query({
+  args: { teamId: v.id("teams") },
+  handler: async (ctx, args) => {
+    await canManageTeam(ctx, args.teamId)
+    const userTeams = await ctx.db
+      .query("userTeams")
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .collect()
+    const members = await Promise.all(
+      userTeams.map(async (ut) => {
+        const user = await ctx.db.get(ut.userId)
+        if (!user) return null
+        const image = user.image ? await ctx.storage.getUrl(user.image) : null
+        return { _id: user._id, name: user.name, email: user.email, image, role: ut.role }
+      }),
+    )
+    return members.filter(Boolean)
   },
 })

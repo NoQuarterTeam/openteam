@@ -20,6 +20,11 @@ const queryClient = new QueryClient({
   },
 })
 convexQueryClient.connect(queryClient)
+
+export function meta(_: Route.MetaArgs) {
+  return [{ title: "OpenTeam" }, { name: "description", content: "OpenTeam" }]
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html suppressHydrationWarning lang="en" className="dark">

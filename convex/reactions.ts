@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values"
 import { mutation } from "./_generated/server"
-import { requireUser } from "./auth"
+import { canManageTeamMessage, requireUser } from "./auth"
 
 export const add = mutation({
   args: {
@@ -8,13 +8,7 @@ export const add = mutation({
     content: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx)
-    if (!user.teamId) throw new ConvexError("User is not part of a team")
-    const message = await ctx.db.get(args.messageId)
-    if (!message) throw new ConvexError("Message not found")
-    const channel = await ctx.db.get(message.channelId)
-    if (!channel) throw new ConvexError("Channel not found")
-    if (channel.teamId !== user.teamId) throw new ConvexError("You are not the author of this message")
+    const user = await canManageTeamMessage(ctx, args.messageId)
 
     return ctx.db.insert("messageReactions", {
       messageId: args.messageId,

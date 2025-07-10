@@ -1,57 +1,63 @@
 import { ConvexError, v } from "convex/values"
 import { mutation, query } from "./_generated/server"
-import { requireUser } from "./auth"
+import { canManageTeam, requireUser } from "./auth"
 
 export const join = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const user = await requireUser(ctx)
+  args: {
+    teamId: v.id("teams"),
+  },
+  handler: async (ctx, args) => {
+    const user = await canManageTeam(ctx, args.teamId)
 
-    if (!user.teamId) throw new ConvexError("User is not part of a team")
-    // Check if user is already in the babble
-    const existingBabbler = await ctx.db
+    // delete all existing babblers for me and this team
+
+    const babblers = await ctx.db
       .query("babblers")
-      .withIndex("by_user_team", (q) => q.eq("userId", user._id).eq("teamId", user.teamId!))
-      .first()
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect()
 
-    if (existingBabbler) throw new ConvexError("You're already in the babble")
+    for (const babbler of babblers) {
+      await ctx.db.delete(babbler._id)
+    }
 
     // Add user as participant
-    await ctx.db.insert("babblers", { userId: user._id, teamId: user.teamId, joinedAt: Date.now() })
+    await ctx.db.insert("babblers", { userId: user._id, teamId: args.teamId, joinedAt: Date.now() })
 
     return null
   },
 })
 
 export const leave = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const user = await requireUser(ctx)
+  args: {
+    teamId: v.id("teams"),
+  },
+  handler: async (ctx, args) => {
+    const user = await canManageTeam(ctx, args.teamId)
 
     // Find user's babbler
     const babbler = await ctx.db
       .query("babblers")
-      .withIndex("by_user_team", (q) => q.eq("userId", user._id).eq("teamId", user.teamId!))
+      .withIndex("by_user_team", (q) => q.eq("userId", user._id).eq("teamId", args.teamId))
       .first()
 
-    if (!babbler) throw new ConvexError("You're not in the babble")
-
-    // Remove user from babblers
-    await ctx.db.delete(babbler._id)
+    if (babbler) {
+      await ctx.db.delete(babbler._id)
+    }
 
     return null
   },
 })
 
 export const getBabblers = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await requireUser(ctx)
+  args: {
+    teamId: v.id("teams"),
+  },
+  handler: async (ctx, args) => {
+    await canManageTeam(ctx, args.teamId)
 
-    if (!user.teamId) throw new ConvexError("User is not part of a team")
     const babblers = await ctx.db
       .query("babblers")
-      .withIndex("by_team", (q) => q.eq("teamId", user.teamId!))
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
       .collect()
 
     const babblersWithUsers = await Promise.all(
@@ -72,19 +78,20 @@ export const sendSignal = mutation({
   args: {
     targetUserId: v.id("users"),
     signal: v.any(),
+    teamId: v.id("teams"),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx)
+    const user = await canManageTeam(ctx, args.teamId)
 
     // Verify both users are in the babble
     const senderBabbler = await ctx.db
       .query("babblers")
-      .withIndex("by_user_team", (q) => q.eq("userId", user._id).eq("teamId", user.teamId!))
+      .withIndex("by_user_team", (q) => q.eq("userId", user._id).eq("teamId", args.teamId))
       .first()
 
     const targetBabbler = await ctx.db
       .query("babblers")
-      .withIndex("by_user_team", (q) => q.eq("userId", args.targetUserId).eq("teamId", user.teamId!))
+      .withIndex("by_user_team", (q) => q.eq("userId", args.targetUserId).eq("teamId", args.teamId))
       .first()
 
     if (!senderBabbler || !targetBabbler) {

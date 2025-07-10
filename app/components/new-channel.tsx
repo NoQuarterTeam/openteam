@@ -1,9 +1,10 @@
 import { useMutation } from "convex/react"
 import { PlusIcon } from "lucide-react"
 import * as React from "react"
-import { useNavigate } from "react-router"
+import { useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
@@ -26,6 +27,7 @@ export function NewChannel() {
 }
 
 export function NewChannelForm(props: { onClose: () => void }) {
+  const { teamId } = useParams<{ teamId: Id<"teams"> }>()
   const [newChannelName, setNewChannelName] = React.useState("")
   const createChannel = useMutation(api.channels.create)
   const navigate = useNavigate()
@@ -33,12 +35,11 @@ export function NewChannelForm(props: { onClose: () => void }) {
   const handleCreateChannel = async (e: React.FormEvent) => {
     e.stopPropagation()
     e.preventDefault()
-    console.log("why")
-
+    if (!teamId) return
     if (!newChannelName.trim()) return
 
     try {
-      const channelId = await createChannel({ name: newChannelName.toLowerCase().trim() })
+      const channelId = await createChannel({ name: newChannelName.toLowerCase().trim(), teamId })
       props.onClose()
       await navigate(`/${channelId}`)
     } catch {

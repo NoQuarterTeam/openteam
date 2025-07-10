@@ -1,30 +1,34 @@
 import { useMutation, useQuery } from "convex/react"
 import { HeadsetIcon, MicIcon, MicOffIcon, PhoneOffIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { useParams } from "react-router"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { WebRTCService } from "@/lib/webrtc"
 import { Avatar } from "./ui/avatar"
 import { Button } from "./ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 
 export function Babble() {
+  const { teamId } = useParams<{ teamId: Id<"teams"> }>()
   const user = useQuery(api.auth.loggedInUser)
   const [isMuted, setIsMuted] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const processedSignalsRef = useRef(new Set<string>())
   const webrtcServiceRef = useRef<WebRTCService | null>(null)
 
-  const babblers = useQuery(api.babbles.getBabblers)
+  const babblers = useQuery(api.babbles.getBabblers, teamId ? { teamId } : "skip")
   const signals = useQuery(api.babbles.getSignals)
 
   const joinBabble = useMutation(api.babbles.join)
   const leaveBabble = useMutation(api.babbles.leave).withOptimisticUpdate((localStore) => {
-    const currentValue = localStore.getQuery(api.babbles.getBabblers)
+    if (!teamId) return
+    const currentValue = localStore.getQuery(api.babbles.getBabblers, { teamId })
     if (currentValue) {
       localStore.setQuery(
         api.babbles.getBabblers,
-        {},
+        { teamId },
         currentValue.filter((babbler) => babbler.userId !== user?._id),
       )
     }
@@ -40,7 +44,8 @@ export function Babble() {
     if (!webrtcServiceRef.current) {
       webrtcServiceRef.current = new WebRTCService({
         onSendSignal: async (targetUserId, signal) => {
-          await sendSignal({ targetUserId, signal })
+          if (!teamId) return
+          await sendSignal({ targetUserId, signal, teamId })
         },
       })
     }
@@ -102,11 +107,12 @@ export function Babble() {
 
   const handleBabbleClick = async () => {
     try {
+      if (!teamId) return
       if (isInBabble) {
         webrtcServiceRef.current?.disconnectAll()
-        await leaveBabble()
+        await leaveBabble({ teamId })
       } else {
-        await joinBabble()
+        await joinBabble({ teamId })
       }
     } catch (error) {
       console.error(error)

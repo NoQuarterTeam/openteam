@@ -1,18 +1,19 @@
 import { ConvexError, v } from "convex/values"
 import dayjs from "dayjs"
 import { mutation, query } from "./_generated/server"
-import { canManageTeamChannel, requireUser } from "./auth"
+import { canManageTeam, canManageTeamChannel, requireUser } from "./auth"
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await requireUser(ctx)
-    if (!user.teamId) throw new ConvexError("User is not part of a team")
+  args: {
+    teamId: v.id("teams"),
+  },
+  handler: async (ctx, args) => {
+    const user = await canManageTeam(ctx, args.teamId)
 
     const [channels, channelOrders] = await Promise.all([
       ctx.db
         .query("channels")
-        .withIndex("by_team", (q) => q.eq("teamId", user.teamId!))
+        .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
         .filter((q) => q.eq(q.field("archivedTime"), undefined))
         .order("asc")
         .collect(),
@@ -92,20 +93,19 @@ export const markAsRead = mutation({
 })
 
 export const create = mutation({
-  args: { name: v.string() },
+  args: { name: v.string(), teamId: v.id("teams") },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx)
+    const user = await canManageTeam(ctx, args.teamId)
 
-    if (!user.teamId) throw new ConvexError("User is not part of a team")
     // Check if channel already exists
     const existing = await ctx.db
       .query("channels")
-      .withIndex("by_team_name", (q) => q.eq("teamId", user.teamId!).eq("name", args.name))
+      .withIndex("by_team_name", (q) => q.eq("teamId", args.teamId).eq("name", args.name))
       .first()
 
     if (existing) throw new ConvexError("Channel already exists with this name")
 
-    const channelId = await ctx.db.insert("channels", { name: args.name, createdBy: user._id, teamId: user.teamId })
+    const channelId = await ctx.db.insert("channels", { name: args.name, createdBy: user._id, teamId: args.teamId })
 
     // Get the current max order for this user and add the new channel at the end
     const userChannelOrders = await ctx.db
@@ -124,7 +124,7 @@ export const create = mutation({
 export const update = mutation({
   args: { channelId: v.id("channels"), name: v.optional(v.string()), archivedTime: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    await requireUser(ctx)
+    await canManageTeamChannel(ctx, args.channelId)
 
     const channel = await ctx.db.get(args.channelId)
     if (!channel) throw new ConvexError("Channel not found")
@@ -203,12 +203,18 @@ export const updateOrder = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx)
+    const userTeams = await ctx.db
+      .query("userTeams")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect()
 
     // Update or create channel orders for the user
     for (const { channelId, order } of args.channelOrders) {
       const channel = await ctx.db.get(channelId)
       if (!channel) throw new ConvexError("Channel not found")
-      if (channel.teamId !== user.teamId) throw new ConvexError("You are not the author of this channel")
+      if (!userTeams.find((userTeam) => userTeam.teamId === channel.teamId)) {
+        throw new ConvexError("You are not the author of this channel")
+      }
 
       const existingOrder = await ctx.db
         .query("channelOrders")

@@ -1,9 +1,10 @@
 import { convexQuery } from "@convex-dev/react-query"
-import { DragDropContext, Draggable, Droppable, type DropResult, type Id } from "@hello-pangea/dnd"
+import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd"
 import { useQueryClient } from "@tanstack/react-query"
 import { useMutation, useQuery } from "convex/react"
 import { useNavigate, useParams } from "react-router"
 import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { useIsMobile } from "@/lib/use-mobile"
 import { cn } from "@/lib/utils"
 import { NewChannel } from "./new-channel"
@@ -11,10 +12,14 @@ import { Avatar } from "./ui/avatar"
 import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, useSidebar } from "./ui/sidebar"
 
 export function NavChannels() {
-  const { channelId } = useParams<{ channelId: Id<"channels"> }>()
-  const channels = useQuery(api.channels.list)
+  const { channelId, teamId } = useParams<{ channelId: Id<"channels">; teamId: Id<"teams"> }>()
+
+  const channels = useQuery(api.channels.list, teamId ? { teamId } : "skip")
   const updateChannelOrder = useMutation(api.channels.updateOrder).withOptimisticUpdate((localStore, args) => {
-    const currentValue = localStore.getQuery(api.channels.list, {})
+    if (!teamId) return
+    const currentValue = localStore.getQuery(api.channels.list, {
+      teamId,
+    })
     if (currentValue && args.channelOrders) {
       // Create a map of new orders
       const orderMap = new Map(args.channelOrders.map((order) => [order.channelId, order.order]))
@@ -26,7 +31,7 @@ export function NavChannels() {
         return orderA - orderB
       })
 
-      localStore.setQuery(api.channels.list, {}, sortedChannels)
+      localStore.setQuery(api.channels.list, { teamId }, sortedChannels)
     }
   })
 
@@ -83,6 +88,7 @@ interface ChannelItemProps {
 
 function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
   const navigate = useNavigate()
+  const { teamId } = useParams<{ teamId: Id<"teams"> }>()
 
   const queryClient = useQueryClient()
 
@@ -90,7 +96,8 @@ function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
   const sidebar = useSidebar()
 
   const onChannelClick = () => {
-    navigate(`/${channel._id}`)
+    if (!teamId) return
+    navigate(`/${teamId}/${channel._id}`)
     if (isMobile) sidebar.setOpenMobile(false)
   }
 

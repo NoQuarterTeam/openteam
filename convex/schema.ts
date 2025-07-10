@@ -4,6 +4,20 @@ import { v } from "convex/values"
 
 export default defineSchema({
   ...authTables,
+  users: defineTable({
+    name: v.string(),
+    image: v.optional(v.id("_storage")),
+    email: v.string(),
+    emailVerificationTime: v.optional(v.number()),
+    phone: v.optional(v.string()),
+    teamId: v.optional(v.id("teams")),
+    phoneVerificationTime: v.optional(v.number()),
+    githubId: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+  })
+    .index("email", ["email"])
+    .index("phone", ["phone"])
+    .searchIndex("search_name", { searchField: "name" }),
 
   teams: defineTable({
     name: v.string(),
@@ -12,6 +26,15 @@ export default defineSchema({
   })
     .index("by_name", ["name"])
     .index("by_user", ["createdBy"]),
+
+  userTeams: defineTable({
+    userId: v.id("users"),
+    teamId: v.id("teams"),
+    role: v.union(v.literal("admin"), v.literal("member")),
+  })
+    .index("by_user_team", ["userId", "teamId"])
+    .index("by_user", ["userId"])
+    .index("by_team", ["teamId"]),
 
   channels: defineTable({
     name: v.string(),
@@ -103,19 +126,4 @@ export default defineSchema({
   })
     .index("by_thread", ["threadId"])
     .index("by_user", ["userId"]),
-
-  users: defineTable({
-    name: v.string(),
-    image: v.optional(v.id("_storage")),
-    email: v.string(),
-    emailVerificationTime: v.optional(v.number()),
-    phone: v.optional(v.string()),
-    phoneVerificationTime: v.optional(v.number()),
-    githubId: v.optional(v.number()),
-    teamId: v.optional(v.id("teams")),
-    isAnonymous: v.optional(v.boolean()),
-  })
-    .index("email", ["email"])
-    .index("phone", ["phone"])
-    .searchIndex("search_name", { searchField: "name" }),
 })

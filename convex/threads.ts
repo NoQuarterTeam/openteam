@@ -1,7 +1,7 @@
 import { paginationOptsValidator } from "convex/server"
 import { ConvexError, v } from "convex/values"
 import { mutation, query } from "./_generated/server"
-import { requireUser } from "./auth"
+import { canManageTeamChannel, requireUser } from "./auth"
 import type { OptimisticStatus } from "./optimistic"
 
 export const create = mutation({
@@ -34,17 +34,13 @@ export const create = mutation({
 export const get = query({
   args: { threadId: v.id("threads") },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx)
-
     const thread = await ctx.db.get(args.threadId)
     if (!thread) throw new ConvexError("Thread not found")
 
     const parentMessage = await ctx.db.get(thread.parentMessageId)
     if (!parentMessage) throw new ConvexError("Parent message not found")
 
-    const channel = await ctx.db.get(parentMessage.channelId)
-    if (!channel) throw new ConvexError("Channel not found")
-    if (channel.teamId !== user.teamId) throw new ConvexError("You are not the author of this message")
+    await canManageTeamChannel(ctx, thread.channelId)
 
     // Get author and files for parent message
     const [author, reactions, files] = await Promise.all([
@@ -100,14 +96,13 @@ export const get = query({
 export const listMessages = query({
   args: { threadId: v.id("threads"), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx)
-
     const thread = await ctx.db.get(args.threadId)
     if (!thread) throw new ConvexError("Thread not found")
 
-    const channel = await ctx.db.get(thread.channelId)
-    if (!channel) throw new ConvexError("Channel not found")
-    if (channel.teamId !== user.teamId) throw new ConvexError("You are not the author of this message")
+    const parentMessage = await ctx.db.get(thread.parentMessageId)
+    if (!parentMessage) throw new ConvexError("Parent message not found")
+
+    await canManageTeamChannel(ctx, thread.channelId)
 
     const result = await ctx.db
       .query("messages")

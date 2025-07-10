@@ -1,8 +1,9 @@
 import { useQuery } from "convex/react"
 import { FileIcon, PlusIcon } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router"
+import { useNavigate, useParams } from "react-router"
 import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { useRecentChannels } from "@/lib/use-recent-channels"
 import { NewChannelForm } from "./new-channel"
 import { Avatar } from "./ui/avatar"
@@ -13,7 +14,8 @@ import { WithState } from "./with-state"
 
 export function CommandCenter() {
   const navigate = useNavigate()
-  const channels = useQuery(api.channels.list) || []
+  const { teamId } = useParams<{ teamId: Id<"teams"> }>()
+  const channels = useQuery(api.channels.list, teamId ? { teamId } : "skip") || []
   const [search, setSearch] = useState("")
   const recentChannelIds = useRecentChannels((s) => s.channels)
   const [open, setOpen] = useState(false)

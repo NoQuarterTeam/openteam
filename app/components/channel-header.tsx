@@ -1,9 +1,10 @@
 import { useMutation } from "convex/react"
 import { BellIcon, BellOffIcon, EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { useNavigate } from "react-router"
+import { useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { cn } from "@/lib/utils"
 import { Avatar } from "./ui/avatar"
 import { Button } from "./ui/button"
@@ -15,17 +16,19 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 type ChannelData = NonNullable<typeof api.channels.get._returnType>
 
 export function ChannelHeader({ channel }: { channel: ChannelData }) {
+  const { teamId } = useParams<{ teamId: Id<"teams"> }>()
   const [isEditing, setIsEditing] = useState(false)
   const navigate = useNavigate()
 
   const archiveChannel = useMutation(api.channels.update)
   const updateChannel = useMutation(api.channels.update)
   const toggleMute = useMutation(api.channels.toggleMute).withOptimisticUpdate((localStore, args) => {
-    const currentValue = localStore.getQuery(api.channels.list, {})
+    if (!teamId) return
+    const currentValue = localStore.getQuery(api.channels.list, { teamId })
     if (currentValue) {
       localStore.setQuery(
         api.channels.list,
-        {},
+        { teamId },
         currentValue.map((c) => (c._id === args.channelId ? { ...c, isMuted: !c.isMuted } : c)),
       )
     }
