@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 
 export function Babble() {
   const { teamId } = useParams<{ teamId: Id<"teams"> }>()
-  const user = useQuery(api.auth.loggedInUser)
+  const user = useQuery(api.auth.me)
   const [isMuted, setIsMuted] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const processedSignalsRef = useRef(new Set<string>())

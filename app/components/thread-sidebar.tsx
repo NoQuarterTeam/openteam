@@ -41,7 +41,7 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
 
   const messages = useMemo(() => [...results].reverse(), [results])
 
-  const user = useConvexQuery(api.auth.loggedInUser)
+  const user = useConvexQuery(api.auth.me)
   const lastMessageOfUser = messages?.findLast((message) => message.authorId === user?._id)
 
   const handleScroll = useCallback(() => {

@@ -7,7 +7,7 @@ export const join = mutation({
     teamId: v.id("teams"),
   },
   handler: async (ctx, args) => {
-    const user = await canManageTeam(ctx, args.teamId)
+    const { user } = await canManageTeam(ctx, args.teamId)
 
     // delete all existing babblers for me and this team
 
@@ -32,7 +32,7 @@ export const leave = mutation({
     teamId: v.id("teams"),
   },
   handler: async (ctx, args) => {
-    const user = await canManageTeam(ctx, args.teamId)
+    const { user } = await canManageTeam(ctx, args.teamId)
 
     // Find user's babbler
     const babbler = await ctx.db
@@ -81,7 +81,7 @@ export const sendSignal = mutation({
     teamId: v.id("teams"),
   },
   handler: async (ctx, args) => {
-    const user = await canManageTeam(ctx, args.teamId)
+    const { user } = await canManageTeam(ctx, args.teamId)
 
     // Verify both users are in the babble
     const senderBabbler = await ctx.db

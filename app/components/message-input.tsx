@@ -29,7 +29,7 @@ export function MessageInput({
   const [newMessage, setNewMessage] = useState("")
   const [filePreviews, setFilePreviews] = useState<{ id: string; file: File; url: string; storageId?: Id<"_storage"> }[]>([])
 
-  const user = useQuery(api.auth.loggedInUser)
+  const user = useQuery(api.auth.me)
 
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate((localStore, args) => {
     const { content } = args

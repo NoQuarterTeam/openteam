@@ -82,7 +82,7 @@ function SidebarProvider({
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
+      if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey) && event.shiftKey) {
         event.preventDefault()
         toggleSidebar()
       }
@@ -249,6 +249,7 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
       <TooltipContent className="!py-0 px-2.5">
         <div className="flex items-center gap-1">
           <kbd className="text-lg">⌘</kbd>
+          <kbd className="text-lg">⇧</kbd>
           <kbd className="text-sm">B</kbd>
         </div>
       </TooltipContent>

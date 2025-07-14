@@ -23,8 +23,8 @@ export default function Page() {
     )
   }
   return (
-    <div className="flex h-svh flex-col items-center justify-center">
-      <div className="w-full max-w-md space-y-4 rounded-lg border p-4">
+    <div className="pt-4 md:pt-20">
+      <div className="mx-auto w-full max-w-md space-y-4 rounded-xl border p-4">
         <div className="flex flex-row items-center gap-4">
           <Avatar image={team.image} name={team.name} className="size-12" />
           <h1 className="font-semibold text-2xl">{team.name}</h1>
@@ -41,9 +41,9 @@ export default function Page() {
         >
           <input type="hidden" name="flow" value="signUp" />
           <input type="hidden" name="teamId" value={team._id} />
-          <Input name="name" type="text" placeholder="Name" autoFocus />
-          <Input name="email" type="email" placeholder="Email" />
-          <Input name="password" type="password" placeholder="*********" />
+          <Input required name="name" type="text" placeholder="Name" autoFocus />
+          <Input required name="email" type="email" placeholder="Email" />
+          <Input required name="password" type="password" placeholder="*********" />
           <Button type="submit" className="w-full">
             Join
           </Button>

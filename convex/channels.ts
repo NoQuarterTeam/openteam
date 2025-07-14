@@ -8,7 +8,7 @@ export const list = query({
     teamId: v.id("teams"),
   },
   handler: async (ctx, args) => {
-    const user = await canManageTeam(ctx, args.teamId)
+    const { user } = await canManageTeam(ctx, args.teamId)
 
     const [channels, channelOrders] = await Promise.all([
       ctx.db
@@ -95,7 +95,7 @@ export const markAsRead = mutation({
 export const create = mutation({
   args: { name: v.string(), teamId: v.id("teams") },
   handler: async (ctx, args) => {
-    const user = await canManageTeam(ctx, args.teamId)
+    const { user } = await canManageTeam(ctx, args.teamId)
 
     // Check if channel already exists
     const existing = await ctx.db

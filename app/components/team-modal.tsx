@@ -7,15 +7,18 @@ import { toast } from "sonner"
 import type { Id } from "@/convex/_generated/dataModel"
 import { api } from "../../convex/_generated/api"
 import { Avatar } from "./ui/avatar"
+import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "./ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "./ui/dialog"
 import { DropdownMenuItem } from "./ui/dropdown-menu"
 import { Input } from "./ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -27,6 +30,7 @@ export function TeamModal() {
   const [open, setOpen] = useState(false)
   const [sidebarTab, setSidebarTab] = useState<"info" | "members">("info")
 
+  const user = useQuery(api.auth.me)
   const [isUpdating, setIsUpdating] = useState(false)
   const team = useQuery(api.teams.get, teamId ? { teamId } : "skip")
   const members = useQuery(api.teams.listMembers, teamId ? { teamId } : "skip")
@@ -54,6 +58,8 @@ export function TeamModal() {
       setIsUpdating(false)
     }
   }
+
+  const updateUserRoleMutation = useMutation(api.users.updateUserRole)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const selectedFile = acceptedFiles[0]
@@ -89,30 +95,32 @@ export function TeamModal() {
       <DialogTrigger asChild>
         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
           <UsersIcon />
-          Team
+          Team Settings
         </DropdownMenuItem>
       </DialogTrigger>
       <DialogContent className="overflow-hidden p-0 md:max-h-[500px] md:max-w-[700px] lg:max-w-[800px]">
         <DialogTitle className="sr-only">Team Settings</DialogTitle>
         <DialogDescription className="sr-only">Update your team information and view members.</DialogDescription>
         <SidebarProvider className="items-start">
-          <Sidebar collapsible="none" className="hidden md:flex">
-            <SidebarContent>
+          <Sidebar collapsible="none">
+            <SidebarContent className="border-r py-3">
+              <SidebarGroup>
+                <SidebarGroupLabel>
+                  <Avatar image={team?.image} name={team?.name || ""} className="size-6 rounded-sm" />
+                  <span className="pl-2 font-medium text-sm">{team?.name}</span>
+                </SidebarGroupLabel>
+              </SidebarGroup>
               <SidebarGroup>
                 <SidebarGroupContent>
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={sidebarTab === "info"}>
-                        <button type="button" onClick={() => setSidebarTab("info")} className="flex w-full items-center gap-2">
-                          <span>Info</span>
-                        </button>
+                      <SidebarMenuButton isActive={sidebarTab === "info"} onClick={() => setSidebarTab("info")}>
+                        Info
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={sidebarTab === "members"}>
-                        <button type="button" onClick={() => setSidebarTab("members")} className="flex w-full items-center gap-2">
-                          <span>Members</span>
-                        </button>
+                      <SidebarMenuButton isActive={sidebarTab === "members"} onClick={() => setSidebarTab("members")}>
+                        Members
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </SidebarMenu>
@@ -120,11 +128,11 @@ export function TeamModal() {
               </SidebarGroup>
             </SidebarContent>
           </Sidebar>
-          <main className="flex h-[480px] flex-1 flex-col overflow-hidden">
+          <main className="flex h-[480px] flex-1 flex-col overflow-hidden pt-2">
             <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
               {sidebarTab === "info" && (
                 <>
-                  <div className="mb-4 flex items-center justify-between">
+                  <div className="mb-4 flex items-center justify-between border-b pb-4">
                     <DialogTitle>Info</DialogTitle>
                   </div>
                   {/* Avatar Section */}
@@ -161,11 +169,6 @@ export function TeamModal() {
                     </div>
                     {/* Buttons */}
                     <DialogFooter>
-                      <DialogClose asChild>
-                        <Button type="button" onClick={() => setOpen(false)} variant="outline">
-                          Cancel
-                        </Button>
-                      </DialogClose>
                       <Button type="submit" disabled={!name || name === team?.name || isUpdating}>
                         {isUpdating ? "Saving..." : "Save"}
                       </Button>
@@ -175,7 +178,7 @@ export function TeamModal() {
               )}
               {sidebarTab === "members" && (
                 <div>
-                  <div className="mb-4 flex items-center justify-between">
+                  <div className="mb-4 flex items-center justify-between border-b pb-4">
                     <DialogTitle>Members</DialogTitle>
                   </div>
                   <div className="mb-4">
@@ -194,17 +197,35 @@ export function TeamModal() {
                       </Button>
                     </div>
                   </div>
-                  <ul className="space-y-3">
-                    {members?.map((member: any) => (
-                      <li key={member._id} className="flex items-center gap-3 rounded p-2 hover:bg-muted/30">
+                  <ul className="space-y-2">
+                    {members?.map((member) => (
+                      <li key={member._id} className="flex items-center gap-3">
                         <Avatar image={member.image} name={member.name} className="size-8 rounded-full" />
                         <div className="flex-1">
                           <div className="font-medium">{member.name}</div>
                           <div className="text-muted-foreground text-xs">{member.email}</div>
                         </div>
-                        <span className="rounded bg-muted px-2 py-0.5 text-muted-foreground text-xs capitalize">
-                          {member.role}
-                        </span>
+
+                        {member._id === team?.createdBy?._id && <Badge>Owner</Badge>}
+
+                        <Select
+                          value={member.role}
+                          disabled={
+                            member._id === team?.createdBy?._id ||
+                            user?.userTeams.find((ut) => ut.teamId === teamId)?.role === "member"
+                          }
+                          onValueChange={(value) => {
+                            updateUserRoleMutation({ userTeamId: member.userTeamId, role: value as "admin" | "member" })
+                          }}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="member">Member</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </li>
                     ))}
                   </ul>

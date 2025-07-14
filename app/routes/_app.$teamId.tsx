@@ -27,7 +27,7 @@ function NotificationHandler() {
   const { channelId, teamId } = useParams<{ channelId: Id<"channels">; teamId: Id<"teams"> }>()
 
   const channels = useQuery(api.channels.list, teamId ? { teamId } : "skip")
-  const user = useQuery(api.auth.loggedInUser)
+  const user = useQuery(api.auth.me)
   const navigate = useNavigate()
   const { sendNotification, requestPermission, isSupported } = useNotifications()
 

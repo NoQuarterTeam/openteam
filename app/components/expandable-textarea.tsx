@@ -109,7 +109,7 @@ export function ExpandableTextarea({
         }
 
         // Bold (Cmd/Ctrl + B)
-        if (event.key === "b" && (event.metaKey || event.ctrlKey)) {
+        if (event.key === "b" && (event.metaKey || event.ctrlKey) && !event.shiftKey) {
           wrapText("**")
         }
 

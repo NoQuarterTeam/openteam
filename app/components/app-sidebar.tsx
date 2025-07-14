@@ -42,7 +42,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="!px-2 w-full justify-between">
+            <Button variant="outline" className="!pl-1 w-full justify-between">
               <div className="flex items-center gap-2">
                 <Avatar
                   image={activeTeam?.image}
@@ -56,7 +56,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="min-w-(--radix-dropdown-menu-trigger-width)">
             {teams?.map((team, i) => (
-              <DropdownMenuItem onClick={() => navigate(`/${team._id}`)} key={team._id} className="justify-between">
+              <DropdownMenuItem
+                onClick={() => {
+                  localStorage.setItem("defaultTeamId", JSON.stringify(team._id))
+                  navigate(`/${team._id}`)
+                }}
+                key={team._id}
+                className="justify-between"
+              >
                 <div className="flex items-center gap-2">
                   <Avatar image={team.image} className="size-6 shrink-0 rounded-sm border object-cover" name={team.name || ""} />
                   {team.name}

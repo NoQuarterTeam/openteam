@@ -8,12 +8,8 @@ export const create = mutation({
   args: { name: v.string() },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx)
-    const team = await ctx.db.insert("teams", {
-      name: args.name,
-      createdBy: user._id,
-    })
+    const team = await ctx.db.insert("teams", { name: args.name, createdBy: user._id })
     await ctx.db.insert("userTeams", { userId: user._id, teamId: team, role: "admin" })
-
     await ctx.db.insert("channels", { name: "general", createdBy: user._id, teamId: team })
     await ctx.db.insert("channels", { name: user._id, createdBy: user._id, userId: user._id, teamId: team })
     return team
@@ -35,17 +31,15 @@ export const update = mutation({
 export const get = query({
   args: { teamId: v.id("teams") },
   handler: async (ctx, args) => {
-    await canManageTeam(ctx, args.teamId)
-
-    const team = await ctx.db.get(args.teamId)
-    if (!team) throw new ConvexError("Team not found")
+    const { team } = await canManageTeam(ctx, args.teamId)
 
     let image = null
     if (team.image) {
       image = await ctx.storage.getUrl(team.image as Id<"_storage">)
     }
+    const createdBy = await ctx.db.get(team.createdBy)
 
-    return { ...team, image }
+    return { ...team, image, createdBy }
   },
 })
 export const getPublic = query({
@@ -91,7 +85,7 @@ export const listMembers = query({
         const user = await ctx.db.get(ut.userId)
         if (!user) return null
         const image = user.image ? await ctx.storage.getUrl(user.image) : null
-        return { _id: user._id, name: user.name, email: user.email, image, role: ut.role }
+        return { _id: user._id, name: user.name, email: user.email, image, role: ut.role, userTeamId: ut._id }
       }),
     )
     return members.filter(Boolean)

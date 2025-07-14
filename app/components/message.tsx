@@ -35,7 +35,7 @@ export const Message = memo(function _Message({
   isThreadParentMessage = false,
   isThreadMessage = false,
 }: Props) {
-  const user = useQuery(api.auth.loggedInUser)
+  const user = useQuery(api.auth.me)
   const isMobile = useIsMobile()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const [isToolbarVisible, setIsToolbarVisible] = useState(false)

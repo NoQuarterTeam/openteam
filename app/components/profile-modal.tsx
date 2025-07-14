@@ -13,7 +13,7 @@ import { Input } from "./ui/input"
 
 export function ProfileModal() {
   const [open, setOpen] = useState(false)
-  const user = useQuery(api.auth.loggedInUser)
+  const user = useQuery(api.auth.me)
 
   const [name, setName] = useState(user?.name || user?.email || "")
   const [isUpdating, setIsUpdating] = useState(false)

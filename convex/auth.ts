@@ -94,14 +94,19 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   },
 })
 
-export const loggedInUser = query({
+export const me = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return null
     const user = await ctx.db.get(userId)
     if (!user) return null
 
-    return { ...user, image: user.image ? await ctx.storage.getUrl(user.image) : null }
+    const userTeams = await ctx.db
+      .query("userTeams")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect()
+
+    return { ...user, image: user.image ? await ctx.storage.getUrl(user.image) : null, userTeams }
   },
 })
 
@@ -115,13 +120,15 @@ export const requireUser = async (ctx: MutationCtx | QueryCtx) => {
 
 export const canManageTeam = async (ctx: MutationCtx | QueryCtx, teamId: Id<"teams">) => {
   const user = await requireUser(ctx)
+  const team = await ctx.db.get(teamId)
+  if (!team) throw new ConvexError("Team not found")
   const userTeam = await ctx.db
     .query("userTeams")
     .withIndex("by_user_team", (q) => q.eq("userId", user._id).eq("teamId", teamId))
     .first()
 
   if (!userTeam) throw new ConvexError("User does not have access to this team")
-  return user
+  return { user, team, userTeam }
 }
 
 export const canManageTeamChannel = async (ctx: MutationCtx | QueryCtx, channelId: Id<"channels">) => {

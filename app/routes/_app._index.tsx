@@ -32,7 +32,9 @@ function useLocalStorage<T>(key: string, defaultValue: T) {
   useEffect(() => {
     const storedValue = localStorage.getItem(key)
     if (storedValue) {
-      setValue(JSON.parse(storedValue) as T)
+      try {
+        setValue(JSON.parse(storedValue) as T)
+      } catch {}
     }
   }, [key])
 

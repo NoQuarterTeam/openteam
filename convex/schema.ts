@@ -19,6 +19,15 @@ export default defineSchema({
     .index("phone", ["phone"])
     .searchIndex("search_name", { searchField: "name" }),
 
+  // invites: defineTable({
+  //   email: v.string(),
+  //   role: v.union(v.literal("admin"), v.literal("member")),
+  //   teamId: v.id("teams"),
+  //   createdBy: v.id("users"),
+  // })
+  //   .index("by_team", ["teamId"])
+  //   .index("by_user", ["createdBy"]),
+
   teams: defineTable({
     name: v.string(),
     image: v.optional(v.id("_storage")),

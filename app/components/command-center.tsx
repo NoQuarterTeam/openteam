@@ -90,6 +90,10 @@ export function CommandCenter() {
                     />
                   </PopoverContent>
                 </Popover>
+                <CommandItem onSelect={() => navigate("/create-team")}>
+                  <PlusIcon className="size-4" />
+                  New team
+                </CommandItem>
               </CommandGroup>
             )}
           </WithState>

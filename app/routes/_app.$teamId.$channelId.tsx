@@ -22,7 +22,7 @@ dayjs.extend(advancedFormat)
 export default function Component() {
   const { channelId } = useParams<{ channelId: Id<"channels"> }>()
 
-  const user = useQuery(api.auth.loggedInUser)
+  const user = useQuery(api.auth.me)
   const { data: currentChannel } = useQueryTanstack(convexQuery(api.channels.get, { channelId: channelId! }))
   // Initial page load
   const { results, loadMore, status } = usePaginatedQuery(

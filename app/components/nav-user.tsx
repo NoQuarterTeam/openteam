@@ -19,7 +19,7 @@ import { TeamModal } from "./team-modal"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
 export function NavUser() {
-  const user = useQuery(api.auth.loggedInUser)
+  const user = useQuery(api.auth.me)
   const { isMobile } = useSidebar()
   const actions = useAuthActions()
 
