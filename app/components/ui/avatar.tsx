@@ -12,10 +12,7 @@ export function Avatar({ image, name, className, style }: AvatarProps) {
     <img src={image} className={cn("flex-shrink-0 rounded-lg object-cover", className)} style={style} alt={name} />
   ) : (
     <div
-      className={cn(
-        "flex flex-shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground text-sm",
-        className,
-      )}
+      className={cn("flex flex-shrink-0 items-center justify-center rounded-lg bg-muted text-sm text-white", className)}
       style={style}
     >
       {name.charAt(0)}
