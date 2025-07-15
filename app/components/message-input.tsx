@@ -1,7 +1,9 @@
 import { insertAtPosition, useMutation, useQuery } from "convex/react"
 import { ArrowRightIcon, PlusIcon, XIcon } from "lucide-react"
+import posthog from "posthog-js"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useDropzone } from "react-dropzone"
+import { useParams } from "react-router"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -26,6 +28,7 @@ export function MessageInput({
   threadId?: Id<"threads">
   lastMessageIdOfUser?: Id<"messages">
 }) {
+  const { teamId } = useParams<{ teamId: Id<"teams"> }>()
   const [newMessage, setNewMessage] = useState("")
   const [filePreviews, setFilePreviews] = useState<{ id: string; file: File; url: string; storageId?: Id<"_storage"> }[]>([])
 
@@ -126,6 +129,7 @@ export function MessageInput({
 
       setFilePreviews([])
       setNewMessage("")
+      posthog.capture("message_sent", { channelId, teamId, threadId })
       void sendMessage({
         channelId,
         content: newMessage.trim(),
@@ -139,6 +143,8 @@ export function MessageInput({
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const newPreviews = acceptedFiles.map((file) => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) }))
     setFilePreviews((prev) => [...prev, ...newPreviews])
+
+    posthog.capture("files_uploaded", { teamId, channelId, threadId })
 
     const newFiles = await Promise.all(
       newPreviews.map(async ({ id, file, url }) => {

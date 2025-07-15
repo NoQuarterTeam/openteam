@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "convex/react"
 import { HeadsetIcon, MicIcon, MicOffIcon, PhoneOffIcon } from "lucide-react"
+import posthog from "posthog-js"
 import { useEffect, useRef, useState } from "react"
 import { useParams } from "react-router"
 import { toast } from "sonner"
@@ -112,6 +113,7 @@ export function Babble() {
         webrtcServiceRef.current?.disconnectAll()
         await leaveBabble({ teamId })
       } else {
+        posthog.capture("babble_joined", { teamId })
         await joinBabble({ teamId })
       }
     } catch (error) {

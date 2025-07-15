@@ -1,8 +1,9 @@
 import { optimisticallyUpdateValueInPaginatedQuery, useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
 import { ChevronDownIcon, Edit2Icon, MessageSquareTextIcon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
+import posthog from "posthog-js"
 import { memo, useEffect, useRef, useState } from "react"
-import { useSearchParams } from "react-router"
+import { useParams, useSearchParams } from "react-router"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -36,6 +37,7 @@ export const Message = memo(function _Message({
   isThreadParentMessage = false,
   isThreadMessage = false,
 }: Props) {
+  const { teamId } = useParams<{ teamId: Id<"teams"> }>()
   const user = useQuery(api.auth.me)
   const isMobile = useIsMobile()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
@@ -46,6 +48,7 @@ export const Message = memo(function _Message({
   const handleCreateThread = async (messageId: Id<"messages">) => {
     try {
       const threadId = await createThread({ parentMessageId: messageId })
+      posthog.capture("thread_created", { channelId: message.channelId, teamId })
       setSearchParams((searchParams) => {
         searchParams.set("threadId", threadId)
         return searchParams
@@ -254,8 +257,10 @@ export const Message = memo(function _Message({
                           if (!user) return
                           const existingReaction = message.reactions.find((r) => r.content === content && r.userId === user._id)
                           if (existingReaction) {
+                            posthog.capture("reaction_removed", { channelId: message.channelId, teamId })
                             removeReaction({ reactionId: existingReaction._id })
                           } else {
+                            posthog.capture("reaction_added", { channelId: message.channelId, teamId })
                             addReaction({ messageId: message._id, content })
                           }
                         }}
@@ -294,8 +299,10 @@ export const Message = memo(function _Message({
                             if (!user) return
                             const existingReaction = message.reactions.find((r) => r.content === emoji && r.userId === user._id)
                             if (existingReaction) {
+                              posthog.capture("reaction_removed", { channelId: message.channelId, teamId })
                               removeReaction({ reactionId: existingReaction._id })
                             } else {
+                              posthog.capture("reaction_added", { channelId: message.channelId, teamId })
                               addReaction({ messageId: message._id, content: emoji })
                             }
                             setState(false)
@@ -350,6 +357,7 @@ export const Message = memo(function _Message({
                 variant="ghost"
                 onClick={() => {
                   if (window.confirm("Are you sure you want to delete this message?")) {
+                    posthog.capture("message_deleted", { channelId: message.channelId, teamId })
                     deleteMessage({ messageId: message._id })
                   }
                 }}
@@ -373,8 +381,10 @@ export const Message = memo(function _Message({
                   if (!user) return
                   const existingReaction = message.reactions.find((r) => r.content === emoji && r.userId === user._id)
                   if (existingReaction) {
+                    posthog.capture("reaction_removed", { channelId: message.channelId, teamId })
                     removeReaction({ reactionId: existingReaction._id })
                   } else {
+                    posthog.capture("reaction_added", { channelId: message.channelId, teamId })
                     addReaction({ messageId: message._id, content: emoji })
                   }
                   setIsPopoverOpen(false)
@@ -421,6 +431,7 @@ function MessageFile({ file, className }: { file: MessageFileType; className?: s
 }
 
 function MessageEditor({ message }: { message: MessageData }) {
+  const { teamId } = useParams<{ teamId: Id<"teams"> }>()
   const updateMessage = useMutation(api.messages.update).withOptimisticUpdate((localStore, args) => {
     if (message.threadId) {
       optimisticallyUpdateValueInPaginatedQuery(
@@ -465,6 +476,7 @@ function MessageEditor({ message }: { message: MessageData }) {
     e.preventDefault()
     formRef.current?.reset()
     onClose()
+    posthog.capture("message_edited", { channelId: message.channelId, teamId })
     await updateMessage({ messageId: message._id, content: input })
   }
 

@@ -1,5 +1,6 @@
 import { useMutation } from "convex/react"
 import { PlusIcon } from "lucide-react"
+import posthog from "posthog-js"
 import * as React from "react"
 import { useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
@@ -41,6 +42,7 @@ export function NewChannelForm(props: { onClose: () => void }) {
     try {
       const channelId = await createChannel({ name: newChannelName.toLowerCase().trim(), teamId })
       props.onClose()
+      posthog.capture("channel_created", { teamId })
       await navigate(`/${teamId}/${channelId}`)
     } catch {
       toast.error("Failed to create channel")

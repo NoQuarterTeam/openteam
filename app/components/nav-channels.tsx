@@ -2,6 +2,7 @@ import { convexQuery } from "@convex-dev/react-query"
 import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd"
 import { useQueryClient } from "@tanstack/react-query"
 import { useMutation, useQuery } from "convex/react"
+import posthog from "posthog-js"
 import { useNavigate, useParams } from "react-router"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -51,6 +52,7 @@ export function NavChannels() {
     // Generate new orders
     const channelOrders = reorderedChannels.map((channel, index) => ({ channelId: channel._id, order: index }))
 
+    posthog.capture("channels_reordered", { teamId })
     void updateChannelOrder({ channelOrders })
   }
 

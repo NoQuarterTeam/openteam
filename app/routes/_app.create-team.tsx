@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "convex/react"
 import { ChevronRightIcon, XIcon } from "lucide-react"
+import posthog from "posthog-js"
 import { Link, useNavigate } from "react-router"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -17,6 +18,7 @@ export default function Page() {
     const name = formData.get("name") as string
     const team = await createTeam({ name })
 
+    posthog.capture("team_created", { teamId: team, teamName: name })
     navigate(`/${team}`)
   }
 

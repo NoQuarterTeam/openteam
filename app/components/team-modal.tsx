@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "convex/react"
 import { CopyIcon, UsersIcon } from "lucide-react"
+import posthog from "posthog-js"
 import { useCallback, useEffect, useId, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { useParams } from "react-router"
@@ -50,6 +51,7 @@ export function TeamModal() {
     setIsUpdating(true)
     try {
       if (!teamId) return
+      posthog.capture("team_info_updated", { teamId })
       await updateTeam({ name: name.trim(), teamId })
       toast.success("Team updated!")
     } catch {
@@ -76,6 +78,7 @@ export function TeamModal() {
 
     const { storageId } = (await result.json()) as { storageId: Id<"_storage"> }
     if (!teamId) return
+    posthog.capture("team_image_updated", { teamId })
     await updateTeam({ image: storageId, teamId })
     toast.success("Team image updated!")
   }, [])
@@ -215,6 +218,7 @@ export function TeamModal() {
                             user?.userTeams.find((ut) => ut.teamId === teamId)?.role === "member"
                           }
                           onValueChange={(value) => {
+                            posthog.capture("user_role_updated", { teamId, userId: member._id, role: value })
                             updateUserRoleMutation({ userTeamId: member.userTeamId, role: value as "admin" | "member" })
                           }}
                         >

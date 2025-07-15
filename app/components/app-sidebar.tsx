@@ -1,5 +1,6 @@
 import { useQuery } from "convex/react"
 import { ChevronDownIcon, PlusIcon } from "lucide-react"
+import posthog from "posthog-js"
 import { useEffect } from "react"
 import { useNavigate, useParams } from "react-router"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar"
@@ -58,6 +59,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {teams?.map((team, i) => (
               <DropdownMenuItem
                 onClick={() => {
+                  posthog.capture("team_switched")
                   localStorage.setItem("defaultTeamId", JSON.stringify(team._id))
                   navigate(`/${team._id}`)
                 }}

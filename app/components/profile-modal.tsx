@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "convex/react"
 import { BellIcon, UserIcon } from "lucide-react"
+import posthog from "posthog-js"
 import { useCallback, useId, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
@@ -26,6 +27,7 @@ export function ProfileModal() {
     e.preventDefault()
     setIsUpdating(true)
     try {
+      posthog.capture("user_info_updated")
       await updateProfile({ name: name.trim() })
       toast.success("Profile updated!")
     } catch {
@@ -48,6 +50,7 @@ export function ProfileModal() {
     if (!result.ok) throw new Error("Failed to upload image")
 
     const { storageId } = (await result.json()) as { storageId: Id<"_storage"> }
+    posthog.capture("user_image_updated")
     await updateProfile({ image: storageId })
     toast.success("Profile image updated!")
   }, [])

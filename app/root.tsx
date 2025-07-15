@@ -3,6 +3,7 @@ import { ConvexQueryClient } from "@convex-dev/react-query"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ConvexReactClient } from "convex/react"
 import { ThemeProvider } from "next-themes"
+import { PostHogProvider } from "posthog-js/react"
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router"
 import { Toaster } from "sonner"
 import type { Route } from "./+types/root"
@@ -35,13 +36,23 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body suppressHydrationWarning className="bg-muted/50 dark:bg-black/50">
-        <ConvexAuthProvider client={convex}>
-          <QueryClientProvider client={queryClient}>
-            <ThemeProvider enableSystem attribute="class">
-              {children}
-            </ThemeProvider>
-          </QueryClientProvider>
-        </ConvexAuthProvider>
+        <PostHogProvider
+          apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+          options={{
+            api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+            defaults: "2025-05-24",
+            capture_exceptions: true,
+            debug: import.meta.env.MODE === "development",
+          }}
+        >
+          <ConvexAuthProvider client={convex}>
+            <QueryClientProvider client={queryClient}>
+              <ThemeProvider enableSystem attribute="class">
+                {children}
+              </ThemeProvider>
+            </QueryClientProvider>
+          </ConvexAuthProvider>
+        </PostHogProvider>
         <ScrollRestoration />
         <Scripts />
         <Toaster />
