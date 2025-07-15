@@ -72,11 +72,23 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       let teamId = args.profile.teamId as Id<"teams"> | undefined
 
       if (!teamId) {
-        teamId = await ctx.db.insert("teams", { name: user.name, createdBy: user._id })
-        await ctx.db.insert("channels", { name: "general", createdBy: user._id, teamId })
+        if (!args.profile.isAnonymous) {
+          teamId = await ctx.db.insert("teams", { name: user.name, createdBy: user._id })
+          await ctx.db.insert("channels", { name: "general", createdBy: user._id, teamId })
+        } else {
+          const demoTeam = await ctx.db
+            .query("teams")
+            .filter((q) => q.eq(q.field("isDemo"), true))
+            .first()
+          teamId = demoTeam?._id!
+        }
       }
       await ctx.db.insert("channels", { name: user._id, createdBy: user._id, userId: user._id, teamId })
-      await ctx.db.insert("userTeams", { userId: user._id, teamId, role: args.profile.teamId ? "member" : "admin" })
+      await ctx.db.insert("userTeams", {
+        userId: user._id,
+        teamId,
+        role: args.profile.teamId || args.profile.isAnonymous ? "member" : "admin",
+      })
       return userId
     },
 

@@ -32,6 +32,7 @@ export default defineSchema({
     name: v.string(),
     image: v.optional(v.id("_storage")),
     createdBy: v.id("users"),
+    isDemo: v.optional(v.boolean()),
   })
     .index("by_name", ["name"])
     .index("by_user", ["createdBy"]),
