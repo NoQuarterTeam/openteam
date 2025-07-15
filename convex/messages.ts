@@ -6,13 +6,15 @@ import { canManageTeamChannel, requireUser } from "./auth"
 import type { OptimisticStatus } from "./optimistic"
 
 export const list = query({
-  args: { channelId: v.id("channels"), paginationOpts: paginationOptsValidator },
+  args: { channelId: v.string(), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    await canManageTeamChannel(ctx, args.channelId)
+    const channelId = ctx.db.normalizeId("channels", args.channelId)
+    if (!channelId) throw new ConvexError("Invalid channel ID")
+    await canManageTeamChannel(ctx, channelId)
 
     const result = await ctx.db
       .query("messages")
-      .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
+      .withIndex("by_channel", (q) => q.eq("channelId", channelId))
       .filter((q) => q.eq(q.field("threadId"), undefined))
       .order("desc")
       .paginate(args.paginationOpts)
@@ -98,17 +100,18 @@ export const list = query({
 
 export const send = mutation({
   args: {
-    channelId: v.id("channels"),
+    channelId: v.string(),
     content: v.optional(v.string()),
     files: v.optional(v.array(v.object({ name: v.string(), storageId: v.id("_storage") }))),
     threadId: v.optional(v.id("threads")),
   },
   returns: v.id("messages"),
   handler: async (ctx, args) => {
-    const user = await canManageTeamChannel(ctx, args.channelId)
+    let channelId = ctx.db.normalizeId("channels", args.channelId)
+    if (!channelId) throw new ConvexError("Invalid channel ID")
+    const user = await canManageTeamChannel(ctx, channelId)
 
     // If threadId is provided, verify the thread exists and get channelId from it
-    let channelId = args.channelId
     if (args.threadId) {
       const thread = await ctx.db.get(args.threadId)
       if (!thread) throw new Error("Thread not found")
@@ -133,23 +136,27 @@ export const send = mutation({
 })
 
 export const deleteMessage = mutation({
-  args: { messageId: v.id("messages") },
+  args: { messageId: v.string() },
   handler: async (ctx, args) => {
+    const messageId = ctx.db.normalizeId("messages", args.messageId)
+    if (!messageId) throw new ConvexError("Invalid message ID")
     const user = await requireUser(ctx)
-    const message = await ctx.db.get(args.messageId)
+    const message = await ctx.db.get(messageId)
     if (!message) throw new ConvexError("Message not found")
     if (message.authorId !== user._id) throw new ConvexError("You are not the author of this message")
-    await ctx.db.delete(args.messageId)
+    await ctx.db.delete(messageId)
   },
 })
 
 export const update = mutation({
-  args: { messageId: v.id("messages"), content: v.string() },
+  args: { messageId: v.string(), content: v.string() },
   handler: async (ctx, args) => {
+    const messageId = ctx.db.normalizeId("messages", args.messageId)
+    if (!messageId) throw new ConvexError("Invalid message ID")
     const user = await requireUser(ctx)
-    const message = await ctx.db.get(args.messageId)
+    const message = await ctx.db.get(messageId)
     if (!message) throw new ConvexError("Message not found")
     if (message.authorId !== user._id) throw new ConvexError("You are not the author of this message")
-    await ctx.db.patch(args.messageId, { content: args.content })
+    await ctx.db.patch(messageId, { content: args.content })
   },
 })

@@ -17,11 +17,13 @@ export const create = mutation({
 })
 export const update = mutation({
   args: {
-    teamId: v.id("teams"),
+    teamId: v.string(),
     name: v.optional(v.string()),
     image: v.optional(v.id("_storage")),
   },
-  handler: async (ctx, { teamId, ...input }) => {
+  handler: async (ctx, { teamId: id, ...input }) => {
+    const teamId = ctx.db.normalizeId("teams", id)
+    if (!teamId) throw new ConvexError("Invalid team ID")
     await canManageTeam(ctx, teamId)
 
     return await ctx.db.patch(teamId, input)
@@ -29,9 +31,11 @@ export const update = mutation({
 })
 
 export const get = query({
-  args: { teamId: v.id("teams") },
+  args: { teamId: v.string() },
   handler: async (ctx, args) => {
-    const { team } = await canManageTeam(ctx, args.teamId)
+    const teamId = ctx.db.normalizeId("teams", args.teamId)
+    if (!teamId) throw new ConvexError("Invalid team ID")
+    const { team } = await canManageTeam(ctx, teamId)
 
     let image = null
     if (team.image) {
@@ -43,9 +47,12 @@ export const get = query({
   },
 })
 export const getPublic = query({
-  args: { teamId: v.id("teams") },
+  args: { teamId: v.string() },
   handler: async (ctx, args) => {
-    const team = await ctx.db.get(args.teamId)
+    const teamId = ctx.db.normalizeId("teams", args.teamId)
+    if (!teamId) throw new ConvexError("Invalid team ID")
+
+    const team = await ctx.db.get(teamId)
     if (!team) throw new ConvexError("Team not found")
 
     let image = null
@@ -73,12 +80,14 @@ export const myTeams = query({
 })
 
 export const listMembers = query({
-  args: { teamId: v.id("teams") },
+  args: { teamId: v.string() },
   handler: async (ctx, args) => {
-    await canManageTeam(ctx, args.teamId)
+    const teamId = ctx.db.normalizeId("teams", args.teamId)
+    if (!teamId) throw new ConvexError("Invalid team ID")
+    await canManageTeam(ctx, teamId)
     const userTeams = await ctx.db
       .query("userTeams")
-      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .withIndex("by_team", (q) => q.eq("teamId", teamId))
       .collect()
     const members = await Promise.all(
       userTeams.map(async (ut) => {

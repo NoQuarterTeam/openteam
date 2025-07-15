@@ -4,16 +4,17 @@ import { mutation, query } from "./_generated/server"
 import { canManageTeam, canManageTeamChannel, requireUser } from "./auth"
 
 export const list = query({
-  args: {
-    teamId: v.id("teams"),
-  },
+  args: { teamId: v.string() },
   handler: async (ctx, args) => {
-    const { user } = await canManageTeam(ctx, args.teamId)
+    const teamId = ctx.db.normalizeId("teams", args.teamId)
+    if (!teamId) throw new ConvexError("Invalid team ID")
+
+    const { user } = await canManageTeam(ctx, teamId)
 
     const [channels, channelOrders] = await Promise.all([
       ctx.db
         .query("channels")
-        .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+        .withIndex("by_team", (q) => q.eq("teamId", teamId))
         .filter((q) => q.eq(q.field("archivedTime"), undefined))
         .order("asc")
         .collect(),
@@ -69,18 +70,20 @@ export const list = query({
 })
 
 export const markAsRead = mutation({
-  args: { channelId: v.id("channels") },
+  args: { channelId: v.string() },
   handler: async (ctx, args) => {
-    const user = await canManageTeamChannel(ctx, args.channelId)
+    const channelId = ctx.db.normalizeId("channels", args.channelId)
+    if (!channelId) throw new ConvexError("Invalid channel ID")
+    const user = await canManageTeamChannel(ctx, channelId)
     const channelActivity = await ctx.db
       .query("userChannelActivity")
-      .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
+      .withIndex("by_channel", (q) => q.eq("channelId", channelId))
       .filter((q) => q.eq(q.field("userId"), user._id))
       .first()
 
     if (!channelActivity) {
       await ctx.db.insert("userChannelActivity", {
-        channelId: args.channelId,
+        channelId,
         isFavourite: false,
         isMuted: false,
         userId: user._id,
@@ -93,19 +96,22 @@ export const markAsRead = mutation({
 })
 
 export const create = mutation({
-  args: { name: v.string(), teamId: v.id("teams") },
+  args: { name: v.string(), teamId: v.string() },
   handler: async (ctx, args) => {
-    const { user } = await canManageTeam(ctx, args.teamId)
+    const teamId = ctx.db.normalizeId("teams", args.teamId)
+    if (!teamId) throw new ConvexError("Invalid team ID")
+
+    const { user } = await canManageTeam(ctx, teamId)
 
     // Check if channel already exists
     const existing = await ctx.db
       .query("channels")
-      .withIndex("by_team_name", (q) => q.eq("teamId", args.teamId).eq("name", args.name))
+      .withIndex("by_team_name", (q) => q.eq("teamId", teamId).eq("name", args.name))
       .first()
 
     if (existing) throw new ConvexError("Channel already exists with this name")
 
-    const channelId = await ctx.db.insert("channels", { name: args.name, createdBy: user._id, teamId: args.teamId })
+    const channelId = await ctx.db.insert("channels", { name: args.name, createdBy: user._id, teamId })
 
     // Get the current max order for this user and add the new channel at the end
     const userChannelOrders = await ctx.db
@@ -122,11 +128,13 @@ export const create = mutation({
 })
 
 export const update = mutation({
-  args: { channelId: v.id("channels"), name: v.optional(v.string()), archivedTime: v.optional(v.string()) },
+  args: { channelId: v.string(), name: v.optional(v.string()), archivedTime: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    await canManageTeamChannel(ctx, args.channelId)
+    const channelId = ctx.db.normalizeId("channels", args.channelId)
+    if (!channelId) throw new ConvexError("Invalid channel ID")
+    await canManageTeamChannel(ctx, channelId)
 
-    const channel = await ctx.db.get(args.channelId)
+    const channel = await ctx.db.get(channelId)
     if (!channel) throw new ConvexError("Channel not found")
 
     const data: any = {}
@@ -136,27 +144,29 @@ export const update = mutation({
       data.name = `${channel.name} (archived - ${dayjs(args.archivedTime).format()})`
     }
 
-    return await ctx.db.patch(args.channelId, data)
+    return await ctx.db.patch(channelId, data)
   },
 })
 
 export const toggleMute = mutation({
-  args: { channelId: v.id("channels") },
+  args: { channelId: v.string() },
   handler: async (ctx, args) => {
-    const user = await canManageTeamChannel(ctx, args.channelId)
+    const channelId = ctx.db.normalizeId("channels", args.channelId)
+    if (!channelId) throw new ConvexError("Invalid channel ID")
+    const user = await canManageTeamChannel(ctx, channelId)
 
-    const channel = await ctx.db.get(args.channelId)
+    const channel = await ctx.db.get(channelId)
     if (!channel) throw new ConvexError("Channel not found")
 
     const userChannelActivity = await ctx.db
       .query("userChannelActivity")
-      .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
+      .withIndex("by_channel", (q) => q.eq("channelId", channelId))
       .filter((q) => q.eq(q.field("userId"), user._id))
       .first()
 
     if (!userChannelActivity) {
       await ctx.db.insert("userChannelActivity", {
-        channelId: args.channelId,
+        channelId,
         isFavourite: false,
         isMuted: true,
         userId: user._id,
@@ -169,17 +179,19 @@ export const toggleMute = mutation({
 })
 
 export const get = query({
-  args: { channelId: v.id("channels") },
+  args: { channelId: v.string() },
   handler: async (ctx, args) => {
-    const user = await canManageTeamChannel(ctx, args.channelId)
+    const channelId = ctx.db.normalizeId("channels", args.channelId)
+    if (!channelId) throw new ConvexError("Invalid channel ID")
+    const user = await canManageTeamChannel(ctx, channelId)
 
-    const channel = await ctx.db.get(args.channelId)
+    const channel = await ctx.db.get(channelId)
     if (!channel) return null
 
     const [userChannelActivity, createdBy] = await Promise.all([
       ctx.db
         .query("userChannelActivity")
-        .withIndex("by_channel", (q) => q.eq("channelId", args.channelId))
+        .withIndex("by_channel", (q) => q.eq("channelId", channelId))
         .filter((q) => q.eq(q.field("userId"), user._id))
         .first(),
       ctx.db.get(channel.createdBy),

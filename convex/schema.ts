@@ -50,11 +50,13 @@ export default defineSchema({
     createdBy: v.id("users"),
     archivedTime: v.optional(v.string()),
     userId: v.optional(v.id("users")), // FOR DMS
+    otherUserId: v.optional(v.id("users")), // FOR DMS
     teamId: v.id("teams"),
   })
     .index("by_team_name", ["teamId", "name"])
     .index("by_team", ["teamId"])
-    .index("by_user_id", ["userId"]),
+    .index("by_user_id", ["userId"])
+    .index("by_other_user_id", ["otherUserId"]),
 
   channelOrders: defineTable({
     channelId: v.id("channels"),

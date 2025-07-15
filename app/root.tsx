@@ -9,6 +9,7 @@ import { Toaster } from "sonner"
 import type { Route } from "./+types/root"
 import "./globals.css"
 import "highlight.js/styles/github-dark.css"
+import { ConvexError } from "convex/values"
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL)
 const convexQueryClient = new ConvexQueryClient(convex)
@@ -36,15 +37,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body suppressHydrationWarning className="bg-muted/50 dark:bg-black/50">
-        <PostHogProvider
-          apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
-          options={{
-            api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-            defaults: "2025-05-24",
-            capture_exceptions: true,
-            debug: import.meta.env.MODE === "development",
-          }}
-        >
+        <PostHogProviderWrapper>
           <ConvexAuthProvider client={convex}>
             <QueryClientProvider client={queryClient}>
               <ThemeProvider enableSystem attribute="class">
@@ -52,7 +45,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </ThemeProvider>
             </QueryClientProvider>
           </ConvexAuthProvider>
-        </PostHogProvider>
+        </PostHogProviderWrapper>
         <ScrollRestoration />
         <Scripts />
         <Toaster />
@@ -66,31 +59,64 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = "Oops!"
-  let details = "An unexpected error occurred."
-  let stack: string | undefined
-
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error"
-    details = error.status === 404 ? "The requested page could not be found." : error.statusText || details
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
-    details = error.message
-    stack = error.stack
+    return (
+      <div className="flex h-svh w-screen flex-col items-center justify-center">
+        <h1 className="font-bold text-4xl">
+          {error.status} {error.statusText}
+        </h1>
+        <p>{error.data}</p>
+      </div>
+    )
+  } else if (error instanceof ConvexError) {
+    return (
+      <div className="flex h-svh w-screen flex-col items-center p-4 md:p-16">
+        <div className="w-full max-w-lg rounded-xl border p-4">
+          <p>There was an error processing your request</p>
+          <p className="font-bold text-4xl">{error.data}</p>
+          <details>
+            <summary>Details</summary>
+            <p>{error.message}</p>
+          </details>
+        </div>
+      </div>
+    )
+  } else if (error instanceof Error) {
+    return (
+      <div className="flex h-svh w-screen flex-col items-center p-4 md:p-16">
+        <div className="w-full space-y-2 rounded-xl border p-4">
+          <h1 className="font-bold text-4xl">Oops! An error occurred</h1>
+          <p>{error.message}</p>
+          <pre className="w-full overflow-x-auto whitespace-break-spaces rounded-lg border bg-muted p-4">{error.stack}</pre>
+        </div>
+      </div>
+    )
+  } else {
+    return <h1>Unknown Error</h1>
   }
-
-  return (
-    <main className="container mx-auto p-4 pt-16">
-      <h1>{message}</h1>
-      <p>{details}</p>
-      {stack && (
-        <pre className="w-full overflow-x-auto p-4">
-          <code>{stack}</code>
-        </pre>
-      )}
-    </main>
-  )
 }
 
 export function HydrateFallback() {
   return <div className="h-dvh w-screen bg-neutral-50 dark:bg-neutral-900/50" />
+}
+
+function PostHogProviderWrapper({ children }: { children: React.ReactNode }) {
+  if (import.meta.env.MODE === "development") return children
+
+  return (
+    <PostHogProvider
+      apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY}
+      options={{
+        api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+        defaults: "2025-05-24",
+        capture_exceptions: true,
+        capture_pageleave: true,
+        capture_heatmaps: true,
+        capture_pageview: true,
+        capture_performance: true,
+      }}
+    >
+      {children}
+    </PostHogProvider>
+  )
 }

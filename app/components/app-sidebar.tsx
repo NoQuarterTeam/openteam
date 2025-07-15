@@ -38,6 +38,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [teams, teamId])
+
+  if (!activeTeam) return null
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
@@ -46,11 +48,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <Button variant="outline" className="!pl-1 w-full justify-between">
               <div className="flex items-center gap-2">
                 <Avatar
-                  image={activeTeam?.image}
+                  image={activeTeam.image}
                   className="size-6 shrink-0 rounded-sm border object-cover"
-                  name={activeTeam?.name || ""}
+                  name={activeTeam.name || ""}
                 />
-                <span className="max-w-[195px] truncate md:max-w-[110px]">{activeTeam?.name}</span>
+                <span className="max-w-[195px] truncate md:max-w-[110px]">{activeTeam.name}</span>
               </div>
               <ChevronDownIcon className="size-4" />
             </Button>

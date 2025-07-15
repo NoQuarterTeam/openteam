@@ -8,8 +8,6 @@ export const inputClassNames = cn(
   "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
 )
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
-  return <input type={type} data-slot="input" className={cn(inputClassNames, className)} {...props} />
+export function Input({ className, error, ...props }: React.ComponentProps<"input"> & { error?: boolean }) {
+  return <input data-slot="input" className={cn(inputClassNames, error && "border-destructive", className)} {...props} />
 }
-
-export { Input }

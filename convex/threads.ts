@@ -6,35 +6,39 @@ import type { OptimisticStatus } from "./optimistic"
 
 export const create = mutation({
   args: {
-    parentMessageId: v.id("messages"),
+    parentMessageId: v.string(),
   },
   returns: v.id("threads"),
   handler: async (ctx, args) => {
+    const parentMessageId = ctx.db.normalizeId("messages", args.parentMessageId)
+    if (!parentMessageId) throw new ConvexError("Invalid parent message ID")
     const user = await requireUser(ctx)
 
-    const parentMessage = await ctx.db.get(args.parentMessageId)
+    const parentMessage = await ctx.db.get(parentMessageId)
     if (!parentMessage) throw new Error("Parent message not found")
 
     // Check if thread already exists for this message
     const existingThread = await ctx.db
       .query("threads")
-      .withIndex("by_parent_message", (q) => q.eq("parentMessageId", args.parentMessageId))
+      .withIndex("by_parent_message", (q) => q.eq("parentMessageId", parentMessageId))
       .unique()
 
     if (existingThread) return existingThread._id
 
     return await ctx.db.insert("threads", {
       channelId: parentMessage.channelId,
-      parentMessageId: args.parentMessageId,
+      parentMessageId,
       createdBy: user._id,
     })
   },
 })
 
 export const get = query({
-  args: { threadId: v.id("threads") },
+  args: { threadId: v.string() },
   handler: async (ctx, args) => {
-    const thread = await ctx.db.get(args.threadId)
+    const threadId = ctx.db.normalizeId("threads", args.threadId)
+    if (!threadId) throw new ConvexError("Invalid thread ID")
+    const thread = await ctx.db.get(threadId)
     if (!thread) throw new ConvexError("Thread not found")
 
     const parentMessage = await ctx.db.get(thread.parentMessageId)
@@ -94,9 +98,11 @@ export const get = query({
 })
 
 export const listMessages = query({
-  args: { threadId: v.id("threads"), paginationOpts: paginationOptsValidator },
+  args: { threadId: v.string(), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const thread = await ctx.db.get(args.threadId)
+    const threadId = ctx.db.normalizeId("threads", args.threadId)
+    if (!threadId) throw new ConvexError("Invalid thread ID")
+    const thread = await ctx.db.get(threadId)
     if (!thread) throw new ConvexError("Thread not found")
 
     const parentMessage = await ctx.db.get(thread.parentMessageId)
@@ -106,7 +112,7 @@ export const listMessages = query({
 
     const result = await ctx.db
       .query("messages")
-      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+      .withIndex("by_thread", (q) => q.eq("threadId", threadId))
       .order("desc")
       .paginate(args.paginationOpts)
 

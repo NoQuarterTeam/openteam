@@ -192,8 +192,8 @@ export function TeamModal() {
                         variant="outline"
                         size="icon"
                         onClick={async () => {
-                          await navigator.clipboard.writeText(`${window.location.origin}/${teamId}/invite`)
                           toast.success("Copied to clipboard")
+                          await navigator.clipboard.writeText(`${window.location.origin}/${teamId}/invite`)
                         }}
                       >
                         <CopyIcon />

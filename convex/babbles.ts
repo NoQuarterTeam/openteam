@@ -4,10 +4,12 @@ import { canManageTeam, requireUser } from "./auth"
 
 export const join = mutation({
   args: {
-    teamId: v.id("teams"),
+    teamId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { user } = await canManageTeam(ctx, args.teamId)
+    const teamId = ctx.db.normalizeId("teams", args.teamId)
+    if (!teamId) throw new ConvexError("Invalid team ID")
+    const { user } = await canManageTeam(ctx, teamId)
 
     // delete all existing babblers for me and this team
 
@@ -21,7 +23,7 @@ export const join = mutation({
     }
 
     // Add user as participant
-    await ctx.db.insert("babblers", { userId: user._id, teamId: args.teamId, joinedAt: Date.now() })
+    await ctx.db.insert("babblers", { userId: user._id, teamId, joinedAt: Date.now() })
 
     return null
   },
@@ -29,15 +31,17 @@ export const join = mutation({
 
 export const leave = mutation({
   args: {
-    teamId: v.id("teams"),
+    teamId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { user } = await canManageTeam(ctx, args.teamId)
+    const teamId = ctx.db.normalizeId("teams", args.teamId)
+    if (!teamId) throw new ConvexError("Invalid team ID")
+    const { user } = await canManageTeam(ctx, teamId)
 
     // Find user's babbler
     const babbler = await ctx.db
       .query("babblers")
-      .withIndex("by_user_team", (q) => q.eq("userId", user._id).eq("teamId", args.teamId))
+      .withIndex("by_user_team", (q) => q.eq("userId", user._id).eq("teamId", teamId))
       .first()
 
     if (babbler) {
@@ -50,14 +54,16 @@ export const leave = mutation({
 
 export const getBabblers = query({
   args: {
-    teamId: v.id("teams"),
+    teamId: v.string(),
   },
   handler: async (ctx, args) => {
-    await canManageTeam(ctx, args.teamId)
+    const teamId = ctx.db.normalizeId("teams", args.teamId)
+    if (!teamId) throw new ConvexError("Invalid team ID")
+    await canManageTeam(ctx, teamId)
 
     const babblers = await ctx.db
       .query("babblers")
-      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .withIndex("by_team", (q) => q.eq("teamId", teamId))
       .collect()
 
     const babblersWithUsers = await Promise.all(
@@ -76,22 +82,27 @@ export const getBabblers = query({
 // WebRTC Signaling functions
 export const sendSignal = mutation({
   args: {
-    targetUserId: v.id("users"),
+    targetUserId: v.string(),
     signal: v.any(),
-    teamId: v.id("teams"),
+    teamId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { user } = await canManageTeam(ctx, args.teamId)
+    const teamId = ctx.db.normalizeId("teams", args.teamId)
+    if (!teamId) throw new ConvexError("Invalid team ID")
+    const { user } = await canManageTeam(ctx, teamId)
+
+    const targetUserId = ctx.db.normalizeId("users", args.targetUserId)
+    if (!targetUserId) throw new ConvexError("Invalid user ID")
 
     // Verify both users are in the babble
     const senderBabbler = await ctx.db
       .query("babblers")
-      .withIndex("by_user_team", (q) => q.eq("userId", user._id).eq("teamId", args.teamId))
+      .withIndex("by_user_team", (q) => q.eq("userId", user._id).eq("teamId", teamId))
       .first()
 
     const targetBabbler = await ctx.db
       .query("babblers")
-      .withIndex("by_user_team", (q) => q.eq("userId", args.targetUserId).eq("teamId", args.teamId))
+      .withIndex("by_user_team", (q) => q.eq("userId", targetUserId).eq("teamId", teamId))
       .first()
 
     if (!senderBabbler || !targetBabbler) {
@@ -101,7 +112,7 @@ export const sendSignal = mutation({
     // Store the signal (it will be picked up by the target user's polling)
     await ctx.db.insert("babbleSignals", {
       fromUserId: user._id,
-      toUserId: args.targetUserId,
+      toUserId: targetUserId,
       signal: args.signal,
       createdAt: Date.now(),
     })
@@ -129,12 +140,15 @@ export const getSignals = query({
 
 export const deleteSignal = mutation({
   args: {
-    signalId: v.id("babbleSignals"),
+    signalId: v.string(),
   },
   handler: async (ctx, args) => {
+    const signalId = ctx.db.normalizeId("babbleSignals", args.signalId)
+    if (!signalId) throw new ConvexError("Invalid signal ID")
+
     const user = await requireUser(ctx)
 
-    const signal = await ctx.db.get(args.signalId)
+    const signal = await ctx.db.get(signalId)
     if (!signal) return null
 
     // Only allow deleting signals addressed to the current user
@@ -142,7 +156,7 @@ export const deleteSignal = mutation({
       throw new ConvexError("You can only delete signals addressed to you")
     }
 
-    await ctx.db.delete(args.signalId)
+    await ctx.db.delete(signalId)
     return null
   },
 })

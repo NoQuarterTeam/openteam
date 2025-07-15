@@ -9,6 +9,11 @@ import type { Id } from "@/convex/_generated/dataModel"
 import { useNotifications } from "@/lib/notifications"
 
 export default function Component() {
+  const { teamId } = useParams<{ teamId: Id<"teams"> }>()
+  const team = useQuery(api.teams.get, teamId ? { teamId } : "skip")
+
+  if (!team) return null
+
   return (
     <SidebarProvider className="h-svh">
       <AppSidebar />

@@ -20,11 +20,13 @@ export const update = mutation({
 
 export const updateUserRole = mutation({
   args: {
-    userTeamId: v.id("userTeams"),
+    userTeamId: v.string(),
     role: v.union(v.literal("admin"), v.literal("member")),
   },
   handler: async (ctx, args) => {
-    const userTeam = await ctx.db.get(args.userTeamId)
+    const userTeamId = ctx.db.normalizeId("userTeams", args.userTeamId)
+    if (!userTeamId) throw new ConvexError("Invalid user team ID")
+    const userTeam = await ctx.db.get(userTeamId)
 
     if (!userTeam) throw new ConvexError("User team not found")
 
@@ -35,6 +37,6 @@ export const updateUserRole = mutation({
 
     if (userTeamData.role !== "admin") throw new ConvexError("You are not allowed to update this user's role")
 
-    return await ctx.db.patch(args.userTeamId, { role: args.role })
+    return await ctx.db.patch(userTeamId, { role: args.role })
   },
 })

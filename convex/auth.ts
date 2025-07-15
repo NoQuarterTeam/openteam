@@ -8,7 +8,12 @@ import { z } from "zod"
 import type { DataModel, Id } from "./_generated/dataModel"
 import { type MutationCtx, type QueryCtx, query } from "./_generated/server"
 
-const ParamsSchema = z.object({ email: z.string().email(), name: z.string().min(1), teamId: z.string().min(1) })
+const ParamsSchema = z.object({
+  email: z.string().email().min(5, "Email is required").trim().toLowerCase(),
+  name: z.string().min(2, "Name is required").trim(),
+  password: z.string().min(8, "Password must be at least 8 characters long"),
+  teamId: z.string().min(1),
+})
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
@@ -24,11 +29,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     }),
     GitHub({
       async profile(githubProfile) {
-        const allowedDomain = process.env.ALLOWED_DOMAIN
         if (!githubProfile.email) throw new ConvexError("Email is required")
-        if (allowedDomain && !githubProfile.email.endsWith(`@${allowedDomain}`)) {
-          throw new ConvexError("This email domain is not allowed")
-        }
 
         return {
           id: githubProfile.id.toString(),
@@ -39,13 +40,10 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       },
     }),
     Password<DataModel>({
+      validatePasswordRequirements: () => null,
       profile(params) {
         const { error, data } = ParamsSchema.safeParse(params)
-        if (error) throw new ConvexError({ fieldErrors: error.flatten().fieldErrors })
-        const allowedDomain = process.env.ALLOWED_DOMAIN
-        if (allowedDomain && !data.email.endsWith(`@${allowedDomain}`)) {
-          throw new ConvexError("This email domain is not allowed")
-        }
+        if (error) throw new ConvexError(error.flatten().fieldErrors)
         return { ...data, teamId: data.teamId as Id<"teams"> }
       },
     }),

@@ -4,14 +4,16 @@ import { canManageTeamMessage, requireUser } from "./auth"
 
 export const add = mutation({
   args: {
-    messageId: v.id("messages"),
+    messageId: v.string(),
     content: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await canManageTeamMessage(ctx, args.messageId)
+    const messageId = ctx.db.normalizeId("messages", args.messageId)
+    if (!messageId) throw new ConvexError("Invalid message ID")
+    const user = await canManageTeamMessage(ctx, messageId)
 
     return ctx.db.insert("messageReactions", {
-      messageId: args.messageId,
+      messageId,
       userId: user._id,
       content: args.content,
     })
@@ -20,14 +22,16 @@ export const add = mutation({
 
 export const remove = mutation({
   args: {
-    reactionId: v.id("messageReactions"),
+    reactionId: v.string(),
   },
   handler: async (ctx, args) => {
+    const reactionId = ctx.db.normalizeId("messageReactions", args.reactionId)
+    if (!reactionId) throw new ConvexError("Invalid reaction ID")
     const user = await requireUser(ctx)
-    const reaction = await ctx.db.get(args.reactionId)
+    const reaction = await ctx.db.get(reactionId)
     if (!reaction) throw new ConvexError("Reaction not found")
     if (reaction.userId !== user._id) throw new ConvexError("You are not the owner of this reaction")
-    await ctx.db.delete(args.reactionId)
+    await ctx.db.delete(reactionId)
 
     return true
   },
