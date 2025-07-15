@@ -216,7 +216,7 @@ export const Message = memo(function _Message({
                     <>
                       <div className="flex items-center gap-0.5 py-1">
                         <p className="text-xs opacity-50">
-                          {message.files[0] ? message.files[0].name : `${message.files.length} files`}
+                          {message.files.length === 1 ? message.files[0]!.name : `${message.files.length} files`}
                         </p>
                         <Button
                           variant="ghost"
@@ -413,20 +413,27 @@ type MessageFileType = MessageData["files"][number]
 function MessageFile({ file, className }: { file: MessageFileType; className?: string }) {
   const isImage = file.metadata?.contentType?.startsWith("image/") || file.url?.startsWith("blob:")
   return (
-    <a
-      href={file.url || "#"}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={cn("flex shrink-0", isImage && "h-[200px]", className)}
-    >
-      {isImage ? (
-        <img src={file.url || "#"} alt={file.name} className="h-full rounded-lg object-cover" />
-      ) : (
-        <div className="relative">
-          <FilePill name={file.name} />
-        </div>
-      )}
-    </a>
+    <div className="group relative">
+      <a
+        href={file.url || "#"}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn("flex shrink-0", isImage && "h-[200px]", className)}
+      >
+        {isImage ? (
+          <img src={file.url || "#"} alt={file.name} className="h-full rounded-lg object-cover" />
+        ) : (
+          <div className="relative">
+            <FilePill name={file.name} />
+          </div>
+        )}
+      </a>
+      {/* <div className="absolute top-0 right-0 flex items-center justify-center opacity-0 group-hover:opacity-100">
+        <Button size="icon" variant="ghost" className="size-8">
+          <TrashIcon />
+        </Button>
+      </div> */}
+    </div>
   )
 }
 
