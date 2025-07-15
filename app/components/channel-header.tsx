@@ -1,5 +1,6 @@
 import { useMutation } from "convex/react"
 import { BellIcon, BellOffIcon, EllipsisVerticalIcon, PencilIcon, Trash2Icon } from "lucide-react"
+import posthog from "posthog-js"
 import { useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
@@ -46,6 +47,7 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
     if (!name?.trim()) return
 
     try {
+      posthog.capture("channel_name_updated", { channelId: channel._id, teamId })
       await updateChannel({ channelId: channel._id, name: name.toLowerCase() })
       setIsEditing(false)
     } catch (e) {
@@ -111,7 +113,10 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
                     variant="ghost"
                     size="icon"
                     className="size-6 md:size-8"
-                    onClick={() => void toggleMute({ channelId: channel._id })}
+                    onClick={() => {
+                      posthog.capture("channel_unmuted", { channelId: channel._id, teamId })
+                      void toggleMute({ channelId: channel._id })
+                    }}
                   >
                     <BellOffIcon />
                   </Button>
@@ -130,7 +135,12 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" onCloseAutoFocus={(e) => e.preventDefault()}>
-          <DropdownMenuItem onClick={() => void toggleMute({ channelId: channel._id })}>
+          <DropdownMenuItem
+            onClick={() => {
+              posthog.capture(channel.isMuted ? "channel_unmuted" : "channel_muted", { channelId: channel._id, teamId })
+              void toggleMute({ channelId: channel._id })
+            }}
+          >
             <BellIcon />
             {channel.isMuted ? "Unmute" : "Mute"}
           </DropdownMenuItem>
@@ -145,6 +155,7 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
                   if (!channel) return
                   if (confirm("Are you sure you want to archive this channel?")) {
                     try {
+                      posthog.capture("channel_archived", { channelId: channel._id, teamId })
                       await archiveChannel({ channelId: channel._id, archivedTime: new Date().toISOString() })
                       navigate("/")
                     } catch (e) {
