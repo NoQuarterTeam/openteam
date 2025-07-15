@@ -16,6 +16,7 @@ import { FilePill } from "./file-pill"
 import { ThreadIndicator } from "./thread-indicator"
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { WithState } from "./with-state"
 
 type MessageData =
@@ -240,32 +241,39 @@ export const Message = memo(function _Message({
                 </WithState>
               </div>
             )}
+            {/* Reactions */}
             {Object.entries(groupedReactions).length > 0 && (
               <div className="flex items-center gap-1 pt-1">
                 {Object.entries(groupedReactions).map(([content, { count, reactions }]) => (
-                  <button
-                    type="button"
-                    disabled={!user}
-                    onClick={() => {
-                      if (!user) return
-                      const existingReaction = message.reactions.find((r) => r.content === content && r.userId === user._id)
-                      if (existingReaction) {
-                        removeReaction({ reactionId: existingReaction._id })
-                      } else {
-                        addReaction({ messageId: message._id, content })
-                      }
-                    }}
-                    key={content}
-                    className={cn(
-                      "flex h-6 items-center justify-center rounded-full border bg-background px-1 py-0.5 font-normal text-xs",
-                      reactions.some((r) => r.userId === user?._id)
-                        ? "border-blue-500 hover:bg-blue-500/10"
-                        : "hover:border-black dark:hover:border-white",
-                    )}
-                  >
-                    <span>{content}</span>
-                    <span className="min-w-4">{count}</span>
-                  </button>
+                  <Tooltip key={content}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        disabled={!user}
+                        onClick={() => {
+                          if (!user) return
+                          const existingReaction = message.reactions.find((r) => r.content === content && r.userId === user._id)
+                          if (existingReaction) {
+                            removeReaction({ reactionId: existingReaction._id })
+                          } else {
+                            addReaction({ messageId: message._id, content })
+                          }
+                        }}
+                        className={cn(
+                          "flex h-6 items-center justify-center rounded-full border bg-background px-1 py-0.5 font-normal text-xs",
+                          reactions.some((r) => r.userId === user?._id)
+                            ? "border-blue-500 hover:bg-blue-500/10"
+                            : "hover:border-black dark:hover:border-white",
+                        )}
+                      >
+                        <span>{content}</span>
+                        <span className="min-w-4">{count}</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[400px]">
+                      {reactions.map((r) => r.user.name).join(", ")} reacted
+                    </TooltipContent>
+                  </Tooltip>
                 ))}
 
                 <WithState initialState={false}>
