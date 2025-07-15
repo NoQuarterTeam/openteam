@@ -97,7 +97,7 @@ function ChannelItem({ channel, index, isActive }: ChannelItemProps) {
 
   const onChannelClick = () => {
     if (!teamId) return
-    navigate(`/${teamId}/${channel._id}`)
+    navigate(`/${channel.teamId}/${channel._id}`)
     if (isMobile) sidebar.setOpenMobile(false)
   }
 

@@ -54,7 +54,7 @@ export function CommandCenter() {
                   setTimeout(() => {
                     setOpen(false)
                   }, 100)
-                  navigate(`/${channel._id}`)
+                  navigate(`/${channel.teamId}/${channel._id}`)
                 }}
               >
                 {channel.dmUser ? (

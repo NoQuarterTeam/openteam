@@ -41,7 +41,7 @@ export function NewChannelForm(props: { onClose: () => void }) {
     try {
       const channelId = await createChannel({ name: newChannelName.toLowerCase().trim(), teamId })
       props.onClose()
-      await navigate(`/${channelId}`)
+      await navigate(`/${teamId}/${channelId}`)
     } catch {
       toast.error("Failed to create channel")
     }
