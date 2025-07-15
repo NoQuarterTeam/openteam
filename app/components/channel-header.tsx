@@ -156,8 +156,8 @@ export function ChannelHeader({ channel }: { channel: ChannelData }) {
                   if (confirm("Are you sure you want to archive this channel?")) {
                     try {
                       posthog.capture("channel_archived", { channelId: channel._id, teamId })
+                      navigate(`/${teamId}`)
                       await archiveChannel({ channelId: channel._id, archivedTime: new Date().toISOString() })
-                      navigate("/")
                     } catch (e) {
                       console.error(e)
                       toast.error("Failed to archive channel")
