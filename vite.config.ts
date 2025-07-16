@@ -21,7 +21,7 @@ export default defineConfig({
   ],
   build: {
     rollupOptions: {
-      external: ["prettier"],
+      external: ["prettier/plugins/html"],
     },
   },
 })
