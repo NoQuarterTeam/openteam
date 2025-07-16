@@ -1,16 +1,18 @@
 import { useMutation, useQuery } from "convex/react"
 import { BellIcon, UserIcon } from "lucide-react"
 import posthog from "posthog-js"
-import { useCallback, useId, useState } from "react"
+import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
+import { Link } from "react-router"
 import { toast } from "sonner"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useNotifications } from "@/lib/notifications"
 import { api } from "../../convex/_generated/api"
-import { Button } from "./ui/button"
+import { FormField } from "./form-field"
+import { Button, buttonVariants } from "./ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "./ui/dialog"
 import { DropdownMenuItem } from "./ui/dropdown-menu"
-import { Input } from "./ui/input"
+import { Label } from "./ui/label"
 
 export function ProfileModal() {
   const [open, setOpen] = useState(false)
@@ -64,7 +66,6 @@ export function ProfileModal() {
     },
   })
 
-  const inputId = useId()
   return (
     <>
       <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setOpen(true)}>
@@ -97,19 +98,23 @@ export function ProfileModal() {
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name Field */}
-            <div>
-              <label htmlFor={inputId} className="mb-1 block font-medium text-neutral-700 text-sm">
-                Display Name
-              </label>
-              <Input
-                id={inputId}
-                type="text"
-                value={name}
-                autoFocus
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your display name"
-                required
-              />
+            <FormField
+              name="name"
+              label="Display Name"
+              type="text"
+              value={name}
+              autoFocus
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your display name"
+              required
+            />
+
+            <div className="flex items-center justify-between gap-2">
+              <Label>Change your password</Label>
+
+              <Link to="/reset-password" target="_blank" className={buttonVariants()}>
+                Reset
+              </Link>
             </div>
 
             {/* Notification Settings */}

@@ -12,7 +12,11 @@ export function FormField({
     <div>
       <Label htmlFor={id}>{label}</Label>
       <Input id={id} {...props} error={!!error} />
-      {error && <p className="whitespace-pre text-destructive text-sm">{Array.isArray(error) ? error.join("\n") : error}</p>}
+      {error && <FormFieldError error={error} />}
     </div>
   )
+}
+
+export function FormFieldError({ error }: { error?: string | string[] | null }) {
+  return <p className="whitespace-pre text-destructive text-sm">{Array.isArray(error) ? error.join("\n") : error}</p>
 }

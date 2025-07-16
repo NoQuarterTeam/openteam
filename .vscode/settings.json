@@ -12,9 +12,6 @@
     ["cn\\(((?:[^()]|\\([^()]*\\))*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
   ],
   "tailwindCSS.classAttributes": ["class", "className", "classNames", ".*Styles*", ".*ClassName*", ".*ClassNames*"],
-  "workbench.editor.customLabels.patterns": {
-    "**/app/routes/**/*.tsx": "${filename} - page"
-  },
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
     "//": "Last update at 11/01/2025, 16:44:32",

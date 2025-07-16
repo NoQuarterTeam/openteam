@@ -7,12 +7,12 @@ import { ConvexError } from "convex/values"
 import { z } from "zod"
 import type { DataModel, Id } from "./_generated/dataModel"
 import { type MutationCtx, type QueryCtx, query } from "./_generated/server"
+import { ResendOTP, ResendOTPPasswordReset } from "./auth.providers"
 
 const ParamsSchema = z.object({
   email: z.string().email().min(5, "Email is required").trim().toLowerCase(),
-  name: z.string().min(2, "Name is required").trim(),
-  password: z.string().min(8, "Password must be at least 8 characters long"),
-  teamId: z.string().min(1),
+  name: z.string().min(2, "Name is required").trim().optional().default("Unknown"),
+  password: z.string().min(8, "Password must be at least 8 characters long").optional(),
 })
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
@@ -20,17 +20,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     Anonymous<DataModel>({
       profile() {
         const id = Math.random().toString(36).substring(2, 8)
-        return {
-          isAnonymous: true,
-          name: id,
-          email: `${id}@noquarter.co`,
-        }
+        return { isAnonymous: true, name: id, email: `${id}@noquarter.co` }
       },
     }),
     GitHub({
       async profile(githubProfile) {
         if (!githubProfile.email) throw new ConvexError("Email is required")
-
         return {
           id: githubProfile.id.toString(),
           name: githubProfile.name,
@@ -39,13 +34,21 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         }
       },
     }),
+    // Password<DataModel>({
+    //   id: "password-code",
+    //   reset: ResendOTPPasswordReset,
+    //   verify: ResendOTP,
+    // }),
     Password<DataModel>({
+      id: "password",
       validatePasswordRequirements: () => null,
       profile(params) {
-        const { error, data } = ParamsSchema.safeParse(params)
-        if (error) throw new ConvexError(error.flatten().fieldErrors)
-        return { ...data, teamId: data.teamId as Id<"teams"> }
+        const { success, data, error } = ParamsSchema.safeParse(params)
+        if (!success) throw new ConvexError(error.flatten().fieldErrors)
+        return data
       },
+      reset: ResendOTPPasswordReset,
+      verify: ResendOTP,
     }),
   ],
   callbacks: {
@@ -89,18 +92,6 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       })
       return userId
     },
-
-    // async afterUserCreatedOrUpdated(ctx: MutationCtx, args) {
-    //   if (!args.existingUserId) {
-    //     const user = await ctx.db.get(args.userId)
-    //     if (!user) throw new ConvexError("User not found")
-
-    //     const teamId = await ctx.db.insert("teams", { name: user.name, createdBy: args.userId })
-    //     await ctx.db.insert("userTeams", { userId: args.userId, teamId, role: "admin" })
-    //     await ctx.db.insert("channels", { name: "general", createdBy: args.userId, teamId })
-    //     await ctx.db.insert("channels", { name: args.userId, createdBy: args.userId, userId: args.userId, teamId })
-    //   }
-    // },
   },
 })
 

@@ -2,6 +2,7 @@ import { useAuthActions } from "@convex-dev/auth/react"
 import { useQuery } from "convex/react"
 import { ChevronsUpDown, LogOut, MoonIcon, SunIcon } from "lucide-react"
 import { useTheme } from "next-themes"
+import { toast } from "sonner"
 import { Avatar } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -21,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 export function NavUser() {
   const user = useQuery(api.auth.me)
   const { isMobile } = useSidebar()
-  const actions = useAuthActions()
+  const { signOut } = useAuthActions()
 
   return (
     <SidebarMenu>
@@ -64,7 +65,13 @@ export function NavUser() {
             <NavThemeSwitcher />
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem onClick={() => void actions.signOut()}>
+            <DropdownMenuItem
+              onClick={() => {
+                void signOut().catch(() => {
+                  toast.error("Failed to log out")
+                })
+              }}
+            >
               <LogOut />
               Log out
             </DropdownMenuItem>
