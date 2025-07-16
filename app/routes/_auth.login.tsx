@@ -32,7 +32,7 @@ export default function Page() {
                 })
                 .catch((e) => {
                   if (e instanceof ConvexError) {
-                    setError(e)
+                    setError(e.data)
                   } else if (e instanceof Error) {
                     if (
                       e.message.includes("InvalidAccountId") ||

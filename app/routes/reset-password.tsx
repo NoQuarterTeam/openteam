@@ -37,7 +37,7 @@ export default function Page() {
                   })
                   .catch((e) => {
                     if (e instanceof ConvexError) {
-                      toast.error(e.data)
+                      toast.error("Invalid code")
                     } else {
                       toast.error("An unknown error occurred")
                     }
@@ -85,14 +85,14 @@ export default function Page() {
                   })
                   .catch((e) => {
                     if (e instanceof ConvexError) {
-                      toast.error(e.data)
+                      toast.error(e.data.email?.[0] ?? "An unknown error occurred")
                     } else if (e instanceof Error) {
                       if (
                         e.message.includes("InvalidAccountId") ||
                         e.message.includes("InvalidCredentials") ||
                         e.message.includes("InvalidSecret")
                       ) {
-                        toast.error("Invalid credentials")
+                        setStep({ email: formData.get("email") as string })
                       } else {
                         toast.error("An unknown error occurred")
                       }
