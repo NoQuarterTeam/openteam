@@ -7,7 +7,7 @@ import { ConvexError } from "convex/values"
 import { z } from "zod"
 import type { DataModel, Id } from "./_generated/dataModel"
 import { type MutationCtx, type QueryCtx, query } from "./_generated/server"
-import { ResendOTP, ResendOTPPasswordReset } from "./auth.providers"
+import { ResendOTPEmailVerification, ResendOTPPasswordReset } from "./otp/providers"
 
 const ParamsSchema = z.object({
   email: z.string().email().min(5, "Email is required").trim().toLowerCase(),
@@ -48,7 +48,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         return data
       },
       reset: ResendOTPPasswordReset,
-      verify: ResendOTP,
+      verify: ResendOTPEmailVerification,
     }),
   ],
   callbacks: {
