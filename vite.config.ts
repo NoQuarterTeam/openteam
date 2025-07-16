@@ -19,4 +19,9 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      external: ["prettier"],
+    },
+  },
 })
