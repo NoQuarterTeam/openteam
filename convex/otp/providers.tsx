@@ -28,7 +28,6 @@ if (typeof MessageChannel === "undefined") {
 }
 
 import Resend from "@auth/core/providers/resend"
-import { render } from "@react-email/render"
 import { ConvexError } from "convex/values"
 import { alphabet, generateRandomString } from "oslo/crypto"
 import { ResetPasswordEmail } from "./ResePasswordEmail"
@@ -41,6 +40,7 @@ export const ResendOTPPasswordReset = Resend({
     return generateRandomString(8, alphabet("0-9"))
   },
   async sendVerificationRequest({ identifier: email, provider, token, expires }) {
+    const { render } = await import("@react-email/render")
     const emailHtml = await render(<ResetPasswordEmail code={token} expires={expires} />)
 
     const res = await fetch("https://api.resend.com/emails", {
@@ -72,6 +72,7 @@ export const ResendOTPEmailVerification = Resend({
     return generateRandomString(8, alphabet("0-9"))
   },
   async sendVerificationRequest({ identifier: email, provider, token, expires }) {
+    const { render } = await import("@react-email/render")
     const emailHtml = await render(<VerificationCodeEmail code={token} expires={expires} />)
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
