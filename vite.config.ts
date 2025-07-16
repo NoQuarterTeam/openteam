@@ -22,4 +22,9 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["prettier/plugins/html"],
   },
+  build: {
+    rollupOptions: {
+      external: ["prettier/plugins/html"],
+    },
+  },
 })
