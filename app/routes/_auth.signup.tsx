@@ -24,6 +24,7 @@ export default function Page() {
               e.preventDefault()
               const formData = new FormData(e.target as HTMLFormElement)
               formData.set("flow", "signUp")
+              setIsSubmitting(true)
               void signIn("password", formData)
                 .then(() => {
                   navigate(`/verify?email=${encodeURIComponent(formData.get("email") as string)}`)

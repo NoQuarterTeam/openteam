@@ -17,6 +17,7 @@ import type * as auth from "../auth.js";
 import type * as babbles from "../babbles.js";
 import type * as channels from "../channels.js";
 import type * as http from "../http.js";
+import type * as invites from "../invites.js";
 import type * as messages from "../messages.js";
 import type * as optimistic from "../optimistic.js";
 import type * as otp_ResePasswordEmail from "../otp/ResePasswordEmail.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   babbles: typeof babbles;
   channels: typeof channels;
   http: typeof http;
+  invites: typeof invites;
   messages: typeof messages;
   optimistic: typeof optimistic;
   "otp/ResePasswordEmail": typeof otp_ResePasswordEmail;
