@@ -19,4 +19,7 @@ export default defineConfig({
       },
     }),
   ],
+  optimizeDeps: {
+    exclude: ["prettier/plugins/html"],
+  },
 })
