@@ -7,4 +7,3 @@ A modern, open-source Slack-like chat application that can be self-hosted with j
 > **Note:** If you want github auth, make sure to create a GitHub OAuth application and add the following environment variables to your Convex dashboard:
 > - `AUTH_GITHUB_ID` - GitHub OAuth application ID
 > - `AUTH_GITHUB_SECRET` - GitHub OAuth application secret
-> - `ALLOWED_DOMAIN` - Restricts sign-ins to specific email domains (optional)
