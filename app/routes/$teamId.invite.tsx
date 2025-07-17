@@ -60,7 +60,7 @@ export default function Page() {
 
           <FormField name="email" placeholder="work@example.com" label="Email" error={error?.data.email} />
 
-          <FormField name="password" placeholder="*********" label="Password" error={error?.data.password} />
+          <FormField name="password" type="password" placeholder="*********" label="Password" error={error?.data.password} />
 
           <FormField name="name" placeholder="John Smith" label="Name" error={error?.data.name} />
 
