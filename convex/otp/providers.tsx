@@ -30,7 +30,7 @@ if (typeof MessageChannel === "undefined") {
 import Resend from "@auth/core/providers/resend"
 import { ConvexError } from "convex/values"
 import { alphabet, generateRandomString } from "oslo/crypto"
-import { ResetPasswordEmail } from "./ResePasswordEmail"
+import { ResetPasswordEmail } from "./ResetPasswordEmail"
 import { VerificationCodeEmail } from "./VerificationCodeEmail"
 
 export const ResendOTPPasswordReset = Resend({
