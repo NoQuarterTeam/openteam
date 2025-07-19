@@ -55,6 +55,16 @@ export const remove = mutation({
     const team = await ctx.db.get(userTeam.teamId)
     if (!team) throw new ConvexError("Team not found")
 
+    const user = await ctx.db.get(userTeam.userId)
+    if (!user) throw new ConvexError("User not found")
+
+    const invite = await ctx.db
+      .query("invites")
+      .withIndex("by_email", (q) => q.eq("email", user.email))
+      .filter((q) => q.eq(q.field("teamId"), team._id))
+      .first()
+    if (invite) await ctx.db.delete(invite._id)
+
     const { userTeam: userTeamData } = await canManageTeam(ctx, team._id)
 
     if (userTeamData.role !== "admin") throw new ConvexError("You are not allowed to remove this user")

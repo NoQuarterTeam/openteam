@@ -10,7 +10,7 @@ export const InviteEmail = ({ teamName, inviteLink }: { teamName: string; invite
           <Heading style={h1}>OpenTeam</Heading>
         </Section>
         <Text style={heroText}>
-          You've been invited to join {teamName} on OpenTeam! Click the link below to accept your invite:
+          You've been invited to join <b>{teamName}</b>!
         </Text>
 
         <Section style={buttonContainer}>
