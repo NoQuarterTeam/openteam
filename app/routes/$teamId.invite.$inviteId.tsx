@@ -1,5 +1,6 @@
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useMutation, useQuery } from "convex/react"
+import { ConvexError } from "convex/values"
 import { useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
@@ -79,8 +80,12 @@ export default function Page() {
                 try {
                   await acceptInvite({ inviteId: invite._id })
                   navigate(`/${team._id}`)
-                } catch {
-                  toast.error("Failed to accept invite")
+                } catch (error) {
+                  if (error instanceof ConvexError) {
+                    toast.error(error.data)
+                  } else {
+                    toast.error("Failed to accept invite")
+                  }
                   setIsAcceptingInvite(false)
                 }
               }}
