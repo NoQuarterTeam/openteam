@@ -135,6 +135,8 @@ export const Message = memo(function _Message({
     {} as Record<string, { count: number; reactions: MessageData["reactions"] }>,
   )
 
+  const filesHaveOnlyImages = message.files?.every((f) => f.metadata.contentType?.startsWith("image/"))
+
   return (
     <div
       className={cn(
@@ -229,16 +231,17 @@ export const Message = memo(function _Message({
                         </Button>
                       </div>
                       {isImageOpen && message.files.length > 0 && (
-                        <>
-                          {message.files.length === 1 && <MessageFile file={message.files[0]!} />}
-                          {message.files.length > 1 && (
-                            <div className="flex flex-wrap gap-2">
-                              {message.files.map((file) => (
-                                <MessageFile key={file._id} file={file} className="h-14" />
-                              ))}
-                            </div>
-                          )}
-                        </>
+                        <div className="flex flex-wrap gap-2">
+                          {message.files.map((file) => (
+                            <MessageFile
+                              key={file._id}
+                              file={file}
+                              isImagePreview={filesHaveOnlyImages}
+                              channelId={message.channelId}
+                              messageId={message._id}
+                            />
+                          ))}
+                        </div>
                       )}
                     </>
                   )}
@@ -411,29 +414,55 @@ export const Message = memo(function _Message({
 
 type MessageFileType = MessageData["files"][number]
 
-function MessageFile({ file, className }: { file: MessageFileType; className?: string }) {
-  const isImage = file.metadata?.contentType?.startsWith("image/") || file.url?.startsWith("blob:")
+function MessageFile({
+  file,
+  isImagePreview,
+  channelId,
+  messageId,
+}: {
+  file: MessageFileType
+  isImagePreview: boolean
+  channelId: Id<"channels">
+  messageId: Id<"messages">
+}) {
+  const isImage = !!file.metadata?.contentType?.startsWith("image/") || !!file.url?.startsWith("blob:")
+  const removeFile = useMutation(api.messages.removeFile).withOptimisticUpdate((localStore) => {
+    optimisticallyUpdateValueInPaginatedQuery(localStore, api.messages.list, { channelId }, (currentValue) => {
+      if (messageId === currentValue._id) {
+        return { ...currentValue, files: currentValue.files.filter((f) => f._id !== file._id) }
+      }
+      return currentValue
+    })
+  })
   return (
-    <div className="group relative">
+    <div className="group/message-file relative float-left">
       <a
         href={file.url || "#"}
         target="_blank"
         rel="noopener noreferrer"
-        className={cn("flex shrink-0", isImage && "h-[200px]", className)}
+        className={cn("flex shrink-0", isImage && "h-[200px]", !isImagePreview && "h-14")}
       >
-        {isImage ? (
+        {isImage && isImagePreview ? (
           <img src={file.url || "#"} alt={file.name} className="h-full rounded-lg object-cover" />
         ) : (
           <div className="relative">
-            <FilePill name={file.name} />
+            <FilePill name={file.name} src={file.url} isImage={isImage} type={file.metadata?.contentType || ""} />
           </div>
         )}
       </a>
-      {/* <div className="absolute top-0 right-0 flex items-center justify-center opacity-0 group-hover:opacity-100">
-        <Button size="icon" variant="ghost" className="size-8">
-          <TrashIcon />
+      <div className="absolute top-2 right-2 flex items-center justify-center opacity-0 group-hover/message-file:opacity-100">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="size-8 bg-background"
+          onClick={() => {
+            if (!window.confirm("Are you sure?")) return
+            void removeFile({ fileId: file._id })
+          }}
+        >
+          <TrashIcon className="size-3.5" />
         </Button>
-      </div> */}
+      </div>
     </div>
   )
 }

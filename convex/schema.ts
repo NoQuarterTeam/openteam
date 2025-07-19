@@ -100,6 +100,7 @@ export default defineSchema({
   files: defineTable({
     name: v.string(),
     messageId: v.id("messages"),
+    // previewUrl: v.optional(v.string()),
     storageId: v.id("_storage"),
   })
     .index("by_message", ["messageId"])

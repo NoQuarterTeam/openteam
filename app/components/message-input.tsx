@@ -204,7 +204,7 @@ export function MessageInput({
                 {isImage(file) ? (
                   <img src={url} alt={file.name} className="h-14 w-14 rounded-lg border object-cover" />
                 ) : (
-                  <FilePill name={file.name} />
+                  <FilePill name={file.name} isImage={false} type={file.type} />
                 )}
                 <button
                   type="button"

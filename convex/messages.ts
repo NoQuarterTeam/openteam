@@ -160,3 +160,23 @@ export const update = mutation({
     await ctx.db.patch(messageId, { content: args.content })
   },
 })
+
+export const removeFile = mutation({
+  args: { fileId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx)
+    const fileId = ctx.db.normalizeId("files", args.fileId)
+    if (!fileId) throw new ConvexError("Invalid file ID")
+    const file = await ctx.db.get(fileId)
+    if (!file) throw new ConvexError("File not found")
+    const message = await ctx.db.get(file.messageId)
+    if (!message) throw new ConvexError("Message not found")
+    if (message.authorId !== user._id) throw new ConvexError("You are not the author of this message")
+    const messageFiles = await ctx.db
+      .query("files")
+      .withIndex("by_message", (q) => q.eq("messageId", message._id))
+      .collect()
+    await ctx.db.delete(fileId)
+    if (messageFiles.length === 1) await ctx.db.delete(message._id)
+  },
+})
