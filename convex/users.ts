@@ -40,3 +40,25 @@ export const updateUserRole = mutation({
     return await ctx.db.patch(userTeamId, { role: args.role })
   },
 })
+
+export const remove = mutation({
+  args: {
+    userTeamId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userTeamId = ctx.db.normalizeId("userTeams", args.userTeamId)
+    if (!userTeamId) throw new ConvexError("Invalid user team ID")
+
+    const userTeam = await ctx.db.get(userTeamId)
+    if (!userTeam) throw new ConvexError("User team not found")
+
+    const team = await ctx.db.get(userTeam.teamId)
+    if (!team) throw new ConvexError("Team not found")
+
+    const { userTeam: userTeamData } = await canManageTeam(ctx, team._id)
+
+    if (userTeamData.role !== "admin") throw new ConvexError("You are not allowed to remove this user")
+
+    return await ctx.db.delete(userTeamId)
+  },
+})

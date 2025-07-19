@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "convex/react"
+import { ConvexError } from "convex/values"
 import { PlusIcon, TrashIcon } from "lucide-react"
 import { matchSorter } from "match-sorter"
 import posthog from "posthog-js"
@@ -26,6 +27,7 @@ export function TeamSettingsMembers() {
 
   const filteredMembers = matchSorter(members || [], search, { keys: ["name", "email"] })
 
+  const removeUser = useMutation(api.users.remove)
   const updateUserRoleMutation = useMutation(api.users.updateUserRole)
 
   const [inviteEmail, setInviteEmail] = useState("")
@@ -122,7 +124,13 @@ export function TeamSettingsMembers() {
                     className="size-8"
                     onClick={() => {
                       posthog.capture("invite_deleted", { teamId })
-                      void removeInvite({ inviteId: invite._id })
+                      void removeInvite({ inviteId: invite._id }).catch((error) => {
+                        if (error instanceof ConvexError) {
+                          toast.error(error.data)
+                        } else {
+                          toast.error("Failed to remove invite")
+                        }
+                      })
                     }}
                   >
                     <TrashIcon className="size-3" />
@@ -143,11 +151,12 @@ export function TeamSettingsMembers() {
             <li key={member._id} className="flex items-center gap-3">
               <Avatar image={member.image} name={member.name} className="size-8 rounded-full" />
               <div className="flex-1">
-                <div className="font-medium">{member.name}</div>
+                <div className="flex items-center gap-2">
+                  <div className="font-medium">{member.name}</div>
+                  {member._id === team?.createdBy?._id && <Badge>Owner</Badge>}
+                </div>
                 <div className="text-muted-foreground text-xs">{member.email}</div>
               </div>
-
-              {member._id === team?.createdBy?._id && <Badge>Owner</Badge>}
 
               <Select
                 value={member.role}
@@ -158,9 +167,15 @@ export function TeamSettingsMembers() {
                     userId: member._id,
                     role: value,
                   })
-                  updateUserRoleMutation({
+                  void updateUserRoleMutation({
                     userTeamId: member.userTeamId,
                     role: value as "admin" | "member",
+                  }).catch((error) => {
+                    if (error instanceof ConvexError) {
+                      toast.error(error.data)
+                    } else {
+                      toast.error("Failed to update user role")
+                    }
                   })
                 }}
               >
@@ -172,6 +187,24 @@ export function TeamSettingsMembers() {
                   <SelectItem value="member">Member</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  if (!isAdmin) return
+                  if (!window.confirm("Are you sure you want to remove this user?")) return
+                  posthog.capture("user_removed", { teamId })
+                  void removeUser({ userTeamId: member.userTeamId }).catch((error) => {
+                    if (error instanceof ConvexError) {
+                      toast.error(error.data)
+                    } else {
+                      toast.error("Failed to remove user")
+                    }
+                  })
+                }}
+              >
+                <TrashIcon className="size-3" />
+              </Button>
             </li>
           ))
         )}
