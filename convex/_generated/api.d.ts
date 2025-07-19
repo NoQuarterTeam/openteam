@@ -8,23 +8,29 @@
  * @module
  */
 
-import type { ApiFromModules, FilterApi, FunctionReference } from "convex/server"
-import type * as auth from "../auth.js"
-import type * as babbles from "../babbles.js"
-import type * as channels from "../channels.js"
-import type * as http from "../http.js"
-import type * as invites from "../invites.js"
-import type * as messages from "../messages.js"
-import type * as optimistic from "../optimistic.js"
-import type * as otp_providers from "../otp/providers.js"
-import type * as otp_ResePasswordEmail from "../otp/ResetPasswordEmail.js"
-import type * as otp_VerificationCodeEmail from "../otp/VerificationCodeEmail.js"
-import type * as reactions from "../reactions.js"
-import type * as router from "../router.js"
-import type * as teams from "../teams.js"
-import type * as threads from "../threads.js"
-import type * as uploads from "../uploads.js"
-import type * as users from "../users.js"
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+import type * as auth from "../auth.js";
+import type * as babbles from "../babbles.js";
+import type * as channels from "../channels.js";
+import type * as emails_InviteEmail from "../emails/InviteEmail.js";
+import type * as emails_invite from "../emails/invite.js";
+import type * as http from "../http.js";
+import type * as invites from "../invites.js";
+import type * as messages from "../messages.js";
+import type * as optimistic from "../optimistic.js";
+import type * as otp_ResetPasswordEmail from "../otp/ResetPasswordEmail.js";
+import type * as otp_VerificationCodeEmail from "../otp/VerificationCodeEmail.js";
+import type * as otp_providers from "../otp/providers.js";
+import type * as reactions from "../reactions.js";
+import type * as router from "../router.js";
+import type * as teams from "../teams.js";
+import type * as threads from "../threads.js";
+import type * as uploads from "../uploads.js";
+import type * as users from "../users.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -35,22 +41,30 @@ import type * as users from "../users.js"
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  auth: typeof auth
-  babbles: typeof babbles
-  channels: typeof channels
-  http: typeof http
-  invites: typeof invites
-  messages: typeof messages
-  optimistic: typeof optimistic
-  "otp/ResePasswordEmail": typeof otp_ResePasswordEmail
-  "otp/VerificationCodeEmail": typeof otp_VerificationCodeEmail
-  "otp/providers": typeof otp_providers
-  reactions: typeof reactions
-  router: typeof router
-  teams: typeof teams
-  threads: typeof threads
-  uploads: typeof uploads
-  users: typeof users
-}>
-export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>
-export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>
+  auth: typeof auth;
+  babbles: typeof babbles;
+  channels: typeof channels;
+  "emails/InviteEmail": typeof emails_InviteEmail;
+  "emails/invite": typeof emails_invite;
+  http: typeof http;
+  invites: typeof invites;
+  messages: typeof messages;
+  optimistic: typeof optimistic;
+  "otp/ResetPasswordEmail": typeof otp_ResetPasswordEmail;
+  "otp/VerificationCodeEmail": typeof otp_VerificationCodeEmail;
+  "otp/providers": typeof otp_providers;
+  reactions: typeof reactions;
+  router: typeof router;
+  teams: typeof teams;
+  threads: typeof threads;
+  uploads: typeof uploads;
+  users: typeof users;
+}>;
+export declare const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "public">
+>;
+export declare const internal: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "internal">
+>;

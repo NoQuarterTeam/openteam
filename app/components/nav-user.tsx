@@ -15,8 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar"
 import { api } from "@/convex/_generated/api"
-import { ProfileModal } from "./profile-modal"
-import { TeamModal } from "./team-modal"
+import { Settings } from "./settings"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
 export function NavUser() {
@@ -58,8 +57,7 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <ProfileModal />
-              <TeamModal />
+              <Settings />
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <NavThemeSwitcher />

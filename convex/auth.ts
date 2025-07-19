@@ -1,28 +1,25 @@
 import GitHub from "@auth/core/providers/github"
-import { Anonymous } from "@convex-dev/auth/providers/Anonymous"
-import { Password } from "@convex-dev/auth/providers/Password"
+import Google from "@auth/core/providers/google"
 import { convexAuth, getAuthUserId } from "@convex-dev/auth/server"
 import type { GenericMutationCtx } from "convex/server"
 import { ConvexError } from "convex/values"
-import { z } from "zod"
 import type { DataModel, Id } from "./_generated/dataModel"
 import { type MutationCtx, type QueryCtx, query } from "./_generated/server"
-import { ResendOTPEmailVerification, ResendOTPPasswordReset } from "./otp/providers"
 
-const ParamsSchema = z.object({
-  email: z.string().email().min(5, "Email is required").trim().toLowerCase(),
-  name: z.string().min(2, "Name is required").trim().optional().default("Unknown"),
-  password: z.string().min(8, "Password must be at least 8 characters long").optional(),
-})
+// const ParamsSchema = z.object({
+//   email: z.string().email().min(5, "Email is required").trim().toLowerCase(),
+//   name: z.string().min(2, "Name is required").trim().optional().default("Unknown"),
+//   password: z.string().min(8, "Password must be at least 8 characters long").optional(),
+// })
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
-    Anonymous<DataModel>({
-      profile() {
-        const id = Math.random().toString(36).substring(2, 8)
-        return { isAnonymous: true, name: id, email: `${id}@noquarter.co` }
-      },
-    }),
+    // Anonymous<DataModel>({
+    //   profile() {
+    //     const id = Math.random().toString(36).substring(2, 8)
+    //     return { isAnonymous: true, name: id, email: `${id}@noquarter.co` }
+    //   },
+    // }),
     GitHub({
       async profile(githubProfile) {
         if (!githubProfile.email) throw new ConvexError("Email is required")
@@ -34,22 +31,32 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         }
       },
     }),
-    // Password<DataModel>({
-    //   id: "password-code",
-    //   reset: ResendOTPPasswordReset,
-    //   verify: ResendOTP,
-    // }),
-    Password<DataModel>({
-      id: "password",
-      validatePasswordRequirements: () => null,
-      profile(params) {
-        const { success, data, error } = ParamsSchema.safeParse(params)
-        if (!success) throw new ConvexError(error.flatten().fieldErrors)
-        return data
+    Google({
+      async profile(googleProfile) {
+        if (!googleProfile.email) throw new ConvexError("Email is required")
+        return {
+          id: googleProfile.sub,
+          name: googleProfile.name,
+          email: googleProfile.email,
+        }
       },
-      reset: ResendOTPPasswordReset,
-      verify: ResendOTPEmailVerification,
     }),
+    // // Password<DataModel>({
+    // //   id: "password-code",
+    // //   reset: ResendOTPPasswordReset,
+    // //   verify: ResendOTP,
+    // // }),
+    // Password<DataModel>({
+    //   id: "password",
+    //   validatePasswordRequirements: () => null,
+    //   profile(params) {
+    //     const { success, data, error } = ParamsSchema.safeParse(params)
+    //     if (!success) throw new ConvexError(error.flatten().fieldErrors)
+    //     return data
+    //   },
+    //   reset: ResendOTPPasswordReset,
+    //   verify: ResendOTPEmailVerification,
+    // }),
   ],
   callbacks: {
     createOrUpdateUser: async (ctx: GenericMutationCtx<DataModel>, args) => {
@@ -70,26 +77,6 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       const user = await ctx.db.get(userId)
       if (!user) throw new ConvexError("User not found")
 
-      let teamId = args.profile.teamId as Id<"teams"> | undefined
-
-      if (!teamId) {
-        const demoTeam = await ctx.db
-          .query("teams")
-          .filter((q) => q.eq(q.field("isDemo"), true))
-          .first()
-        if (args.profile.isAnonymous && demoTeam) {
-          teamId = demoTeam._id
-        } else {
-          teamId = await ctx.db.insert("teams", { name: user.name, createdBy: user._id })
-          await ctx.db.insert("channels", { name: "general", createdBy: user._id, teamId })
-        }
-      }
-      await ctx.db.insert("channels", { name: user._id, createdBy: user._id, userId: user._id, teamId })
-      await ctx.db.insert("userTeams", {
-        userId: user._id,
-        teamId,
-        role: args.profile.teamId || args.profile.isAnonymous ? "member" : "admin",
-      })
       return userId
     },
   },
