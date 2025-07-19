@@ -90,6 +90,7 @@ export const Message = memo(function _Message({
             ...currentValue.reactions,
             {
               ...args,
+              messageId: message._id,
               _id: crypto.randomUUID() as Id<"messageReactions">,
               _creationTime: Date.now(),
               userId: user._id,
