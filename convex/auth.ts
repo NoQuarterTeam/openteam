@@ -34,6 +34,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     Google({
       async profile(googleProfile) {
         if (!googleProfile.email) throw new ConvexError("Email is required")
+        console.log(googleProfile)
         return {
           id: googleProfile.sub,
           name: googleProfile.name,

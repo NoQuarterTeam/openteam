@@ -20,8 +20,8 @@ export default function Page() {
                 </Link>
               </div>
             </div>
-            <div className="grid gap-4 md:grid-cols-1">
-              <Button variant="outline" className="w-full shrink-0" onClick={() => void signIn("google")}>
+            <div className="grid gap-3 md:grid-cols-1">
+              <Button variant="outline" className="w-full shrink-0" onClick={() => void signIn("google", { redirectTo: "/" })}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                   <title>Google</title>
                   <path
@@ -31,7 +31,7 @@ export default function Page() {
                 </svg>
                 <span>Continue with Google</span>
               </Button>
-              <Button variant="outline" className="w-full shrink-0" onClick={() => void signIn("github")}>
+              <Button variant="outline" className="w-full shrink-0" onClick={() => void signIn("github", { redirectTo: "/" })}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                   <title>GitHub</title>
                   <path

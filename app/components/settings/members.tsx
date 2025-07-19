@@ -187,24 +187,27 @@ export function TeamSettingsMembers() {
                   <SelectItem value="member">Member</SelectItem>
                 </SelectContent>
               </Select>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  if (!isAdmin) return
-                  if (!window.confirm("Are you sure you want to remove this user?")) return
-                  posthog.capture("user_removed", { teamId })
-                  void removeUser({ userTeamId: member.userTeamId }).catch((error) => {
-                    if (error instanceof ConvexError) {
-                      toast.error(error.data)
-                    } else {
-                      toast.error("Failed to remove user")
-                    }
-                  })
-                }}
-              >
-                <TrashIcon className="size-3" />
-              </Button>
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={member._id === team?.createdBy?._id}
+                  onClick={() => {
+                    if (!isAdmin) return
+                    if (!window.confirm("Are you sure you want to remove this user?")) return
+                    posthog.capture("user_removed", { teamId })
+                    void removeUser({ userTeamId: member.userTeamId }).catch((error) => {
+                      if (error instanceof ConvexError) {
+                        toast.error(error.data)
+                      } else {
+                        toast.error("Failed to remove user")
+                      }
+                    })
+                  }}
+                >
+                  <TrashIcon className="size-3" />
+                </Button>
+              )}
             </li>
           ))
         )}

@@ -1,5 +1,5 @@
 import { useAuthActions } from "@convex-dev/auth/react"
-import { useMutation, useQuery } from "convex/react"
+import { useConvexAuth, useMutation, useQuery } from "convex/react"
 import { ConvexError } from "convex/values"
 import { useState } from "react"
 import { useNavigate, useParams } from "react-router"
@@ -14,7 +14,7 @@ export default function Page() {
   const { teamId, inviteId } = useParams<{ teamId: Id<"teams">; inviteId: Id<"invites"> }>()
   const team = useQuery(api.teams.getPublic, teamId ? { teamId } : "skip")
   const user = useQuery(api.auth.me)
-  const isAlreadyInTeam = user?.userTeams.some((ut) => ut.teamId === teamId)
+  const { isLoading } = useConvexAuth()
   const invite = useQuery(api.invites.get, inviteId ? { inviteId } : "skip")
   const acceptInvite = useMutation(api.invites.accept)
   const deleteInvite = useMutation(api.invites.remove)
@@ -22,7 +22,9 @@ export default function Page() {
   const navigate = useNavigate()
   const [isAcceptingInvite, setIsAcceptingInvite] = useState(false)
 
-  if (team === undefined || invite === undefined) {
+  const isAlreadyInTeam = user?.userTeams.some((ut) => ut.teamId === teamId)
+
+  if (team === undefined || invite === undefined || user === undefined || isLoading) {
     return (
       <div className="flex h-svh items-center justify-center">
         <Spinner />
@@ -36,7 +38,47 @@ export default function Page() {
           <div className="flex items-center justify-center">
             <Avatar image={team.image} name={team.name} className="size-20" />
           </div>
+          <h1 className="text-center text-2xl">
+            <b>{team.name}</b>
+          </h1>
           <p className="text-center">Invite not found</p>
+          <Button variant="outline" className="w-full shrink-0" onClick={() => navigate(`/`)}>
+            Go back
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (invite.acceptedAt && !isAcceptingInvite) {
+    return (
+      <div className="pt-4 md:pt-20">
+        <div className="mx-auto w-full max-w-sm space-y-4 rounded-xl border bg-background p-4">
+          <div className="flex items-center justify-center">
+            <Avatar image={team.image} name={team.name} className="size-20" />
+          </div>
+          <h1 className="text-center text-2xl">
+            <b>{team.name}</b>
+          </h1>
+          <p className="text-center">Invite already accepted</p>
+          <Button variant="outline" className="w-full shrink-0" onClick={() => navigate(`/`)}>
+            Go back
+          </Button>
+        </div>
+      </div>
+    )
+  }
+  if (user && invite.email !== user.email) {
+    return (
+      <div className="pt-4 md:pt-20">
+        <div className="mx-auto w-full max-w-sm space-y-4 rounded-xl border bg-background p-4">
+          <div className="flex items-center justify-center">
+            <Avatar image={team.image} name={team.name} className="size-20" />
+          </div>
+          <h1 className="text-center text-2xl">
+            <b>{team.name}</b>
+          </h1>
+          <p className="text-center">You are not the recipient of this invite</p>
           <Button variant="outline" className="w-full shrink-0" onClick={() => navigate(`/`)}>
             Go back
           </Button>
@@ -51,6 +93,9 @@ export default function Page() {
           <div className="flex items-center justify-center">
             <Avatar image={team.image} name={team.name} className="size-20" />
           </div>
+          <h1 className="text-center text-2xl">
+            <b>{team.name}</b>
+          </h1>
           <p className="text-center">You are already a member of this team</p>
           <Button variant="outline" className="w-full shrink-0" onClick={() => navigate(`/`)}>
             Go back
@@ -71,7 +116,7 @@ export default function Page() {
         </h1>
 
         {user ? (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-3">
             <Button
               variant="default"
               disabled={isAcceptingInvite}
@@ -105,7 +150,7 @@ export default function Page() {
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex flex-col items-center gap-3">
             <p className="text-center text-muted-foreground text-sm">Sign in to accept the invite</p>
             <Button
               variant="outline"
@@ -127,7 +172,7 @@ export default function Page() {
               variant="outline"
               className="w-full shrink-0"
               onClick={() => {
-                void signIn("github", { redirectTo: `/${team._id}/invite/${invite._id}` })
+                void signIn("github")
               }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

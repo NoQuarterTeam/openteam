@@ -12,7 +12,7 @@ export const list = query({
     const invites = await ctx.db
       .query("invites")
       .withIndex("by_team", (q) => q.eq("teamId", teamId))
-      .filter((q) => q.eq(q.field("acceptedAt"), null))
+      .filter((q) => q.eq(q.field("acceptedAt"), undefined))
       .collect()
     return invites
   },
