@@ -11,7 +11,6 @@ export const create = mutation({
     const team = await ctx.db.insert("teams", { name: args.name, createdBy: user._id })
     await ctx.db.insert("userTeams", { userId: user._id, teamId: team, role: "admin" })
     await ctx.db.insert("channels", { name: "general", createdBy: user._id, teamId: team })
-    await ctx.db.insert("channels", { name: user._id, createdBy: user._id, userId: user._id, teamId: team })
     return team
   },
 })
@@ -79,7 +78,7 @@ export const myTeams = query({
   },
 })
 
-export const listMembers = query({
+export const members = query({
   args: { teamId: v.string() },
   handler: async (ctx, args) => {
     const teamId = ctx.db.normalizeId("teams", args.teamId)
