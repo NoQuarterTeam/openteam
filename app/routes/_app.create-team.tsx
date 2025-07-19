@@ -1,6 +1,7 @@
+import { useAuthActions } from "@convex-dev/auth/react"
 import { useMutation, useQuery } from "convex/react"
 import { ConvexError } from "convex/values"
-import { ChevronRightIcon, XIcon } from "lucide-react"
+import { ChevronRightIcon, LogOutIcon } from "lucide-react"
 import posthog from "posthog-js"
 import { useState } from "react"
 import { Link, useNavigate } from "react-router"
@@ -14,6 +15,7 @@ export default function Page() {
   const teams = useQuery(api.teams.myTeams)
   const createTeam = useMutation(api.teams.create)
   const navigate = useNavigate()
+  const { signOut } = useAuthActions()
 
   const [isCreatingTeam, setIsCreatingTeam] = useState(false)
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -38,39 +40,43 @@ export default function Page() {
 
   return (
     <div className="relative space-y-4 pt-4 md:pt-20">
-      <form onSubmit={handleSubmit} className="mx-auto w-full max-w-sm space-y-4 rounded-xl border p-4">
-        <h1 className="font-bold text-2xl">Create a new Team</h1>
+      <form onSubmit={handleSubmit} className="mx-auto w-full max-w-sm space-y-3 rounded-xl border bg-background p-4">
+        <h1 className="text-center font-bold text-2xl">Create a new Team</h1>
         <Input autoFocus name="name" placeholder="Team Name" />
-        <Button type="submit" className="w-full">
-          Create
-        </Button>
+        <div className="space-y-2">
+          <Button type="submit" className="w-full">
+            Create
+          </Button>
+          {teams && teams.length > 0 && (
+            <Button variant="outline" className="w-full" onClick={() => navigate("/")}>
+              Cancel
+            </Button>
+          )}
+        </div>
       </form>
       {!isCreatingTeam && (
-        <>
-          <div className="mx-auto max-w-sm space-y-2">
-            {teams?.map((team) => (
-              <Link
-                key={team._id}
-                to={`/${team._id}`}
-                className="flex items-center justify-between rounded-xl border py-2 pr-4 pl-2 hover:bg-muted"
-              >
-                <div className="flex items-center gap-2">
-                  <Avatar className="size-8 rounded-md" image={team.image} name={team.name} />
-                  <span>{team.name}</span>
-                </div>
-                <ChevronRightIcon className="size-4" />
-              </Link>
-            ))}
-          </div>
-          {teams && teams.length > 0 && (
-            <div className="absolute top-4 right-4">
-              <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
-                <XIcon />
-              </Button>
-            </div>
-          )}
-        </>
+        <div className="mx-auto max-w-sm space-y-2">
+          {teams?.map((team) => (
+            <Link
+              key={team._id}
+              to={`/${team._id}`}
+              className="flex items-center justify-between rounded-xl border bg-background py-2 pr-4 pl-2 hover:bg-muted"
+            >
+              <div className="flex items-center gap-2">
+                <Avatar className="size-8 rounded-md" image={team.image} name={team.name} />
+                <span>{team.name}</span>
+              </div>
+              <ChevronRightIcon className="size-4" />
+            </Link>
+          ))}
+        </div>
       )}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <Button variant="outline" onClick={() => void signOut()}>
+          <LogOutIcon />
+          Log out
+        </Button>
+      </div>
     </div>
   )
 }
