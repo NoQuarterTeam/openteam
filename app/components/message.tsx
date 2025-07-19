@@ -17,6 +17,7 @@ import { FilePill } from "./file-pill"
 import { ThreadIndicator } from "./thread-indicator"
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+import { Spinner } from "./ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { WithState } from "./with-state"
 
@@ -115,7 +116,7 @@ export const Message = memo(function _Message({
     })
   })
 
-  const deleteMessage = useMutation(api.messages.deleteMessage).withOptimisticUpdate((localStore) => {
+  const remove = useMutation(api.messages.remove).withOptimisticUpdate((localStore) => {
     optimisticallyUpdateValueInPaginatedQuery(localStore, api.messages.list, { channelId: message.channelId }, (currentValue) => {
       if (message._id === currentValue._id) {
         return { ...currentValue, optimisticStatus: "deleted" as OptimisticStatus }
@@ -135,7 +136,9 @@ export const Message = memo(function _Message({
     {} as Record<string, { count: number; reactions: MessageData["reactions"] }>,
   )
 
-  const filesHaveOnlyImages = message.files?.every((f) => f.metadata.contentType?.startsWith("image/"))
+  const filesHaveOnlyImages = message.files?.every(
+    (f) => f.metadata?.contentType?.startsWith("image/") || f.previewContentType?.startsWith("image/"),
+  )
 
   return (
     <div
@@ -362,7 +365,7 @@ export const Message = memo(function _Message({
                 onClick={() => {
                   if (window.confirm("Are you sure you want to delete this message?")) {
                     posthog.capture("message_deleted", { channelId: message.channelId, teamId })
-                    deleteMessage({ messageId: message._id })
+                    remove({ messageId: message._id })
                   }
                 }}
               >
@@ -425,8 +428,13 @@ function MessageFile({
   channelId: Id<"channels">
   messageId: Id<"messages">
 }) {
-  const isImage = !!file.metadata?.contentType?.startsWith("image/") || !!file.url?.startsWith("blob:")
-  const removeFile = useMutation(api.messages.removeFile).withOptimisticUpdate((localStore) => {
+  const isPreview = !!file.previewId && !file.storageId
+  const isImage =
+    !!file.metadata?.contentType?.startsWith("image/") ||
+    !!file.url?.startsWith("blob:") ||
+    !!file.previewContentType?.startsWith("image/")
+
+  const removeFile = useMutation(api.files.remove).withOptimisticUpdate((localStore) => {
     optimisticallyUpdateValueInPaginatedQuery(localStore, api.messages.list, { channelId }, (currentValue) => {
       if (messageId === currentValue._id) {
         return { ...currentValue, files: currentValue.files.filter((f) => f._id !== file._id) }
@@ -437,19 +445,32 @@ function MessageFile({
   return (
     <div className="group/message-file relative float-left">
       <a
-        href={file.url || "#"}
+        href={file.url || file.previewUrl || "#"}
         target="_blank"
         rel="noopener noreferrer"
         className={cn("flex shrink-0", isImage && "h-[200px]", !isImagePreview && "h-14")}
       >
         {isImage && isImagePreview ? (
-          <img src={file.url || "#"} alt={file.name} className="h-full rounded-lg object-cover" />
+          <img src={file.url || file.previewUrl || "#"} alt={file.name} className="h-full rounded-lg object-cover" />
         ) : (
           <div className="relative">
-            <FilePill name={file.name} src={file.url} isImage={isImage} type={file.metadata?.contentType || ""} />
+            <FilePill
+              name={file.name}
+              src={file.url || file.previewUrl || "#"}
+              isImage={isImage}
+              type={file.metadata?.contentType || file.previewContentType || ""}
+            />
           </div>
         )}
       </a>
+      {isPreview && (
+        <div className="absolute top-2 left-2 rounded-md bg-background">
+          <div className="flex h-8 items-center justify-center gap-2 px-2">
+            <Spinner className="size-3.5" />
+            <p className="text-xs">Uploading</p>
+          </div>
+        </div>
+      )}
       <div className="absolute top-2 right-2 flex items-center justify-center opacity-0 group-hover/message-file:opacity-100">
         <Button
           size="icon"

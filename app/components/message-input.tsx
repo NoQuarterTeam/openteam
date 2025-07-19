@@ -28,6 +28,7 @@ export function MessageInput({
   threadId?: Id<"threads">
   lastMessageIdOfUser?: Id<"messages">
 }) {
+  const [tempMessageId, setTempMessageId] = useState<string>(crypto.randomUUID())
   const { teamId } = useParams<{ teamId: Id<"teams"> }>()
   const [newMessage, setNewMessage] = useState("")
   const [filePreviews, setFilePreviews] = useState<{ id: string; file: File; url: string; storageId?: Id<"_storage"> }[]>([])
@@ -58,20 +59,17 @@ export function MessageInput({
           optimisticStatus: "created",
           reactions: [],
           files:
-            args.files?.map(({ name, storageId }: { name: string; storageId: Id<"_storage"> }, i: number) => ({
+            filePreviews.map(({ file, id, url }) => ({
               _id: crypto.randomUUID() as Id<"files">,
-              name,
+              name: file.name,
+              previewId: id,
+              previewContentType: file.type,
+              previewUrl: url,
               _creationTime: Date.now(),
               messageId,
-              url: filePreviews[i]?.url || null,
-              metadata: {
-                _id: crypto.randomUUID() as Id<"_storage">,
-                _creationTime: Date.now(),
-                contentType: filePreviews[i]?.file.type || "application/octet-stream",
-                sha256: "",
-                size: filePreviews[i]?.file.size || 10,
-              },
-              storageId,
+              url: null,
+              metadata: null,
+              storageId: undefined,
             })) || [],
         },
       })
@@ -95,84 +93,105 @@ export function MessageInput({
           reactions: [],
           threadInfo: null,
           files:
-            args.files?.map(({ name, storageId }: { name: string; storageId: Id<"_storage"> }, i: number) => ({
+            filePreviews.map(({ file, url, id }) => ({
               _id: crypto.randomUUID() as Id<"files">,
-              name,
+              name: file.name,
               _creationTime: Date.now(),
               messageId,
-              url: filePreviews[i]?.url || null,
-              metadata: {
-                _id: crypto.randomUUID() as Id<"_storage">,
-                _creationTime: Date.now(),
-                contentType: filePreviews[i]?.file.type || "image/png",
-                sha256: "",
-                size: filePreviews[i]?.file.size || 10,
-              },
-              storageId,
+              url: null,
+              previewId: id,
+              previewContentType: file.type,
+              previewUrl: url,
+              metadata: null,
+              storageId: undefined,
             })) || [],
         },
       })
     }
   })
 
-  const generateUploadUrl = useMutation(api.uploads.generateUploadUrl)
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl)
 
   const textAreaRef = useRef<ExpandableTextareaRef>(null)
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if ((!newMessage.trim() && filePreviews.length === 0) || filePreviews.some(({ storageId }) => !storageId)) return
+    if (!newMessage.trim() && filePreviews.length === 0) return
 
     try {
       textAreaRef.current?.resetHeight()
       setNewMessage("")
-
       setFilePreviews([])
-      setNewMessage("")
       posthog.capture("message_sent", { channelId, teamId, threadId })
-      void sendMessage({
+      await sendMessage({
         channelId,
+        tempMessageId,
         content: newMessage.trim(),
-        files: filePreviews.map(({ file, storageId }) => ({ name: file.name, storageId: storageId! })),
         threadId,
       })
+      setTempMessageId(crypto.randomUUID())
     } catch {
       toast.error("Failed to send message")
     }
   }
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const newPreviews = acceptedFiles.map((file) => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) }))
-    setFilePreviews((prev) => [...prev, ...newPreviews])
 
-    posthog.capture("files_uploaded", { teamId, channelId, threadId })
+  const createFilePreviews = useMutation(api.files.createFilePreviews)
+  const updateFile = useMutation(api.files.update)
 
-    const newFiles = await Promise.all(
-      newPreviews.map(async ({ id, file, url }) => {
-        const uploadUrl = await generateUploadUrl({})
-        const result = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": file.type },
-          body: file,
-        })
-        if (!result.ok) throw new Error("Failed to upload file")
-        const { storageId } = (await result.json()) as { storageId: Id<"_storage"> }
-        return { id, file, url, storageId }
-      }),
-    )
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      const newPreviews = acceptedFiles.map((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        url: URL.createObjectURL(file),
+      }))
 
-    setFilePreviews((prev) =>
-      prev.map((preview) => {
-        const uploaded = newFiles.find((nf) => nf.id === preview.id)
-        return uploaded || preview
-      }),
-    )
-  }, [])
+      await createFilePreviews({
+        previewMessageId: tempMessageId,
+        previews: newPreviews.map(({ file, ...rest }) => ({
+          previewId: rest.id,
+          url: rest.url,
+          name: file.name,
+          contentType: file.type,
+        })),
+      })
+      setFilePreviews((prev) => [...prev, ...newPreviews])
+
+      posthog.capture("files_uploaded", { teamId, channelId, threadId })
+
+      const results = await Promise.allSettled(
+        newPreviews.map(async (preview) => {
+          const uploadUrl = await generateUploadUrl({})
+          const result = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": preview.file.type },
+            body: preview.file,
+          })
+          if (!result.ok) throw new Error("Failed to upload file")
+          const { storageId } = (await result.json()) as { storageId: Id<"_storage"> }
+          return { ...preview, storageId }
+        }),
+      )
+
+      if (results.some((result) => result.status === "rejected")) {
+        toast.error("Some files failed to upload")
+      }
+
+      for (const result of results) {
+        if (result.status === "rejected") continue
+        await updateFile({ previewId: result.value.id, storageId: result.value.storageId })
+        setFilePreviews((prev) => prev.map((p) => (p.id === result.value.id ? { ...p, storageId: result.value.storageId } : p)))
+      }
+    },
+    [tempMessageId],
+  )
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop })
 
-  const handleRemoveFile = (index: number) => {
-    setFilePreviews((prev) => prev.filter((_, i) => i !== index))
-    if (filePreviews[index]) window.URL.revokeObjectURL(filePreviews[index].url)
+  const handleRemoveFile = (id: string) => {
+    setFilePreviews((prev) => prev.filter((p) => p.id !== id))
+    const file = filePreviews.find((p) => p.id === id)
+    if (file) window.URL.revokeObjectURL(file.url)
   }
 
   const setEditMessageId = useEditMessage((s) => s.setMessageId)
@@ -199,7 +218,7 @@ export function MessageInput({
       <form onSubmit={handleSendMessage} ref={formRef} className="relative flex flex-col gap-2">
         {filePreviews.length > 0 && (
           <div className="-top-18 absolute right-0 left-0 flex flex-wrap gap-2 border-t border-b bg-background p-2">
-            {filePreviews.map(({ id, file, url, storageId }, i) => (
+            {filePreviews.map(({ id, file, storageId, url }) => (
               <div key={id} className="relative">
                 {isImage(file) ? (
                   <img src={url} alt={file.name} className="h-14 w-14 rounded-lg border object-cover" />
@@ -208,10 +227,10 @@ export function MessageInput({
                 )}
                 <button
                   type="button"
-                  onClick={() => handleRemoveFile(i)}
+                  onClick={() => handleRemoveFile(id)}
                   className="-top-1 -right-1 absolute rounded-full bg-black p-0.5 text-white hover:bg-neutral-700"
                 >
-                  {storageId ? <XIcon className="size-4" /> : <Spinner className="size-4 text-white" />}
+                  {storageId ? <XIcon className="size-4" /> : <Spinner className="size-4" />}
                 </button>
               </div>
             ))}
@@ -243,11 +262,7 @@ export function MessageInput({
             autoFocus
           />
 
-          <Button
-            type="submit"
-            size="icon"
-            disabled={(!newMessage.trim() && filePreviews.length === 0) || filePreviews.some(({ storageId }) => !storageId)}
-          >
+          <Button type="submit" size="icon" disabled={!newMessage.trim() && filePreviews.length === 0}>
             <ArrowRightIcon />
           </Button>
         </div>

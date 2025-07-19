@@ -22,7 +22,7 @@ export function ProfileModal() {
   const [isUpdating, setIsUpdating] = useState(false)
 
   const updateProfile = useMutation(api.users.update)
-  const generateUploadUrl = useMutation(api.uploads.generateUploadUrl)
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl)
   const { permission, isSupported, requestPermission } = useNotifications()
 
   const handleSubmit = async (e: React.FormEvent) => {

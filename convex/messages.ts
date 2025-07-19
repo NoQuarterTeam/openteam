@@ -46,11 +46,11 @@ export const list = query({
           ),
           Promise.all(
             dbFiles.map(async (file) => {
-              const fileDb = await ctx.db.get(file._id)
-              if (!fileDb?.storageId) return null
-              const metadata = await ctx.db.system.get(fileDb.storageId)
-              if (!metadata) return null
-              return { ...fileDb, metadata, url: await ctx.storage.getUrl(fileDb.storageId) }
+              return {
+                ...file,
+                metadata: file.storageId ? await ctx.db.system.get(file.storageId) : null,
+                url: file.storageId ? await ctx.storage.getUrl(file.storageId) : null,
+              }
             }),
           ),
           user?.image && ctx.storage.getUrl(user.image),
@@ -86,7 +86,7 @@ export const list = query({
         return {
           ...message,
           reactions,
-          files: files.filter(Boolean),
+          files,
           optimisticStatus: null as OptimisticStatus,
           author: user ? { ...user, image } : null,
           threadInfo,
@@ -102,8 +102,8 @@ export const send = mutation({
   args: {
     channelId: v.string(),
     content: v.optional(v.string()),
-    files: v.optional(v.array(v.object({ name: v.string(), storageId: v.id("_storage") }))),
     threadId: v.optional(v.id("threads")),
+    tempMessageId: v.string(),
   },
   returns: v.id("messages"),
   handler: async (ctx, args) => {
@@ -125,17 +125,18 @@ export const send = mutation({
       threadId: args.threadId,
     })
 
-    if (args.files) {
-      await Promise.all(
-        args.files.map((file) => ctx.db.insert("files", { name: file.name, messageId: message, storageId: file.storageId })),
-      )
-    }
+    const files = await ctx.db
+      .query("files")
+      .withIndex("by_preview_message_id", (q) => q.eq("previewMessageId", args.tempMessageId))
+      .collect()
+
+    await Promise.all(files.map((file) => ctx.db.patch(file._id, { messageId: message })))
 
     return message
   },
 })
 
-export const deleteMessage = mutation({
+export const remove = mutation({
   args: { messageId: v.string() },
   handler: async (ctx, args) => {
     const messageId = ctx.db.normalizeId("messages", args.messageId)
@@ -158,25 +159,5 @@ export const update = mutation({
     if (!message) throw new ConvexError("Message not found")
     if (message.authorId !== user._id) throw new ConvexError("You are not the author of this message")
     await ctx.db.patch(messageId, { content: args.content })
-  },
-})
-
-export const removeFile = mutation({
-  args: { fileId: v.string() },
-  handler: async (ctx, args) => {
-    const user = await requireUser(ctx)
-    const fileId = ctx.db.normalizeId("files", args.fileId)
-    if (!fileId) throw new ConvexError("Invalid file ID")
-    const file = await ctx.db.get(fileId)
-    if (!file) throw new ConvexError("File not found")
-    const message = await ctx.db.get(file.messageId)
-    if (!message) throw new ConvexError("Message not found")
-    if (message.authorId !== user._id) throw new ConvexError("You are not the author of this message")
-    const messageFiles = await ctx.db
-      .query("files")
-      .withIndex("by_message", (q) => q.eq("messageId", message._id))
-      .collect()
-    await ctx.db.delete(fileId)
-    if (messageFiles.length === 1) await ctx.db.delete(message._id)
   },
 })

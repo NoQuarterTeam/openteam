@@ -73,8 +73,8 @@ export const get = query({
     const filesWithUrls = await Promise.all(
       files.map(async (file) => ({
         ...file,
-        url: await ctx.storage.getUrl(file.storageId),
-        metadata: (await ctx.db.system.get(file.storageId))!,
+        url: file.storageId ? await ctx.storage.getUrl(file.storageId) : null,
+        metadata: file.storageId ? (await ctx.db.system.get(file.storageId))! : null,
       })),
     )
 
@@ -144,8 +144,8 @@ export const listMessages = query({
         const filesWithUrls = await Promise.all(
           files.map(async (file) => ({
             ...file,
-            url: await ctx.storage.getUrl(file.storageId),
-            metadata: (await ctx.db.system.get(file.storageId))!,
+            url: file.storageId ? await ctx.storage.getUrl(file.storageId) : null,
+            metadata: file.storageId ? (await ctx.db.system.get(file.storageId))! : null,
           })),
         )
 

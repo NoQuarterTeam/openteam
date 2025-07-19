@@ -20,7 +20,7 @@ export function CommandCenter() {
   const recentChannelIds = useRecentChannels((s) => s.channels)
   const [open, setOpen] = useState(false)
 
-  const files = useQuery(api.uploads.search, search ? { query: search } : "skip")
+  const files = useQuery(api.files.search, search ? { query: search } : "skip")
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {

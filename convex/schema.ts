@@ -99,11 +99,16 @@ export default defineSchema({
 
   files: defineTable({
     name: v.string(),
-    messageId: v.id("messages"),
-    // previewUrl: v.optional(v.string()),
-    storageId: v.id("_storage"),
+    previewId: v.optional(v.string()),
+    previewMessageId: v.optional(v.string()),
+    previewContentType: v.optional(v.string()),
+    previewUrl: v.optional(v.string()),
+    messageId: v.optional(v.id("messages")),
+    storageId: v.optional(v.id("_storage")),
   })
     .index("by_message", ["messageId"])
+    .index("by_preview_id", ["previewId"])
+    .index("by_preview_message_id", ["previewMessageId"])
     .searchIndex("search_name", { searchField: "name" }),
 
   babblers: defineTable({

@@ -23,7 +23,7 @@ export function TeamSettingsInfo() {
   }, [team])
 
   const updateTeam = useMutation(api.teams.update)
-  const generateUploadUrl = useMutation(api.uploads.generateUploadUrl)
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
