@@ -67,16 +67,10 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         .query("users")
         .withIndex("email", (q) => q.eq("email", args.profile.email as string))
         .first()
+
       if (existingUser) return existingUser._id
 
-      const userId = await ctx.db.insert("users", {
-        name: args.profile.name as string,
-        email: args.profile.email as string,
-        image: args.profile.image as Id<"_storage">,
-      })
-
-      const user = await ctx.db.get(userId)
-      if (!user) throw new ConvexError("User not found")
+      const userId = await ctx.db.insert("users", { name: args.profile.name as string, email: args.profile.email as string })
 
       return userId
     },
