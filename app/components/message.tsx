@@ -1,9 +1,19 @@
 import { optimisticallyUpdateValueInPaginatedQuery, useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
-import { ChevronDownIcon, Edit2Icon, MessageSquareTextIcon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
+import {
+  ChevronDownIcon,
+  DownloadIcon,
+  Edit2Icon,
+  MessageSquareTextIcon,
+  MoreVerticalIcon,
+  SmileIcon,
+  SmilePlusIcon,
+  TrashIcon,
+} from "lucide-react"
 import posthog from "posthog-js"
 import { memo, useEffect, useRef, useState } from "react"
 import { useParams, useSearchParams } from "react-router"
+import { toast } from "sonner"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -16,6 +26,8 @@ import { ExpandableTextarea } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
 import { ThreadIndicator } from "./thread-indicator"
 import { Button } from "./ui/button"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Spinner } from "./ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
@@ -428,7 +440,7 @@ function MessageFile({
   channelId: Id<"channels">
   messageId: Id<"messages">
 }) {
-  const isPreview = !!file.previewId && !file.storageId
+  const isUploading = !!file.previewId && !file.storageId
   const isImage =
     !!file.metadata?.contentType?.startsWith("image/") ||
     !!file.url?.startsWith("blob:") ||
@@ -442,28 +454,45 @@ function MessageFile({
       return currentValue
     })
   })
+  const [isDownloading, setIsDownloading] = useState(false)
+  const handleDownload = async () => {
+    if (!file.url && !file.previewUrl) return
+    setIsDownloading(true)
+    try {
+      const image = await fetch(file.url || file.previewUrl!)
+      const imageBlog = await image.blob()
+      const imageURL = URL.createObjectURL(imageBlog)
+      const link = document.createElement("a")
+      link.href = imageURL
+      link.download = file.name
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch {
+      toast.error("Failed to download file")
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+  const [isPreviewing, setIsPreviewing] = useState(false)
   return (
-    <div className="group/message-file relative float-left">
-      <a
-        href={file.url || file.previewUrl || "#"}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={cn("flex shrink-0", isImage && "h-[200px]", !isImagePreview && "h-14")}
+    <div className="relative">
+      <div
+        onClick={() => setIsPreviewing(true)}
+        className={cn("flex shrink-0 cursor-zoom-in", isImage && "h-[200px]", !isImagePreview && "h-14")}
       >
         {isImage && isImagePreview ? (
           <img src={file.url || file.previewUrl || "#"} alt={file.name} className="h-full rounded-lg object-cover" />
         ) : (
-          <div className="relative">
-            <FilePill
-              name={file.name}
-              src={file.url || file.previewUrl || "#"}
-              isImage={isImage}
-              type={file.metadata?.contentType || file.previewContentType || ""}
-            />
-          </div>
+          <FilePill
+            name={file.name}
+            src={file.url || file.previewUrl || "#"}
+            isImage={isImage}
+            type={file.metadata?.contentType || file.previewContentType || ""}
+          />
         )}
-      </a>
-      {isPreview && (
+      </div>
+      {isUploading && (
         <div className="absolute top-2 left-2 rounded-md bg-background">
           <div className="flex h-8 items-center justify-center gap-2 px-2">
             <Spinner className="size-3.5" />
@@ -471,19 +500,74 @@ function MessageFile({
           </div>
         </div>
       )}
-      <div className="absolute top-2 right-2 flex items-center justify-center opacity-0 group-hover/message-file:opacity-100">
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-8 bg-background"
-          onClick={() => {
-            if (!window.confirm("Are you sure?")) return
-            void removeFile({ fileId: file._id })
-          }}
-        >
-          <TrashIcon className="size-3.5" />
-        </Button>
+      <div className={cn("absolute top-2 right-2 flex items-center justify-center")}>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="icon" variant="ghost" className="size-8 bg-background">
+              <MoreVerticalIcon className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleDownload}>
+              {isDownloading ? <Spinner className="size-3.5" /> : <DownloadIcon />}
+              {isDownloading ? "Downloading..." : "Download"}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                if (!window.confirm("Are you sure?")) return
+                void removeFile({ fileId: file._id })
+              }}
+            >
+              <TrashIcon />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+      <Dialog open={isPreviewing} onOpenChange={setIsPreviewing}>
+        <DialogContent className="flex h-[95vh] max-h-[95vh] flex-col justify-between md:max-w-[95vw]">
+          <DialogHeader>
+            <DialogTitle>{file.name}</DialogTitle>
+            <DialogDescription>{dayjs(file.metadata?._creationTime).format("DD/MM/YYYY HH:mm")}</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-1 items-center justify-center overflow-auto bg-background p-4">
+            {isImage ? (
+              <img
+                src={file.url || file.previewUrl || "#"}
+                alt={file.name}
+                className="mx-auto max-h-full max-w-full object-contain"
+              />
+            ) : file.metadata?.contentType === "application/pdf" || file.previewContentType === "application/pdf" ? (
+              <object title={file.name} data={file.url || file.previewUrl || "#"} className="h-full w-full" />
+            ) : (
+              <FilePill
+                name={file.name}
+                src={file.url || file.previewUrl || "#"}
+                isImage={false}
+                type={file.metadata?.contentType || file.previewContentType || ""}
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="icon" onClick={handleDownload}>
+              <DownloadIcon />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                if (!window.confirm("Are you sure?")) return
+                void removeFile({ fileId: file._id })
+              }}
+            >
+              <TrashIcon />
+            </Button>
+            <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
