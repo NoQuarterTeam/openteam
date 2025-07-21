@@ -89,7 +89,7 @@ export function FileDisplay({ file, variant, channelId, messageId, onRemove, ful
         <div
           onClick={handleClick}
           className={cn(
-            "flex h-14 w-full shrink-0",
+            "flex h-14 shrink-0",
             (isImage || isVideo) && variant === "message" && fullSize && "h-[200px]",
             variant === "message" && !isAudioFile && !isVideo && "cursor-zoom-in",
           )}
@@ -98,12 +98,12 @@ export function FileDisplay({ file, variant, channelId, messageId, onRemove, ful
             <img
               src={file.url || file.previewUrl || "#"}
               alt={file.name}
-              className={cn("rounded-lg border object-cover", variant === "message" && fullSize ? "h-full w-full" : "h-14 w-14")}
+              className={cn("rounded-lg border object-cover", variant === "message" && fullSize ? "h-full" : "h-full w-14")}
             />
           ) : isVideo ? (
             <VideoThumbnail
               src={file.url || file.previewUrl || "#"}
-              className={cn(variant === "message" && fullSize ? "h-full min-w-sm max-w-sm" : "h-14 w-14")}
+              className={cn(variant === "message" && fullSize ? "h-full min-w-sm max-w-sm" : "h-full w-14")}
             />
           ) : isAudioFile ? (
             <AudioPill src={file.url || file.previewUrl || "#"} />
