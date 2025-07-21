@@ -19,7 +19,7 @@ export function FilePill({ name, src, isImage, type }: { name: string; src?: str
 
   return (
     <div className="inline-flex h-14 w-[280px] items-center gap-2 rounded-lg border bg-muted/50 pr-3 pl-2 text-sm">
-      <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md border">
+      <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-background">
         {isImage && src ? <img src={src} alt={name} className="h-full object-cover" /> : icon}
       </div>
       <div className="flex-1 truncate pr-8">
@@ -29,25 +29,25 @@ export function FilePill({ name, src, isImage, type }: { name: string; src?: str
     </div>
   )
 }
-
+const sharedClassName = "size-4"
 export function useFileTypes(type: string) {
   const icon = useMemo(() => {
     switch (type) {
       // Documents
       case "application/pdf":
-        return <FileTextIcon className="size-4" />
+        return <FileTextIcon className={sharedClassName} />
       case "application/msword":
       case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        return <FileTextIcon className="size-4" />
+        return <FileTextIcon className={sharedClassName} />
       // Powerpoint
       case "application/vnd.ms-powerpoint":
       case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-        return <FileChartColumnIncreasingIcon className="size-4" />
+        return <FileChartColumnIncreasingIcon className={sharedClassName} />
       // Spreadsheets
       case "X-IWORK-NUMBERS-SFFNUMBERS":
       case "application/vnd.ms-excel":
       case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-        return <FileSpreadsheetIcon className="size-4" />
+        return <FileSpreadsheetIcon className={sharedClassName} />
       // Images
       case "image/jpeg":
       case "image/png":
@@ -57,7 +57,7 @@ export function useFileTypes(type: string) {
       case "image/svg+xml":
       case "image/tiff":
       case "image/heic":
-        return <FileImageIcon className="size-4" />
+        return <FileImageIcon className={sharedClassName} />
       // Video
       case "video/mp4":
       case "video/quicktime":
@@ -65,7 +65,7 @@ export function useFileTypes(type: string) {
       case "video/x-matroska":
       case "video/webm":
       case "video/ogg":
-        return <FileVideoIcon className="size-4" />
+        return <FileVideoIcon className={sharedClassName} />
       // Audio
       case "audio/mpeg":
       case "audio/wav":
@@ -74,17 +74,17 @@ export function useFileTypes(type: string) {
       case "audio/webm":
       case "audio/aac":
       case "audio/flac":
-        return <FileAudioIcon className="size-4" />
+        return <FileAudioIcon className={sharedClassName} />
       // Archives
       case "application/zip":
       case "application/x-7z-compressed":
       case "application/x-rar-compressed":
       case "application/x-tar":
       case "application/gzip":
-        return <FileArchiveIcon className="size-4" />
+        return <FileArchiveIcon className={sharedClassName} />
       // Code
       case "application/json":
-        return <FileJsonIcon className="size-4" />
+        return <FileJsonIcon className={sharedClassName} />
       case "text/html":
       case "text/css":
       case "text/javascript":
@@ -102,25 +102,25 @@ export function useFileTypes(type: string) {
       case "text/markdown":
       case "text/x-yaml":
       case "text/x-shellscript":
-        return <FileCodeIcon className="size-4" />
+        return <FileCodeIcon className={sharedClassName} />
       // Symlinks/Shortcuts
       case "application/x-ms-shortcut":
       case "application/x-symlink":
-        return <FileSymlinkIcon className="size-4" />
+        return <FileSymlinkIcon className={sharedClassName} />
       // Fallback for unknown
       case "":
       case undefined:
-        return <FileQuestionIcon className="size-4" />
+        return <FileQuestionIcon className={sharedClassName} />
       default: {
         // Heuristic: if type starts with image, video, audio, etc.
-        if (type.startsWith("image/")) return <FileImageIcon className="size-4" />
-        if (type.startsWith("video/")) return <FileVideoIcon className="size-4" />
-        if (type.startsWith("audio/")) return <FileAudioIcon className="size-4" />
-        if (type.startsWith("text/")) return <FileTextIcon className="size-4" />
-        if (type.startsWith("application/json")) return <FileJsonIcon className="size-4" />
+        if (type.startsWith("image/")) return <FileImageIcon className={sharedClassName} />
+        if (type.startsWith("video/")) return <FileVideoIcon className={sharedClassName} />
+        if (type.startsWith("audio/")) return <FileAudioIcon className={sharedClassName} />
+        if (type.startsWith("text/")) return <FileTextIcon className={sharedClassName} />
+        if (type.startsWith("application/json")) return <FileJsonIcon className={sharedClassName} />
         if (type.includes("zip") || type.includes("tar") || type.includes("rar") || type.includes("7z"))
-          return <FileArchiveIcon className="size-4" />
-        return <FileIcon className="size-4" />
+          return <FileArchiveIcon className={sharedClassName} />
+        return <FileIcon className={sharedClassName} />
       }
     }
   }, [type])

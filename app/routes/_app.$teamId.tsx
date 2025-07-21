@@ -13,9 +13,8 @@ export default function Component() {
   const team = useQuery(api.teams.get, teamId ? { teamId } : "skip")
 
   if (!team) return null
-
   return (
-    <SidebarProvider className="h-svh">
+    <SidebarProvider className="h-svh w-screen">
       <AppSidebar />
 
       <SidebarInset>

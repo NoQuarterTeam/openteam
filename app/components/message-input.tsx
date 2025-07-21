@@ -1,5 +1,5 @@
 import { insertAtPosition, useMutation, useQuery } from "convex/react"
-import { ArrowRightIcon, PlusIcon, XIcon } from "lucide-react"
+import { ArrowRightIcon, MicIcon, MicOffIcon, PlusIcon, XIcon } from "lucide-react"
 import posthog from "posthog-js"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useDropzone } from "react-dropzone"
@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useEditMessage } from "@/lib/use-edit-message"
+import { AudioPill, isAudio } from "./audio-pill"
 import { ExpandableTextarea, type ExpandableTextareaRef } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
 import { Button } from "./ui/button"
@@ -19,11 +20,9 @@ function isImage(file: File | { name: string }): boolean {
 
 export function MessageInput({
   channelId,
-  isDisabled,
   threadId,
   lastMessageIdOfUser,
 }: {
-  isDisabled: boolean
   channelId: Id<"channels">
   threadId?: Id<"threads">
   lastMessageIdOfUser?: Id<"messages">
@@ -161,7 +160,7 @@ export function MessageInput({
 
       const results = await Promise.allSettled(
         newPreviews.map(async (preview) => {
-          const uploadUrl = await generateUploadUrl({})
+          const uploadUrl = await generateUploadUrl()
           const result = await fetch(uploadUrl, {
             method: "POST",
             headers: { "Content-Type": preview.file.type },
@@ -213,6 +212,18 @@ export function MessageInput({
     }
   }, [channelId])
 
+  // Cleanup audio URLs on unmount
+  useEffect(() => {
+    return () => {
+      // Cleanup any audio URLs
+      filePreviews.forEach((preview) => {
+        if (preview.file.type.startsWith("audio/")) {
+          URL.revokeObjectURL(preview.url)
+        }
+      })
+    }
+  }, [])
+
   return (
     <div className="border-t bg-background">
       <form onSubmit={handleSendMessage} ref={formRef} className="relative flex flex-col gap-2">
@@ -222,27 +233,45 @@ export function MessageInput({
               <div key={id} className="relative">
                 {isImage(file) ? (
                   <img src={url} alt={file.name} className="h-14 w-14 rounded-lg border object-cover" />
+                ) : isAudio(file) ? (
+                  <AudioPill src={url} />
                 ) : (
                   <FilePill name={file.name} isImage={false} type={file.type} />
                 )}
                 <button
                   type="button"
                   onClick={() => handleRemoveFile(id)}
-                  className="-top-1 -right-1 absolute rounded-full bg-black p-0.5 text-white hover:bg-neutral-700"
+                  className="-top-1 -right-1 absolute rounded-full bg-black p-0.5 hover:bg-neutral-700"
                 >
-                  {storageId ? <XIcon className="size-4" /> : <Spinner className="size-4" />}
+                  {storageId ? (
+                    <XIcon className="size-4 text-white dark:text-white" />
+                  ) : (
+                    <Spinner className="size-4 text-white dark:text-white" />
+                  )}
                 </button>
               </div>
             ))}
           </div>
         )}
-        <div className="flex flex-row items-end gap-2 p-4">
-          <div {...getRootProps()}>
+        <div className="flex flex-row items-end gap-2 p-3 md:p-4">
+          <div {...getRootProps()} className="flex-shrink-0">
             <input {...getInputProps()} />
             <Button variant="secondary" size="icon">
               <PlusIcon />
             </Button>
           </div>
+
+          <AudioRecorder
+            onAudioRecorded={(audioFile) => {
+              setFilePreviews((prev) => [...prev, audioFile])
+            }}
+            onAudioUploaded={(previewId, storageId) => {
+              setFilePreviews((prev) => prev.map((p) => (p.id === previewId ? { ...p, storageId } : p)))
+            }}
+            tempMessageId={tempMessageId}
+            channelId={channelId}
+            threadId={threadId}
+          />
 
           <ExpandableTextarea
             ref={textAreaRef}
@@ -258,7 +287,6 @@ export function MessageInput({
             }}
             value={newMessage}
             rows={1}
-            disabled={isDisabled}
             autoFocus
           />
 
@@ -268,5 +296,175 @@ export function MessageInput({
         </div>
       </form>
     </div>
+  )
+}
+
+// Audio Recorder Component
+interface AudioRecorderProps {
+  onAudioRecorded: (audioFile: { id: string; file: File; url: string }) => void
+  onAudioUploaded: (previewId: string, storageId: Id<"_storage">) => void
+  tempMessageId: string
+  channelId: Id<"channels">
+  threadId?: Id<"threads">
+}
+
+function AudioRecorder({ onAudioRecorded, onAudioUploaded, tempMessageId, channelId, threadId }: AudioRecorderProps) {
+  const { teamId } = useParams<{ teamId: Id<"teams"> }>()
+
+  const [status, setStatus] = useState<"idle" | "loading" | "recording">("idle")
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+
+  const createFilePreviews = useMutation(api.files.createFilePreviews)
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl)
+  const updateFile = useMutation(api.files.update)
+
+  const startRecording = async () => {
+    try {
+      setStatus("loading")
+      posthog.capture("audio_recorded", { teamId, channelId, threadId })
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+
+      // Try to use a more compatible audio format
+      let options: MediaRecorderOptions = {}
+      if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+        options = { mimeType: "audio/webm;codecs=opus" }
+      } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+        options = { mimeType: "audio/mp4", bitsPerSecond: 128000 }
+      } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+        options = { mimeType: "audio/webm" }
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, options)
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstart = () => {
+        // Recording has actually started
+        setStatus("recording")
+      }
+
+      mediaRecorder.onstop = async () => {
+        // Check if we actually have audio data
+        if (audioChunksRef.current.length === 0) {
+          setStatus("idle")
+          return
+        }
+
+        // Only create file preview when recording actually stops
+        const mimeType = mediaRecorder.mimeType || "audio/webm"
+
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType })
+
+        if (audioBlob.size === 0) {
+          setStatus("idle")
+          return
+        }
+
+        const fileExtension = mimeType.includes("mp4") ? "m4a" : "webm"
+        const audioFile = new File([audioBlob], `recording-${Date.now()}.${fileExtension}`, { type: mimeType })
+        const audioUrl = URL.createObjectURL(audioFile)
+
+        const newPreview = { id: crypto.randomUUID(), file: audioFile, url: audioUrl }
+
+        await createFilePreviews({
+          previewMessageId: tempMessageId,
+          previews: [
+            {
+              previewId: newPreview.id,
+              url: newPreview.url,
+              name: audioFile.name,
+              contentType: audioFile.type,
+            },
+          ],
+        })
+
+        // Notify parent component
+        onAudioRecorded(newPreview)
+
+        // Upload the audio file in the background
+        try {
+          const uploadUrl = await generateUploadUrl()
+          const result = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": audioFile.type },
+            body: audioFile,
+          })
+          if (!result.ok) throw new Error("Failed to upload audio file")
+          const { storageId } = (await result.json()) as { storageId: Id<"_storage"> }
+
+          await updateFile({ previewId: newPreview.id, storageId })
+          onAudioUploaded(newPreview.id, storageId)
+        } catch {
+          toast.error("Failed to upload audio file")
+        }
+
+        // Clean up the stream
+        stream.getTracks().forEach((track) => track.stop())
+
+        // Reset recording state after everything is processed
+        setStatus("idle")
+      }
+
+      mediaRecorder.onerror = () => {
+        setStatus("idle")
+        toast.error("Recording failed")
+      }
+
+      mediaRecorder.start()
+    } catch {
+      setStatus("idle")
+      toast.error("Failed to access microphone")
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && (status === "recording" || status === "loading")) {
+      if (mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.stop()
+      } else {
+        setStatus("idle")
+      }
+    }
+  }
+
+  const toggleRecording = () => {
+    if (status === "recording") {
+      stopRecording()
+    } else {
+      startRecording()
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.stop()
+      }
+    }
+  }, [])
+
+  return (
+    <Button
+      variant={status === "recording" ? "destructive" : "secondary"}
+      size="icon"
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        toggleRecording()
+      }}
+      disabled={status === "loading"}
+      type="button"
+    >
+      {status === "loading" ? <Spinner className="size-4" /> : status === "recording" ? <MicOffIcon /> : <MicIcon />}
+    </Button>
   )
 }

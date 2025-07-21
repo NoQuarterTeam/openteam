@@ -39,7 +39,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [teams, teamId])
 
-  if (!activeTeam) return null
+  if (!activeTeam) return <Sidebar variant="inset" {...props} />
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>

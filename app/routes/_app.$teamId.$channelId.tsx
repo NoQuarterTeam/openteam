@@ -274,11 +274,7 @@ export default function Component() {
           <div ref={bottomSentinelRef} />
         </div>
 
-        <MessageInput
-          channelId={channelId!}
-          isDisabled={!!currentChannel.archivedTime}
-          lastMessageIdOfUser={lastMessageOfUser?._id}
-        />
+        {!currentChannel.archivedTime && <MessageInput channelId={channelId!} lastMessageIdOfUser={lastMessageOfUser?._id} />}
       </div>
 
       {!!currentThreadId && <ThreadSidebar threadId={currentThreadId} onClose={handleCloseThread} />}

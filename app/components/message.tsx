@@ -22,6 +22,7 @@ import { renderMessageContent } from "@/lib/marked"
 import { useEditMessage } from "@/lib/use-edit-message"
 import { useIsMobile } from "@/lib/use-mobile"
 import { cn } from "@/lib/utils"
+import { AudioPill, isAudio } from "./audio-pill"
 import { ExpandableTextarea } from "./expandable-textarea"
 import { FilePill } from "./file-pill"
 import { ThreadIndicator } from "./thread-indicator"
@@ -251,7 +252,7 @@ export const Message = memo(function _Message({
                             <MessageFile
                               key={file._id}
                               file={file}
-                              isImagePreview={filesHaveOnlyImages}
+                              shouldRenderPreview={filesHaveOnlyImages}
                               channelId={message.channelId}
                               messageId={message._id}
                             />
@@ -431,20 +432,22 @@ type MessageFileType = MessageData["files"][number]
 
 function MessageFile({
   file,
-  isImagePreview,
+  shouldRenderPreview,
   channelId,
   messageId,
 }: {
   file: MessageFileType
-  isImagePreview: boolean
+  shouldRenderPreview: boolean
   channelId: Id<"channels">
   messageId: Id<"messages">
 }) {
   const isUploading = !!file.previewId && !file.storageId
-  const isImage =
-    !!file.metadata?.contentType?.startsWith("image/") ||
-    !!file.url?.startsWith("blob:") ||
-    !!file.previewContentType?.startsWith("image/")
+  const isImage = !!file.metadata?.contentType?.startsWith("image/") || !!file.previewContentType?.startsWith("image/")
+
+  const isAudioFile = isAudio({
+    type: file.metadata?.contentType || file.previewContentType || "",
+    name: file.name,
+  })
 
   const removeFile = useMutation(api.files.remove).withOptimisticUpdate((localStore) => {
     optimisticallyUpdateValueInPaginatedQuery(localStore, api.messages.list, { channelId }, (currentValue) => {
@@ -459,11 +462,11 @@ function MessageFile({
     if (!file.url && !file.previewUrl) return
     setIsDownloading(true)
     try {
-      const image = await fetch(file.url || file.previewUrl!)
-      const imageBlog = await image.blob()
-      const imageURL = URL.createObjectURL(imageBlog)
+      const tempFile = await fetch(file.url || file.previewUrl!)
+      const tempFileBlog = await tempFile.blob()
+      const tempFileURL = URL.createObjectURL(tempFileBlog)
       const link = document.createElement("a")
-      link.href = imageURL
+      link.href = tempFileURL
       link.download = file.name
       document.body.appendChild(link)
       link.click()
@@ -477,12 +480,16 @@ function MessageFile({
   const [isPreviewing, setIsPreviewing] = useState(false)
   return (
     <div className="relative">
-      <div
-        onClick={() => setIsPreviewing(true)}
-        className={cn("flex shrink-0 cursor-zoom-in", isImage && "h-[200px]", !isImagePreview && "h-14")}
-      >
-        {isImage && isImagePreview ? (
-          <img src={file.url || file.previewUrl || "#"} alt={file.name} className="h-full rounded-lg object-cover" />
+      <div className={cn("flex shrink-0", isImage && "h-[200px]", !shouldRenderPreview && "h-14")}>
+        {isImage && shouldRenderPreview ? (
+          <img
+            onClick={() => setIsPreviewing(true)}
+            src={file.url || file.previewUrl || "#"}
+            alt={file.name}
+            className="h-full cursor-zoom-in rounded-lg object-cover"
+          />
+        ) : isAudioFile ? (
+          <AudioPill src={file.url || file.previewUrl || "#"} />
         ) : (
           <FilePill
             name={file.name}
@@ -500,11 +507,11 @@ function MessageFile({
           </div>
         </div>
       )}
-      <div className={cn("absolute top-2 right-2 flex items-center justify-center")}>
+      <div className="absolute top-2 right-2 flex items-center justify-center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="size-8 bg-background">
-              <MoreVerticalIcon className="size-3.5" />
+            <Button size="icon" variant="outline" className="size-6 bg-background">
+              <MoreVerticalIcon className="size-3" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
