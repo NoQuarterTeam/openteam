@@ -1,6 +1,6 @@
 import { optimisticallyUpdateValueInPaginatedQuery, useMutation } from "convex/react"
 import dayjs from "dayjs"
-import { DownloadIcon, MoreVerticalIcon, TrashIcon, XIcon } from "lucide-react"
+import { DownloadIcon, ExpandIcon, MoreVerticalIcon, TrashIcon, XIcon } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
@@ -12,6 +12,7 @@ import { Button } from "./ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { Spinner } from "./ui/spinner"
+import { VideoThumbnail } from "./video-thumbnail"
 
 type FileType = {
   _id: Id<"files">
@@ -30,12 +31,13 @@ interface FileDisplayProps {
   channelId: Id<"channels">
   messageId?: Id<"messages">
   onRemove?: (id: string) => void
-  fullImage?: boolean
+  fullSize?: boolean
 }
 
-export function FileDisplay({ file, variant, channelId, messageId, onRemove, fullImage = false }: FileDisplayProps) {
+export function FileDisplay({ file, variant, channelId, messageId, onRemove, fullSize = false }: FileDisplayProps) {
   const isUploading = !!file.previewId && !file.storageId
   const isImage = !!file.metadata?.contentType?.startsWith("image/") || !!file.previewContentType?.startsWith("image/")
+  const isVideo = !!file.metadata?.contentType?.startsWith("video/") || !!file.previewContentType?.startsWith("video/")
   const isAudioFile = isAudio({
     type: file.metadata?.contentType || file.previewContentType || "",
     name: file.name,
@@ -85,21 +87,34 @@ export function FileDisplay({ file, variant, channelId, messageId, onRemove, ful
     }
   }
 
+  const handleClick = () => {
+    if (variant === "message" && !isAudioFile) {
+      setIsPreviewing(true)
+    }
+  }
+
   return (
     <>
       <div className="relative">
         <div
+          onClick={handleClick}
           className={cn(
             "flex h-14 shrink-0",
-            isImage && variant === "message" && fullImage && "h-[200px]",
-            variant === "message" && !isAudioFile && "cursor-pointer",
+            (isImage || isVideo) && variant === "message" && fullSize && "h-[200px]",
+            variant === "message" && !isAudioFile && !isVideo && "cursor-zoom-in",
           )}
-          onClick={variant === "message" && !isAudioFile ? () => setIsPreviewing(true) : undefined}
         >
-          {isImage && fullImage && variant === "message" ? (
-            <img src={file.url || file.previewUrl || "#"} alt={file.name} className="h-full rounded-lg object-cover" />
-          ) : isImage && variant === "preview" ? (
-            <img src={file.url || file.previewUrl || "#"} alt={file.name} className="h-14 w-14 rounded-lg border object-cover" />
+          {isImage ? (
+            <img
+              src={file.url || file.previewUrl || "#"}
+              alt={file.name}
+              className={cn("rounded-lg border object-cover", variant === "message" && fullSize ? "h-full" : "h-14 w-14")}
+            />
+          ) : isVideo ? (
+            <VideoThumbnail
+              src={file.url || file.previewUrl || "#"}
+              className={cn(variant === "message" && fullSize ? "h-full min-w-sm max-w-sm" : "h-14 w-14")}
+            />
           ) : isAudioFile ? (
             <AudioPill src={file.url || file.previewUrl || "#"} />
           ) : (
@@ -123,25 +138,34 @@ export function FileDisplay({ file, variant, channelId, messageId, onRemove, ful
         )}
 
         {/* Actions */}
-        <div className="absolute top-2 right-2 flex items-center justify-center">
+        <div className={cn("absolute top-1.5 right-1.5 flex items-center justify-center gap-1")}>
           {variant === "message" ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="outline" className="size-6 bg-background">
-                  <MoreVerticalIcon className="size-3" />
+            <>
+              {/* Expand button for videos */}
+              {isVideo && (
+                <Button size="icon" variant="outline" className="size-6 bg-background" onClick={() => setIsPreviewing(true)}>
+                  <ExpandIcon className="size-3" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleDownload}>
-                  {isDownloading ? <Spinner className="size-3.5" /> : <DownloadIcon />}
-                  {isDownloading ? "Downloading..." : "Download"}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleRemove}>
-                  <TrashIcon />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="outline" className="size-6 bg-background">
+                    <MoreVerticalIcon className="size-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleDownload}>
+                    {isDownloading ? <Spinner className="size-3.5" /> : <DownloadIcon />}
+                    {isDownloading ? "Downloading..." : "Download"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleRemove}>
+                    <TrashIcon />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
             <button type="button" onClick={handleRemove} className="rounded-full bg-black p-1 hover:bg-neutral-700">
               {isUploading ? (
@@ -169,6 +193,8 @@ export function FileDisplay({ file, variant, channelId, messageId, onRemove, ful
                   alt={file.name}
                   className="mx-auto max-h-full max-w-full object-contain"
                 />
+              ) : isVideo ? (
+                <video src={file.url || file.previewUrl || "#"} className="mx-auto max-h-full max-w-full" controls autoPlay />
               ) : file.metadata?.contentType === "application/pdf" || file.previewContentType === "application/pdf" ? (
                 <object title={file.name} data={file.url || file.previewUrl || "#"} className="h-full w-full" />
               ) : (

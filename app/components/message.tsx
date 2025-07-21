@@ -135,8 +135,12 @@ export const Message = memo(function _Message({
     {} as Record<string, { count: number; reactions: MessageData["reactions"] }>,
   )
 
-  const filesHaveOnlyImages = message.files?.every(
-    (f) => f.metadata?.contentType?.startsWith("image/") || f.previewContentType?.startsWith("image/"),
+  const onlyFullsizeAbleFiles = message.files?.every(
+    (f) =>
+      f.metadata?.contentType?.startsWith("image/") ||
+      f.previewContentType?.startsWith("image/") ||
+      f.metadata?.contentType?.startsWith("video/") ||
+      f.previewContentType?.startsWith("video/"),
   )
 
   return (
@@ -239,7 +243,7 @@ export const Message = memo(function _Message({
                               key={file._id}
                               file={file}
                               variant="message"
-                              fullImage={filesHaveOnlyImages}
+                              fullSize={onlyFullsizeAbleFiles}
                               channelId={message.channelId}
                               messageId={message._id}
                             />
