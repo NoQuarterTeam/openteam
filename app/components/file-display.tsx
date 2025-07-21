@@ -89,7 +89,7 @@ export function FileDisplay({ file, variant, channelId, messageId, onRemove, ful
         <div
           onClick={handleClick}
           className={cn(
-            "flex h-14 shrink-0",
+            "flex h-14 w-full shrink-0",
             (isImage || isVideo) && variant === "message" && fullSize && "h-[200px]",
             variant === "message" && !isAudioFile && !isVideo && "cursor-zoom-in",
           )}
@@ -98,7 +98,7 @@ export function FileDisplay({ file, variant, channelId, messageId, onRemove, ful
             <img
               src={file.url || file.previewUrl || "#"}
               alt={file.name}
-              className={cn("rounded-lg border object-cover", variant === "message" && fullSize ? "h-full" : "h-14 w-14")}
+              className={cn("rounded-lg border object-cover", variant === "message" && fullSize ? "h-full w-full" : "h-14 w-14")}
             />
           ) : isVideo ? (
             <VideoThumbnail
@@ -130,14 +130,14 @@ export function FileDisplay({ file, variant, channelId, messageId, onRemove, ful
             <>
               {/* Expand button for videos */}
               {isVideo && (
-                <Button size="icon" variant="outline" className="size-6 bg-background" onClick={() => setIsPreviewing(true)}>
+                <Button size="icon" variant="outline" className="!bg-background size-6" onClick={() => setIsPreviewing(true)}>
                   <ExpandIcon className="size-3" />
                 </Button>
               )}
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="icon" variant="outline" className="size-6 bg-background">
+                  <Button size="icon" variant="outline" className="!bg-background size-6">
                     <MoreVerticalIcon className="size-3" />
                   </Button>
                 </DropdownMenuTrigger>
