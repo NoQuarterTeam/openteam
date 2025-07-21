@@ -18,11 +18,11 @@ export function FilePill({ name, src, isImage, type }: { name: string; src?: str
   const { icon, typeText } = useFileTypes(type)
 
   return (
-    <div className="inline-flex h-14 w-[280px] items-center gap-2 rounded-lg border bg-muted/50 pr-3 pl-2 text-sm">
+    <div className="inline-flex h-14 w-[280px] items-center gap-2 rounded-lg border bg-muted/30 pr-10 pl-2 text-sm">
       <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-background">
         {isImage && src ? <img src={src} alt={name} className="h-full object-cover" /> : icon}
       </div>
-      <div className="flex-1 truncate pr-8">
+      <div className="flex-1 truncate">
         <p className="truncate">{name}</p>
         <p className="truncate text-muted-foreground text-xs">{typeText}</p>
       </div>

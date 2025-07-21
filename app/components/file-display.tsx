@@ -1,0 +1,199 @@
+import { optimisticallyUpdateValueInPaginatedQuery, useMutation } from "convex/react"
+import dayjs from "dayjs"
+import { DownloadIcon, MoreVerticalIcon, TrashIcon, XIcon } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
+import { cn } from "@/lib/utils"
+import { AudioPill, isAudio } from "./audio-pill"
+import { FilePill } from "./file-pill"
+import { Button } from "./ui/button"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
+import { Spinner } from "./ui/spinner"
+
+type FileType = {
+  _id: Id<"files">
+  name: string
+  url?: string | null
+  previewUrl?: string | null
+  previewId?: string
+  storageId?: Id<"_storage">
+  metadata?: { contentType?: string; _creationTime?: number } | null
+  previewContentType?: string | null
+}
+
+interface FileDisplayProps {
+  file: FileType
+  variant: "message" | "preview"
+  channelId: Id<"channels">
+  messageId?: Id<"messages">
+  onRemove?: (id: string) => void
+  fullImage?: boolean
+}
+
+export function FileDisplay({ file, variant, channelId, messageId, onRemove, fullImage = false }: FileDisplayProps) {
+  const isUploading = !!file.previewId && !file.storageId
+  const isImage = !!file.metadata?.contentType?.startsWith("image/") || !!file.previewContentType?.startsWith("image/")
+  const isAudioFile = isAudio({
+    type: file.metadata?.contentType || file.previewContentType || "",
+    name: file.name,
+  })
+
+  const [isPreviewing, setIsPreviewing] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
+
+  const removeFile = useMutation(api.files.remove).withOptimisticUpdate((localStore) => {
+    if (messageId) {
+      optimisticallyUpdateValueInPaginatedQuery(localStore, api.messages.list, { channelId }, (currentValue) => {
+        if (messageId === currentValue._id) {
+          return { ...currentValue, files: currentValue.files.filter((f) => f._id !== file._id) }
+        }
+        return currentValue
+      })
+    }
+  })
+
+  const handleDownload = async () => {
+    if (!file.url && !file.previewUrl) return
+    setIsDownloading(true)
+    try {
+      const tempFile = await fetch(file.url || file.previewUrl!)
+      const tempFileBlog = await tempFile.blob()
+      const tempFileURL = URL.createObjectURL(tempFileBlog)
+      const link = document.createElement("a")
+      link.href = tempFileURL
+      link.download = file.name
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch {
+      toast.error("Failed to download file")
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  const handleRemove = () => {
+    if (variant === "preview" && onRemove && file.previewId) {
+      onRemove(file.previewId)
+    } else if (variant === "message") {
+      if (window.confirm("Are you sure?")) {
+        void removeFile({ fileId: file._id })
+      }
+    }
+  }
+
+  return (
+    <>
+      <div className="relative">
+        <div
+          className={cn(
+            "flex h-14 shrink-0",
+            isImage && variant === "message" && fullImage && "h-[200px]",
+            variant === "message" && !isAudioFile && "cursor-pointer",
+          )}
+          onClick={variant === "message" && !isAudioFile ? () => setIsPreviewing(true) : undefined}
+        >
+          {isImage && fullImage && variant === "message" ? (
+            <img src={file.url || file.previewUrl || "#"} alt={file.name} className="h-full rounded-lg object-cover" />
+          ) : isImage && variant === "preview" ? (
+            <img src={file.url || file.previewUrl || "#"} alt={file.name} className="h-14 w-14 rounded-lg border object-cover" />
+          ) : isAudioFile ? (
+            <AudioPill src={file.url || file.previewUrl || "#"} />
+          ) : (
+            <FilePill
+              name={file.name}
+              src={file.url || file.previewUrl || "#"}
+              isImage={isImage}
+              type={file.metadata?.contentType || file.previewContentType || ""}
+            />
+          )}
+        </div>
+
+        {/* Uploading overlay */}
+        {isUploading && variant === "message" && (
+          <div className="absolute top-2 left-2 rounded-md bg-background">
+            <div className="flex h-8 items-center justify-center gap-2 px-2">
+              <Spinner className="size-3.5" />
+              <p className="text-xs">Uploading</p>
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="absolute top-2 right-2 flex items-center justify-center">
+          {variant === "message" ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="outline" className="size-6 bg-background">
+                  <MoreVerticalIcon className="size-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleDownload}>
+                  {isDownloading ? <Spinner className="size-3.5" /> : <DownloadIcon />}
+                  {isDownloading ? "Downloading..." : "Download"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleRemove}>
+                  <TrashIcon />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <button type="button" onClick={handleRemove} className="rounded-full bg-black p-1 hover:bg-neutral-700">
+              {isUploading ? (
+                <Spinner className="size-3 text-white dark:text-white" />
+              ) : (
+                <XIcon className="size-3 text-white dark:text-white" />
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Preview Dialog */}
+      {variant === "message" && (
+        <Dialog open={isPreviewing} onOpenChange={setIsPreviewing}>
+          <DialogContent className="flex h-[95vh] max-h-[95vh] flex-col justify-between md:max-w-[95vw]">
+            <DialogHeader>
+              <DialogTitle>{file.name}</DialogTitle>
+              <DialogDescription>{dayjs(file.metadata?._creationTime).format("DD/MM/YYYY HH:mm")}</DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-1 items-center justify-center overflow-auto bg-background p-4">
+              {isImage ? (
+                <img
+                  src={file.url || file.previewUrl || "#"}
+                  alt={file.name}
+                  className="mx-auto max-h-full max-w-full object-contain"
+                />
+              ) : file.metadata?.contentType === "application/pdf" || file.previewContentType === "application/pdf" ? (
+                <object title={file.name} data={file.url || file.previewUrl || "#"} className="h-full w-full" />
+              ) : (
+                <FilePill
+                  name={file.name}
+                  src={file.url || file.previewUrl || "#"}
+                  isImage={false}
+                  type={file.metadata?.contentType || file.previewContentType || ""}
+                />
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="icon" onClick={handleDownload}>
+                <DownloadIcon />
+              </Button>
+              <Button variant="outline" size="icon" onClick={handleRemove}>
+                <TrashIcon />
+              </Button>
+              <DialogClose asChild>
+                <Button variant="outline">Close</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
+  )
+}

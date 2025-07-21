@@ -1,19 +1,9 @@
 import { optimisticallyUpdateValueInPaginatedQuery, useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
-import {
-  ChevronDownIcon,
-  DownloadIcon,
-  Edit2Icon,
-  MessageSquareTextIcon,
-  MoreVerticalIcon,
-  SmileIcon,
-  SmilePlusIcon,
-  TrashIcon,
-} from "lucide-react"
+import { ChevronDownIcon, Edit2Icon, MessageSquareTextIcon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
 import posthog from "posthog-js"
 import { memo, useEffect, useRef, useState } from "react"
 import { useParams, useSearchParams } from "react-router"
-import { toast } from "sonner"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -22,15 +12,11 @@ import { renderMessageContent } from "@/lib/marked"
 import { useEditMessage } from "@/lib/use-edit-message"
 import { useIsMobile } from "@/lib/use-mobile"
 import { cn } from "@/lib/utils"
-import { AudioPill, isAudio } from "./audio-pill"
 import { ExpandableTextarea } from "./expandable-textarea"
-import { FilePill } from "./file-pill"
+import { FileDisplay } from "./file-display"
 import { ThreadIndicator } from "./thread-indicator"
 import { Button } from "./ui/button"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { Spinner } from "./ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { WithState } from "./with-state"
 
@@ -249,10 +235,11 @@ export const Message = memo(function _Message({
                       {isImageOpen && message.files.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                           {message.files.map((file) => (
-                            <MessageFile
+                            <FileDisplay
                               key={file._id}
                               file={file}
-                              shouldRenderPreview={filesHaveOnlyImages}
+                              variant="message"
+                              fullImage={filesHaveOnlyImages}
                               channelId={message.channelId}
                               messageId={message._id}
                             />
@@ -427,157 +414,6 @@ export const Message = memo(function _Message({
     </div>
   )
 })
-
-type MessageFileType = MessageData["files"][number]
-
-function MessageFile({
-  file,
-  shouldRenderPreview,
-  channelId,
-  messageId,
-}: {
-  file: MessageFileType
-  shouldRenderPreview: boolean
-  channelId: Id<"channels">
-  messageId: Id<"messages">
-}) {
-  const isUploading = !!file.previewId && !file.storageId
-  const isImage = !!file.metadata?.contentType?.startsWith("image/") || !!file.previewContentType?.startsWith("image/")
-
-  const isAudioFile = isAudio({
-    type: file.metadata?.contentType || file.previewContentType || "",
-    name: file.name,
-  })
-
-  const removeFile = useMutation(api.files.remove).withOptimisticUpdate((localStore) => {
-    optimisticallyUpdateValueInPaginatedQuery(localStore, api.messages.list, { channelId }, (currentValue) => {
-      if (messageId === currentValue._id) {
-        return { ...currentValue, files: currentValue.files.filter((f) => f._id !== file._id) }
-      }
-      return currentValue
-    })
-  })
-  const [isDownloading, setIsDownloading] = useState(false)
-  const handleDownload = async () => {
-    if (!file.url && !file.previewUrl) return
-    setIsDownloading(true)
-    try {
-      const tempFile = await fetch(file.url || file.previewUrl!)
-      const tempFileBlog = await tempFile.blob()
-      const tempFileURL = URL.createObjectURL(tempFileBlog)
-      const link = document.createElement("a")
-      link.href = tempFileURL
-      link.download = file.name
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-    } catch {
-      toast.error("Failed to download file")
-    } finally {
-      setIsDownloading(false)
-    }
-  }
-  const [isPreviewing, setIsPreviewing] = useState(false)
-  return (
-    <div className="relative">
-      <div className={cn("flex shrink-0", isImage && "h-[200px]", !shouldRenderPreview && "h-14")}>
-        {isImage && shouldRenderPreview ? (
-          <img
-            onClick={() => setIsPreviewing(true)}
-            src={file.url || file.previewUrl || "#"}
-            alt={file.name}
-            className="h-full cursor-zoom-in rounded-lg object-cover"
-          />
-        ) : isAudioFile ? (
-          <AudioPill src={file.url || file.previewUrl || "#"} />
-        ) : (
-          <FilePill
-            name={file.name}
-            src={file.url || file.previewUrl || "#"}
-            isImage={isImage}
-            type={file.metadata?.contentType || file.previewContentType || ""}
-          />
-        )}
-      </div>
-      {isUploading && (
-        <div className="absolute top-2 left-2 rounded-md bg-background">
-          <div className="flex h-8 items-center justify-center gap-2 px-2">
-            <Spinner className="size-3.5" />
-            <p className="text-xs">Uploading</p>
-          </div>
-        </div>
-      )}
-      <div className="absolute top-2 right-2 flex items-center justify-center">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="outline" className="size-6 bg-background">
-              <MoreVerticalIcon className="size-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleDownload}>
-              {isDownloading ? <Spinner className="size-3.5" /> : <DownloadIcon />}
-              {isDownloading ? "Downloading..." : "Download"}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                if (!window.confirm("Are you sure?")) return
-                void removeFile({ fileId: file._id })
-              }}
-            >
-              <TrashIcon />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      <Dialog open={isPreviewing} onOpenChange={setIsPreviewing}>
-        <DialogContent className="flex h-[95vh] max-h-[95vh] flex-col justify-between md:max-w-[95vw]">
-          <DialogHeader>
-            <DialogTitle>{file.name}</DialogTitle>
-            <DialogDescription>{dayjs(file.metadata?._creationTime).format("DD/MM/YYYY HH:mm")}</DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-1 items-center justify-center overflow-auto bg-background p-4">
-            {isImage ? (
-              <img
-                src={file.url || file.previewUrl || "#"}
-                alt={file.name}
-                className="mx-auto max-h-full max-w-full object-contain"
-              />
-            ) : file.metadata?.contentType === "application/pdf" || file.previewContentType === "application/pdf" ? (
-              <object title={file.name} data={file.url || file.previewUrl || "#"} className="h-full w-full" />
-            ) : (
-              <FilePill
-                name={file.name}
-                src={file.url || file.previewUrl || "#"}
-                isImage={false}
-                type={file.metadata?.contentType || file.previewContentType || ""}
-              />
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="icon" onClick={handleDownload}>
-              <DownloadIcon />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                if (!window.confirm("Are you sure?")) return
-                void removeFile({ fileId: file._id })
-              }}
-            >
-              <TrashIcon />
-            </Button>
-            <DialogClose asChild>
-              <Button variant="outline">Close</Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
 
 function MessageEditor({ message }: { message: MessageData }) {
   const { teamId } = useParams<{ teamId: Id<"teams"> }>()

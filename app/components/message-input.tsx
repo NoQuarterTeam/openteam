@@ -1,5 +1,5 @@
 import { insertAtPosition, useMutation, useQuery } from "convex/react"
-import { ArrowRightIcon, MicIcon, MicOffIcon, PlusIcon, XIcon } from "lucide-react"
+import { ArrowRightIcon, MicIcon, MicOffIcon, PlusIcon } from "lucide-react"
 import posthog from "posthog-js"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useDropzone } from "react-dropzone"
@@ -8,15 +8,10 @@ import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useEditMessage } from "@/lib/use-edit-message"
-import { AudioPill, isAudio } from "./audio-pill"
 import { ExpandableTextarea, type ExpandableTextareaRef } from "./expandable-textarea"
-import { FilePill } from "./file-pill"
+import { FileDisplay } from "./file-display"
 import { Button } from "./ui/button"
 import { Spinner } from "./ui/spinner"
-
-function isImage(file: File | { name: string }): boolean {
-  return /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(file.name)
-}
 
 export function MessageInput({
   channelId,
@@ -230,26 +225,22 @@ export function MessageInput({
         {filePreviews.length > 0 && (
           <div className="-top-18 absolute right-0 left-0 flex flex-wrap gap-2 border-t border-b bg-background p-2">
             {filePreviews.map(({ id, file, storageId, url }) => (
-              <div key={id} className="relative">
-                {isImage(file) ? (
-                  <img src={url} alt={file.name} className="h-14 w-14 rounded-lg border object-cover" />
-                ) : isAudio(file) ? (
-                  <AudioPill src={url} />
-                ) : (
-                  <FilePill name={file.name} isImage={false} type={file.type} />
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveFile(id)}
-                  className="-top-1 -right-1 absolute rounded-full bg-black p-0.5 hover:bg-neutral-700"
-                >
-                  {storageId ? (
-                    <XIcon className="size-4 text-white dark:text-white" />
-                  ) : (
-                    <Spinner className="size-4 text-white dark:text-white" />
-                  )}
-                </button>
-              </div>
+              <FileDisplay
+                key={id}
+                file={{
+                  _id: id as Id<"files">,
+                  name: file.name,
+                  previewUrl: url,
+                  previewId: id,
+                  storageId,
+                  previewContentType: file.type,
+                  url: null,
+                  metadata: null,
+                }}
+                variant="preview"
+                channelId={channelId}
+                onRemove={handleRemoveFile}
+              />
             ))}
           </div>
         )}
