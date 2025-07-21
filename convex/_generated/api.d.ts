@@ -16,6 +16,7 @@ import type {
 import type * as auth from "../auth.js";
 import type * as babbles from "../babbles.js";
 import type * as channels from "../channels.js";
+import type * as crons from "../crons.js";
 import type * as emails_InviteEmail from "../emails/InviteEmail.js";
 import type * as emails_invite from "../emails/invite.js";
 import type * as files from "../files.js";
@@ -27,6 +28,7 @@ import type * as reactions from "../reactions.js";
 import type * as router from "../router.js";
 import type * as teams from "../teams.js";
 import type * as threads from "../threads.js";
+import type * as userChannelTyping from "../userChannelTyping.js";
 import type * as users from "../users.js";
 
 /**
@@ -41,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   babbles: typeof babbles;
   channels: typeof channels;
+  crons: typeof crons;
   "emails/InviteEmail": typeof emails_InviteEmail;
   "emails/invite": typeof emails_invite;
   files: typeof files;
@@ -52,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   router: typeof router;
   teams: typeof teams;
   threads: typeof threads;
+  userChannelTyping: typeof userChannelTyping;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

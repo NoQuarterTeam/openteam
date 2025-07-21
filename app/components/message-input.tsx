@@ -12,6 +12,7 @@ import { ExpandableTextarea, type ExpandableTextareaRef } from "./expandable-tex
 import { FileDisplay } from "./file-display"
 import { Button } from "./ui/button"
 import { Spinner } from "./ui/spinner"
+import { UsersTyping } from "./users-typing"
 
 export function MessageInput({
   channelId,
@@ -27,6 +28,8 @@ export function MessageInput({
   const [newMessage, setNewMessage] = useState("")
   const [filePreviews, setFilePreviews] = useState<{ id: Id<"files">; file: File; url: string; storageId?: Id<"_storage"> }[]>([])
 
+  const userStartedTyping = useMutation(api.userChannelTyping.userStartedTyping)
+  const userStoppedTyping = useMutation(api.userChannelTyping.userStoppedTyping)
   const user = useQuery(api.auth.me)
 
   const sendMessage = useMutation(api.messages.send).withOptimisticUpdate((localStore, args) => {
@@ -247,7 +250,7 @@ export function MessageInput({
             ))}
           </div>
         )}
-        <div className="flex flex-row items-end gap-2 p-3 md:p-4">
+        <div className="flex flex-row items-end gap-2 p-3 py-5 md:p-5">
           <div {...getRootProps()} className="flex-shrink-0">
             <input {...getInputProps()} />
             <Button variant="secondary" size="icon">
@@ -266,23 +269,33 @@ export function MessageInput({
             channelId={channelId}
             threadId={threadId}
           />
-
-          <ExpandableTextarea
-            ref={textAreaRef}
-            placeholder={threadId ? "Reply to thread..." : "Send a message..."}
-            onChangeValue={setNewMessage}
-            onSubmitMobile={() => {
-              formRef.current?.requestSubmit()
-            }}
-            onArrowUp={() => {
-              if (lastMessageIdOfUser && !newMessage) {
-                setEditMessageId(lastMessageIdOfUser)
-              }
-            }}
-            value={newMessage}
-            rows={1}
-            autoFocus
-          />
+          <div className="relative w-full">
+            <ExpandableTextarea
+              ref={textAreaRef}
+              placeholder={threadId ? "Reply to thread..." : "Send a message..."}
+              onChangeValue={setNewMessage}
+              onFocus={() => {
+                userStartedTyping({ channelId })
+              }}
+              onBlur={() => {
+                userStoppedTyping({ channelId })
+              }}
+              onSubmitMobile={() => {
+                formRef.current?.requestSubmit()
+              }}
+              onArrowUp={() => {
+                if (lastMessageIdOfUser && !newMessage) {
+                  setEditMessageId(lastMessageIdOfUser)
+                }
+              }}
+              value={newMessage}
+              rows={1}
+              autoFocus
+            />
+            <div className="absolute bottom-[-17px] left-1">
+              <UsersTyping />
+            </div>
+          </div>
 
           <Button type="submit" size="icon" disabled={!newMessage.trim() && filePreviews.length === 0}>
             <ArrowRightIcon />

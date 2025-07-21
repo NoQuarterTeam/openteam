@@ -85,7 +85,7 @@ export function AudioPill({ src }: AudioPillProps) {
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0
 
   return (
-    <div className="inline-flex w-[320px] items-center gap-3 rounded-lg border bg-muted/20 py-1 pr-10 pl-2 text-sm">
+    <div className="inline-flex w-[280px] items-center gap-3 rounded-lg border bg-muted/20 py-1 pr-10 pl-2 text-sm">
       <audio ref={audioRef} src={src} preload="metadata" />
 
       <Button size="icon" onClick={togglePlayPause} variant="default" className="rounded-full">

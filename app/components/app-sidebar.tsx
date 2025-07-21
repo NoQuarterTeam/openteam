@@ -29,7 +29,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     if (!teams) return
     const handleKeyDown = (e: KeyboardEvent) => {
       // if the key is a number and the control key and option is pressed, navigate to the team
-      if (e.key.match(/^\d$/) && e.ctrlKey && e.altKey) {
+      if (e.key?.match(/^\d$/) && e.ctrlKey && e.altKey) {
         const team = teams[parseInt(e.key) - 1]
         e.preventDefault()
         if (team && team._id !== teamId) navigate(`/${team._id}`)

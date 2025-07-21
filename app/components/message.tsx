@@ -154,21 +154,17 @@ export const Message = memo(function _Message({
       )}
       onClick={isMobile ? handleMessageClick : undefined}
     >
-      <div>
+      <div className="shrink-0">
         {isFirstMessageOfUser && message.author ? (
           message.author.image ? (
-            <img
-              src={message.author.image || undefined}
-              className="size-9 flex-shrink-0 rounded-lg object-cover"
-              alt={message.author.name}
-            />
+            <img src={message.author.image || undefined} className="size-9 rounded-lg object-cover" alt={message.author.name} />
           ) : (
-            <div className="flex size-9 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground text-sm">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground text-sm">
               {message.author.name.charAt(0)}
             </div>
           )
         ) : (
-          <div className="w-9 flex-shrink-0" />
+          <div className="w-9" />
         )}
       </div>
       <div className="relative w-full">

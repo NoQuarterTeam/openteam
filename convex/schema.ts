@@ -89,6 +89,16 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_channel", ["channelId"]),
 
+  userChannelTyping: defineTable({
+    channelId: v.id("channels"),
+    userId: v.id("users"),
+    timestamp: v.number(),
+  })
+    .index("by_channel_and_user", ["channelId", "userId"])
+    .index("by_channel", ["channelId"])
+    .index("by_user", ["userId"])
+    .index("by_timestamp", ["timestamp"]),
+
   messageReactions: defineTable({
     messageId: v.id("messages"),
     userId: v.id("users"),
