@@ -63,7 +63,7 @@ export const createFilePreviews = mutation({
     previewMessageId: v.string(),
     previews: v.array(
       v.object({
-        previewId: v.string(),
+        previewId: v.optional(v.string()),
         url: v.string(),
         name: v.string(),
         contentType: v.string(),
@@ -71,15 +71,15 @@ export const createFilePreviews = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    await Promise.all(
+    return await Promise.all(
       args.previews.map(async (preview) => {
-        await ctx.db.insert("files", {
+        const file = await ctx.db.insert("files", {
           name: preview.name,
-          previewId: preview.previewId,
           previewMessageId: args.previewMessageId,
           previewContentType: preview.contentType,
           previewUrl: preview.url,
         })
+        return { id: file, previewId: preview.previewId }
       }),
     )
   },
@@ -87,13 +87,15 @@ export const createFilePreviews = mutation({
 
 export const update = mutation({
   args: {
-    previewId: v.string(),
+    id: v.string(),
     storageId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
+    const fileId = ctx.db.normalizeId("files", args.id)
+    if (!fileId) throw new ConvexError("Invalid file ID")
     const file = await ctx.db
       .query("files")
-      .withIndex("by_preview_id", (q) => q.eq("previewId", args.previewId))
+      .withIndex("by_id", (q) => q.eq("_id", fileId))
       .first()
     if (!file) throw new ConvexError("File not found")
     await ctx.db.patch(file._id, { storageId: args.storageId })
@@ -101,23 +103,24 @@ export const update = mutation({
 })
 
 export const remove = mutation({
-  args: { fileId: v.string() },
+  args: { id: v.string() },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx)
-    const fileId = ctx.db.normalizeId("files", args.fileId)
-    if (!fileId) throw new ConvexError("Invalid file ID")
-    const file = await ctx.db.get(fileId)
-    if (!file) return
-    if (!file.messageId) return
-    const message = await ctx.db.get(file.messageId)
-    if (!message) return
-    if (message.authorId !== user._id) throw new ConvexError("You are not the author of this message")
+    const id = ctx.db.normalizeId("files", args.id)
+    if (!id) throw new ConvexError("Invalid file ID")
+    const file = await ctx.db.get(id)
+    if (!file) return // optimistic handling, file may have been deleted already
+    if (file.messageId) {
+      const message = await ctx.db.get(file.messageId)
+      if (!message) return
+      if (message.authorId !== user._id) throw new ConvexError("You are not the author of this message")
 
-    const messageFiles = await ctx.db
-      .query("files")
-      .withIndex("by_message", (q) => q.eq("messageId", message._id))
-      .collect()
-    await ctx.db.delete(fileId)
-    if (messageFiles.length === 1 && !message.content) await ctx.db.delete(message._id)
+      const messageFiles = await ctx.db
+        .query("files")
+        .withIndex("by_message", (q) => q.eq("messageId", message._id))
+        .collect()
+      if (messageFiles.length === 1 && !message.content) await ctx.db.delete(message._id)
+    }
+    await ctx.db.delete(id)
   },
 })

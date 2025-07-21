@@ -30,7 +30,7 @@ interface FileDisplayProps {
   variant: "message" | "preview"
   channelId: Id<"channels">
   messageId?: Id<"messages">
-  onRemove?: (id: string) => void
+  onRemove?: (id: Id<"files">) => void
   fullSize?: boolean
 }
 
@@ -77,16 +77,6 @@ export function FileDisplay({ file, variant, channelId, messageId, onRemove, ful
     }
   }
 
-  const handleRemove = () => {
-    if (variant === "preview" && onRemove && file.previewId) {
-      onRemove(file.previewId)
-    } else if (variant === "message") {
-      if (window.confirm("Are you sure?")) {
-        void removeFile({ fileId: file._id })
-      }
-    }
-  }
-
   const handleClick = () => {
     if (variant === "message" && !isAudioFile) {
       setIsPreviewing(true)
@@ -129,11 +119,8 @@ export function FileDisplay({ file, variant, channelId, messageId, onRemove, ful
 
         {/* Uploading overlay */}
         {isUploading && variant === "message" && (
-          <div className="absolute top-2 left-2 rounded-md bg-background">
-            <div className="flex h-8 items-center justify-center gap-2 px-2">
-              <Spinner className="size-3.5" />
-              <p className="text-xs">Uploading</p>
-            </div>
+          <div className="absolute top-2 left-2 rounded-full bg-background p-2">
+            <Spinner className="size-3.5" />
           </div>
         )}
 
@@ -159,7 +146,13 @@ export function FileDisplay({ file, variant, channelId, messageId, onRemove, ful
                     {isDownloading ? <Spinner className="size-3.5" /> : <DownloadIcon />}
                     {isDownloading ? "Downloading..." : "Download"}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleRemove}>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (window.confirm("Are you sure?")) {
+                        removeFile({ id: file._id })
+                      }
+                    }}
+                  >
                     <TrashIcon />
                     Delete
                   </DropdownMenuItem>
@@ -167,7 +160,7 @@ export function FileDisplay({ file, variant, channelId, messageId, onRemove, ful
               </DropdownMenu>
             </>
           ) : (
-            <button type="button" onClick={handleRemove} className="rounded-full bg-black p-1 hover:bg-neutral-700">
+            <button type="button" onClick={() => onRemove?.(file._id)} className="rounded-full bg-black p-1 hover:bg-neutral-700">
               {isUploading ? (
                 <Spinner className="size-3 text-white dark:text-white" />
               ) : (
@@ -210,7 +203,15 @@ export function FileDisplay({ file, variant, channelId, messageId, onRemove, ful
               <Button variant="outline" size="icon" onClick={handleDownload}>
                 <DownloadIcon />
               </Button>
-              <Button variant="outline" size="icon" onClick={handleRemove}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  if (window.confirm("Are you sure?")) {
+                    removeFile({ id: file._id })
+                  }
+                }}
+              >
                 <TrashIcon />
               </Button>
               <DialogClose asChild>

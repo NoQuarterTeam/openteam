@@ -25,7 +25,7 @@ export function MessageInput({
   const [tempMessageId, setTempMessageId] = useState<string>(crypto.randomUUID())
   const { teamId } = useParams<{ teamId: Id<"teams"> }>()
   const [newMessage, setNewMessage] = useState("")
-  const [filePreviews, setFilePreviews] = useState<{ id: string; file: File; url: string; storageId?: Id<"_storage"> }[]>([])
+  const [filePreviews, setFilePreviews] = useState<{ id: Id<"files">; file: File; url: string; storageId?: Id<"_storage"> }[]>([])
 
   const user = useQuery(api.auth.me)
 
@@ -134,21 +134,23 @@ export function MessageInput({
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
-      const newPreviews = acceptedFiles.map((file) => ({
-        id: crypto.randomUUID(),
+      let newPreviews: { file: File; url: string; id: Id<"files"> }[] = acceptedFiles.map((file) => ({
         file,
+        id: crypto.randomUUID() as Id<"files">, // tempId
         url: URL.createObjectURL(file),
       }))
 
-      await createFilePreviews({
+      const createdFiles = await createFilePreviews({
         previewMessageId: tempMessageId,
         previews: newPreviews.map(({ file, ...rest }) => ({
-          previewId: rest.id,
           url: rest.url,
+          previewId: rest.id,
           name: file.name,
           contentType: file.type,
         })),
       })
+
+      newPreviews = newPreviews.map((p) => ({ ...p, id: createdFiles.find((c) => c.previewId === p.id)!.id }))
       setFilePreviews((prev) => [...prev, ...newPreviews])
 
       posthog.capture("files_uploaded", { teamId, channelId, threadId })
@@ -173,7 +175,7 @@ export function MessageInput({
 
       for (const result of results) {
         if (result.status === "rejected") continue
-        await updateFile({ previewId: result.value.id, storageId: result.value.storageId })
+        await updateFile({ id: result.value.id!, storageId: result.value.storageId })
         setFilePreviews((prev) => prev.map((p) => (p.id === result.value.id ? { ...p, storageId: result.value.storageId } : p)))
       }
     },
@@ -182,7 +184,10 @@ export function MessageInput({
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop })
 
-  const handleRemoveFile = (id: string) => {
+  const removeFile = useMutation(api.files.remove)
+
+  const handleRemoveFile = (id: Id<"files">) => {
+    void removeFile({ id })
     setFilePreviews((prev) => prev.filter((p) => p.id !== id))
     const file = filePreviews.find((p) => p.id === id)
     if (file) window.URL.revokeObjectURL(file.url)
@@ -207,14 +212,12 @@ export function MessageInput({
     }
   }, [channelId])
 
-  // Cleanup audio URLs on unmount
+  // Cleanup URLs on unmount
   useEffect(() => {
     return () => {
-      // Cleanup any audio URLs
+      // Cleanup any URLs
       filePreviews.forEach((preview) => {
-        if (preview.file.type.startsWith("audio/")) {
-          URL.revokeObjectURL(preview.url)
-        }
+        window.URL.revokeObjectURL(preview.url)
       })
     }
   }, [])
@@ -292,8 +295,8 @@ export function MessageInput({
 
 // Audio Recorder Component
 interface AudioRecorderProps {
-  onAudioRecorded: (audioFile: { id: string; file: File; url: string }) => void
-  onAudioUploaded: (previewId: string, storageId: Id<"_storage">) => void
+  onAudioRecorded: (audioFile: { id: Id<"files">; file: File; url: string }) => void
+  onAudioUploaded: (previewId: Id<"files">, storageId: Id<"_storage">) => void
   tempMessageId: string
   channelId: Id<"channels">
   threadId?: Id<"threads">
@@ -364,22 +367,14 @@ function AudioRecorder({ onAudioRecorded, onAudioUploaded, tempMessageId, channe
         const audioFile = new File([audioBlob], `recording-${Date.now()}.${fileExtension}`, { type: mimeType })
         const audioUrl = URL.createObjectURL(audioFile)
 
-        const newPreview = { id: crypto.randomUUID(), file: audioFile, url: audioUrl }
-
-        await createFilePreviews({
+        const [createdFile] = await createFilePreviews({
           previewMessageId: tempMessageId,
-          previews: [
-            {
-              previewId: newPreview.id,
-              url: newPreview.url,
-              name: audioFile.name,
-              contentType: audioFile.type,
-            },
-          ],
+          previews: [{ url: audioUrl, name: audioFile.name, contentType: audioFile.type }],
         })
 
+        if (!createdFile) return toast.error("Failed to create file preview")
         // Notify parent component
-        onAudioRecorded(newPreview)
+        onAudioRecorded({ id: createdFile.id, file: audioFile, url: audioUrl })
 
         // Upload the audio file in the background
         try {
@@ -392,8 +387,8 @@ function AudioRecorder({ onAudioRecorded, onAudioUploaded, tempMessageId, channe
           if (!result.ok) throw new Error("Failed to upload audio file")
           const { storageId } = (await result.json()) as { storageId: Id<"_storage"> }
 
-          await updateFile({ previewId: newPreview.id, storageId })
-          onAudioUploaded(newPreview.id, storageId)
+          await updateFile({ id: createdFile.id, storageId })
+          onAudioUploaded(createdFile.id, storageId)
         } catch {
           toast.error("Failed to upload audio file")
         }
