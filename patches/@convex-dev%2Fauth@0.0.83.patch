@@ -1,0 +1,22 @@
+diff --git a/Users/jclackett/Apps/openteam/node_modules/@convex-dev/auth/.bun-tag-12f87f37c5e36bb1 b/.bun-tag-12f87f37c5e36bb1
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/Users/jclackett/Apps/openteam/node_modules/@convex-dev/auth/.bun-tag-382a06e7424bff0c b/.bun-tag-382a06e7424bff0c
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/Users/jclackett/Apps/openteam/node_modules/@convex-dev/auth/.bun-tag-4a0df08279eb4eab b/.bun-tag-4a0df08279eb4eab
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/dist/react/client.js b/dist/react/client.js
+index 40ac73e4ef299b57dad5b5a6b6c89e123b769181..5d659f4a597fc9367f9e0a5405182fcd95b605d4 100644
+--- a/dist/react/client.js
++++ b/dist/react/client.js
+@@ -145,7 +145,7 @@ export function AuthProvider({ client, serverState, onChange, shouldHandleCode,
+             const url = new URL(result.redirect);
+             await storageSet(VERIFIER_STORAGE_KEY, result.verifier);
+             // Do not redirect in React Native
+-            if (window.location !== undefined) {
++            if (navigator.product !== "ReactNative") {
+                 window.location.href = url.toString();
+             }
+             return { signingIn: false, redirect: url };

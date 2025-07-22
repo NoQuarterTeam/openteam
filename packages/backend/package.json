@@ -1,0 +1,19 @@
+{
+  "name": "@openteam/backend",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "convex dev",
+    "setup": "convex dev --until-success",
+    "typecheck": "tsc --noEmit"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "convex": "1.25.4",
+    "convex-helpers": "^0.1.99"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3"
+  }
+}
