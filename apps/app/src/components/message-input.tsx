@@ -7,7 +7,7 @@ import { ArrowRightIcon, PlusIcon } from "lucide-react-native"
 import { useState } from "react"
 import { KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from "react-native"
 
-export function MessageInput() {
+export function MessageInput({ onFocus }: { onFocus?: () => void }) {
   const params = useLocalSearchParams<{ teamId: Id<"teams">; channelId: Id<"channels">; messageId: Id<"messages"> }>()
   const user = useQuery(api.auth.me)
 
@@ -63,7 +63,9 @@ export function MessageInput() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.select({ ios: "padding", android: "height" })}>
-      <View style={{ borderTopWidth: 1, flexDirection: "row", borderColor: "#eee", padding: 16, gap: 12 }}>
+      <View
+        style={{ borderTopWidth: 1, flexDirection: "row", alignItems: "flex-end", borderColor: "#eee", padding: 16, gap: 12 }}
+      >
         <TouchableOpacity
           style={{
             width: 32,
@@ -79,10 +81,13 @@ export function MessageInput() {
         </TouchableOpacity>
         <TextInput
           onSubmitEditing={handleSend}
+          multiline
           placeholder="Message"
-          style={{ fontSize: 16, flex: 1 }}
+          style={{ fontSize: 16, flex: 1, minHeight: 32 }}
           value={message}
+          autoFocus={!!params.messageId}
           onChangeText={setMessage}
+          onFocus={onFocus}
         />
         <TouchableOpacity
           onPress={handleSend}

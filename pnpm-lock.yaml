@@ -50,6 +50,9 @@ importers:
       expo-auth-session:
         specifier: ~6.2.1
         version: 6.2.1(expo@53.0.20(@babel/core@7.27.1)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0)))(react-native-webview@13.13.5(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0))(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0))(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)
+      expo-clipboard:
+        specifier: ~7.1.5
+        version: 7.1.5(expo@53.0.20(@babel/core@7.27.1)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0)))(react-native-webview@13.13.5(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0))(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0))(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)
       expo-constants:
         specifier: ~17.1.4
         version: 17.1.7(expo@53.0.20(@babel/core@7.27.1)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0)))(react-native-webview@13.13.5(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0))(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0))(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))
@@ -3717,6 +3720,13 @@ packages:
   expo-auth-session@6.2.1:
     resolution: {integrity: sha512-9KgqrGpW7PoNOhxJ7toofi/Dz5BU2TE4Q+ktJZsmDXLoFcNOcvBokh2+mkhG58Qvd/xJ9Z5sAt/5QoOFaPb9wA==}
     peerDependencies:
+      react: '*'
+      react-native: '*'
+
+  expo-clipboard@7.1.5:
+    resolution: {integrity: sha512-TCANUGOxouoJXxKBW5ASJl2WlmQLGpuZGemDCL2fO5ZMl57DGTypUmagb0CVUFxDl0yAtFIcESd78UsF9o64aw==}
+    peerDependencies:
+      expo: '*'
       react: '*'
       react-native: '*'
 
@@ -10383,6 +10393,12 @@ snapshots:
     transitivePeerDependencies:
       - expo
       - supports-color
+
+  expo-clipboard@7.1.5(expo@53.0.20(@babel/core@7.27.1)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0)))(react-native-webview@13.13.5(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0))(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0))(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0):
+    dependencies:
+      expo: 53.0.20(@babel/core@7.27.1)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0)))(react-native-webview@13.13.5(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0))(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)
+      react: 19.1.0
+      react-native: 0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0)
 
   expo-constants@17.1.7(expo@53.0.20(@babel/core@7.27.1)(@expo/metro-runtime@5.0.4(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0)))(react-native-webview@13.13.5(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0))(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0))(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0)):
     dependencies:

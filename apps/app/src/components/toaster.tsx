@@ -10,13 +10,13 @@ export function Toast() {
         success: (props) => (
           <BaseToast
             {...props}
-            style={{ width: "95%", borderLeftWidth: 0, backgroundColor: "white", borderRadius: 5 }}
-            text1Style={{ color: "white", fontSize: 13, fontFamily: "poppins500" }}
-            contentContainerStyle={{ paddingLeft: 8 }}
-            text2Style={{ color: "white", opacity: 0.8, fontSize: 11, fontFamily: "poppins400" }}
+            style={{ width: "90%", borderLeftWidth: 0, backgroundColor: "white", borderRadius: 12 }}
+            text1Style={{ fontSize: 13, fontWeight: 500 }}
+            contentContainerStyle={{ paddingLeft: 16 }}
+            text2Style={{ opacity: 0.8, fontSize: 11 }}
             renderLeadingIcon={() => (
               <View style={{ height: "100%", alignItems: "center", justifyContent: "center", paddingLeft: 8 }}>
-                <CheckCircle2Icon color="white" />
+                <CheckCircle2Icon />
               </View>
             )}
           />
@@ -24,16 +24,16 @@ export function Toast() {
         error: (props) => (
           <BaseToast
             {...props}
-            style={{ width: "95%", borderLeftWidth: 0, backgroundColor: "red", borderRadius: 5 }}
-            text1Style={{ color: "white", fontSize: 13, fontFamily: "poppins500" }}
+            style={{ width: "90%", borderLeftWidth: 0, backgroundColor: "red", borderRadius: 12 }}
+            text1Style={{ color: "white", fontSize: 13, fontWeight: 500 }}
             text2NumberOfLines={1}
-            contentContainerStyle={{ paddingLeft: 8 }}
+            contentContainerStyle={{ paddingLeft: 16 }}
             renderLeadingIcon={() => (
               <View style={{ height: "100%", alignItems: "center", justifyContent: "center", paddingLeft: 8 }}>
                 <XCircleIcon color="white" />
               </View>
             )}
-            text2Style={{ color: "white", opacity: 0.8, fontSize: 11, fontFamily: "poppins400" }}
+            text2Style={{ color: "white", opacity: 0.8, fontSize: 11 }}
           />
         ),
       }}

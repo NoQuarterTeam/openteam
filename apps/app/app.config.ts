@@ -4,7 +4,7 @@ export default {
   name: "OpenTeam",
   slug: "openteam",
   userInterfaceStyle: "automatic",
-  orientation: "default",
+  orientation: "portrait",
   plugins: ["expo-router", "expo-secure-store", ["expo-web-browser", { experimentalLauncherActivity: true }]],
   newArchEnabled: true,
   version: "1.0.0",

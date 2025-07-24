@@ -1,16 +1,19 @@
 import { api } from "@openteam/backend/convex/_generated/api"
 import { Id } from "@openteam/backend/convex/_generated/dataModel"
+import { OptimisticStatus } from "@openteam/backend/convex/optimistic"
 import { optimisticallyUpdateValueInPaginatedQuery, useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
+import * as Clipboard from "expo-clipboard"
 import * as Crypto from "expo-crypto"
 import { useLocalSearchParams, useRouter } from "expo-router"
-import { CopyIcon, PencilIcon, ReplyIcon, TrashIcon } from "lucide-react-native"
+import { CopyIcon, PencilIcon, ReplyIcon, SmilePlusIcon, TrashIcon } from "lucide-react-native"
 import { Fragment, useCallback, useRef } from "react"
-import { Image, Text, TouchableOpacity, View } from "react-native"
+import { Alert, Image, Text, TouchableOpacity, View } from "react-native"
 import ActionSheet, { ActionSheetRef } from "react-native-actions-sheet"
 import { useMarkdown } from "react-native-marked"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { ThreadIndicator } from "./thread-indicator"
+import { toast } from "./toaster"
 import { Button } from "./ui/button"
 
 type MessageData = (typeof api.messages.list._returnType)["page"][number] | typeof api.messages.get._returnType
@@ -100,6 +103,19 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
     )
   })
 
+  const remove = useMutation(api.messages.remove).withOptimisticUpdate((localStore) => {
+    optimisticallyUpdateValueInPaginatedQuery(
+      localStore,
+      api.messages.list,
+      { channelId: params.channelId, messageId: params.messageId },
+      (currentValue) => {
+        if (message._id === currentValue._id) {
+          return { ...currentValue, optimisticStatus: "deleted" as OptimisticStatus }
+        }
+        return currentValue
+      },
+    )
+  })
   return (
     <TouchableOpacity
       onPress={handleCreateThread}
@@ -110,9 +126,10 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
         gap: 12,
         paddingVertical: 4,
         paddingHorizontal: 16,
+        backgroundColor: message.optimisticStatus === "deleted" ? "rgba(255,0,0,0.05)" : "transparent",
         ...(isThreadParentMessage && {
           borderBottomWidth: 1,
-          paddingTop: 16,
+          paddingTop: 12,
           paddingBottom: 10,
           marginBottom: 8,
           borderColor: "#eee",
@@ -194,41 +211,23 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
               )
             })}
 
-            {/* <WithState initialState={false}>
-                  {(state, setState) => (
-                    <Popover modal open={state} onOpenChange={setState}>
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className="flex h-6 w-8 items-center justify-center rounded-full border bg-muted py-0.5 font-normal text-xs hover:border-black dark:hover:border-white"
-                        >
-                          <SmilePlusIcon className="size-3.5" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent align="start" className="w-full p-0" backdrop="transparent">
-                        <EmojiPicker
-                          className="h-[340px]"
-                          onEmojiSelect={({ emoji }) => {
-                            if (!user) return
-                            const existingReaction = message.reactions.find((r) => r.content === emoji && r.userId === user._id)
-                            if (existingReaction) {
-                              posthog.capture("reaction_removed", { channelId: message.channelId, teamId })
-                              removeReaction({ reactionId: existingReaction._id })
-                            } else {
-                              posthog.capture("reaction_added", { channelId: message.channelId, teamId })
-                              addReaction({ messageId: message._id, content: emoji })
-                            }
-                            setState(false)
-                          }}
-                        >
-                          <EmojiPickerSearch />
-                          <EmojiPickerContent />
-                          <EmojiPickerFooter />
-                        </EmojiPicker>
-                      </PopoverContent>
-                    </Popover>
-                  )}
-                </WithState> */}
+            <TouchableOpacity
+              onPress={() => {
+                actionSheetRef.current?.show()
+              }}
+              style={{
+                borderRadius: 25,
+                height: 26,
+                paddingHorizontal: 8,
+                borderWidth: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                borderColor: "#dcdcdc",
+                backgroundColor: "#eee",
+              }}
+            >
+              <SmilePlusIcon size={16} />
+            </TouchableOpacity>
           </View>
         )}
         {message.threadInfo && <ThreadIndicator threadInfo={message.threadInfo} />}
@@ -249,18 +248,50 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             {!isThreadMessage && (
-              <Button onPress={handleCreateThread} variant="outline" style={{ flex: 1 }} leftIcon={<ReplyIcon size={16} />}>
+              <Button
+                onPress={() => {
+                  handleCreateThread()
+                  actionSheetRef.current?.hide()
+                }}
+                variant="outline"
+                style={{ flex: 1 }}
+                leftIcon={<ReplyIcon size={16} />}
+              >
                 Reply
               </Button>
             )}
             <Button variant="outline" style={{ flex: 1 }} leftIcon={<PencilIcon size={16} />}>
               Edit
             </Button>
-            <Button variant="outline" style={{ flex: 1 }} leftIcon={<TrashIcon size={16} color="red" />}>
+            <Button
+              onPress={() => {
+                Alert.alert("Delete message", "Are you sure you want to delete this message?", [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "OK",
+                    onPress: () => {
+                      actionSheetRef.current?.hide()
+                      remove({ messageId: message._id })
+                    },
+                  },
+                ])
+              }}
+              variant="outline"
+              style={{ flex: 1 }}
+              leftIcon={<TrashIcon size={16} color="red" />}
+            >
               Delete
             </Button>
           </View>
-          <Button variant="outline" leftIcon={<CopyIcon size={16} />}>
+          <Button
+            variant="outline"
+            leftIcon={<CopyIcon size={16} />}
+            onPress={async () => {
+              actionSheetRef.current?.hide()
+              toast({ type: "success", title: "Copied to clipboard", visibilityTime: 1000 })
+              void Clipboard.setStringAsync(message.content)
+            }}
+          >
             Copy text
           </Button>
         </View>

@@ -4,7 +4,7 @@ import { FlashList } from "@shopify/flash-list"
 import { usePaginatedQuery, useQuery } from "convex/react"
 import dayjs from "dayjs"
 import advancedFormat from "dayjs/plugin/advancedFormat"
-import { Link, useLocalSearchParams } from "expo-router"
+import { Link, useFocusEffect, useLocalSearchParams } from "expo-router"
 import { ChevronLeftIcon } from "lucide-react-native"
 import { useCallback, useMemo, useRef } from "react"
 import { NativeScrollEvent, NativeSyntheticEvent, Text, View } from "react-native"
@@ -25,7 +25,7 @@ export default function Page() {
   const {
     results,
     loadMore: _,
-    status: __,
+    status,
   } = usePaginatedQuery(
     api.messages.list,
     { channelId: params.channelId, messageId: params.messageId },
@@ -62,27 +62,26 @@ export default function Page() {
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!flatListRef.current) return
-    const { contentOffset } = event.nativeEvent
-    const isAtBottom = contentOffset.y <= 1 // +1 for rounding
-
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent
+    const isAtBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 1 // +1 for rounding
     isScrolledUpRef.current = !isAtBottom
   }, [])
-  // const prevMessagesLengthRef = useRef(0)
-  // const isLoadingMoreRef = useRef(false)
+  const prevMessagesLengthRef = useRef(0)
+  const isLoadingMoreRef = useRef(false)
 
-  // // Handle scrolling to bottom for new messages and initial load
-  // useFocusEffect(
-  //   useCallback(() => {
-  //     if (!flatListRef.current) return
-  //     const currentLength = messages.length
-  //     prevMessagesLengthRef.current = currentLength
+  // Handle scrolling to bottom for new messages and initial load
+  useFocusEffect(
+    useCallback(() => {
+      if (!flatListRef.current) return
+      const currentLength = messages.length
+      prevMessagesLengthRef.current = currentLength
 
-  //     // Don't scroll if we're loading more messages or still loading first page
-  //     if (isLoadingMoreRef.current || status === "LoadingFirstPage") return
+      // Don't scroll if we're loading more messages or still loading first page
+      if (isLoadingMoreRef.current || status === "LoadingFirstPage") return
 
-  //     flatListRef.current?.scrollToEnd({ animated: false })
-  //   }, [messages.length, status]),
-  // )
+      flatListRef.current?.scrollToEnd({ animated: false })
+    }, [messages.length, status]),
+  )
   if (!parentMessage) return null
 
   return (

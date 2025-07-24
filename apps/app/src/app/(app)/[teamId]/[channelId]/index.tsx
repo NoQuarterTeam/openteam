@@ -58,9 +58,8 @@ export default function Page() {
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!flatListRef.current) return
-    const { contentOffset } = event.nativeEvent
-    const isAtBottom = contentOffset.y <= 1 // +1 for rounding
-
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent
+    const isAtBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 1 // +1 for rounding
     isScrolledUpRef.current = !isAtBottom
   }, [])
   const prevMessagesLengthRef = useRef(0)
@@ -89,7 +88,7 @@ export default function Page() {
         flatListRef.current?.scrollToEnd({ animated: false })
         void markAsRead({ channelId: params.channelId })
       }
-    }, [messages.length, status, params.channelId]),
+    }, [messages.length, status]),
   )
 
   return (
@@ -119,6 +118,7 @@ export default function Page() {
         keyboardShouldPersistTaps="handled"
         data={flatMessagesWithDates}
         contentContainerStyle={{ paddingBottom: 16 }}
+        getItemType={(item) => (typeof item === "string" ? "sectionHeader" : "row")}
         renderItem={({ item }) => {
           if (typeof item === "string") {
             return (
@@ -144,10 +144,14 @@ export default function Page() {
 
           return <Message message={item} isFirstMessageOfUser={item.isFirstMessageOfUser} />
         }}
-        getItemType={(item) => (typeof item === "string" ? "sectionHeader" : "row")}
       />
 
-      <MessageInput />
+      <MessageInput
+        onFocus={async () => {
+          await new Promise((resolve) => setTimeout(resolve, 100))
+          flatListRef.current?.scrollToEnd({ animated: false })
+        }}
+      />
     </View>
   )
 }
