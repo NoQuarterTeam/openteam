@@ -4,7 +4,7 @@ import { useMutation, useQuery } from "convex/react"
 import { ConvexError } from "convex/values"
 import { router, useRouter } from "expo-router"
 import * as SecureStore from "expo-secure-store"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button, Image, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { Screen } from "@/components/screen"
 import { toast } from "@/components/toaster"
@@ -15,18 +15,18 @@ export default function Page() {
   const me = useQuery(api.auth.me)
   const teams = useQuery(api.teams.myTeams)
 
-  // const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // useEffect(() => {
-  //   const handleGetInitialTeam = async () => {
-  //     const teamId = await SecureStore.getItemAsync("selectedTeamId")
-  //     if (teamId) router.navigate(`/${teamId}`)
-  //     else setIsLoading(false)
-  //   }
-  //   handleGetInitialTeam()
-  // }, [])
+  useEffect(() => {
+    const handleGetInitialTeam = async () => {
+      const teamId = await SecureStore.getItemAsync("selectedTeamId")
+      if (teamId) router.navigate(`/${teamId}`)
+      else setIsLoading(false)
+    }
+    handleGetInitialTeam()
+  }, [])
 
-  // if (isLoading) return null
+  if (isLoading) return null
 
   return (
     <Screen>

@@ -29,14 +29,18 @@ export default function Page() {
           style={{
             width: 32,
             height: 32,
-            borderRadius: 4,
+            borderRadius: 8,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: "lightgray",
           }}
         >
-          {team.image ? <Image source={{ uri: team.image }} style={{ width: 24, height: 24 }} /> : <Text>{team.name[0]}</Text>}
+          {team.image ? (
+            <Image source={{ uri: team.image }} style={{ width: 32, height: 32, borderRadius: 8 }} />
+          ) : (
+            <Text style={{ fontSize: 16, fontWeight: "bold" }}>{team.name[0]}</Text>
+          )}
         </TouchableOpacity>
         <Text style={{ fontSize: 20, fontWeight: "bold" }}>{team.name}</Text>
       </View>
