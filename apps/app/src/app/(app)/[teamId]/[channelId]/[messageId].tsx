@@ -79,8 +79,12 @@ export default function Page() {
       // Don't scroll if we're loading more messages or still loading first page
       if (isLoadingMoreRef.current || status === "LoadingFirstPage") return
 
-      flatListRef.current?.scrollToEnd({ animated: false })
-    }, [messages.length, status]),
+      try {
+        flatListRef.current?.scrollToEnd({ animated: false })
+      } catch {
+        // weird thing where scroll throws
+      }
+    }, [messages, status]),
   )
   if (!parentMessage) return null
 
@@ -105,7 +109,7 @@ export default function Page() {
       <FlashList
         ref={flatListRef}
         onScroll={handleScroll}
-        estimatedItemSize={100}
+        estimatedItemSize={55}
         ListHeaderComponent={<Message message={parentMessage} isFirstMessageOfUser isThreadParentMessage isThreadMessage />}
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
