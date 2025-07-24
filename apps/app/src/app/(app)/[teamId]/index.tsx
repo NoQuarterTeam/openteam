@@ -38,11 +38,11 @@ export default function Page() {
         >
           {team.image ? <Image source={{ uri: team.image }} style={{ width: 24, height: 24 }} /> : <Text>{team.name[0]}</Text>}
         </TouchableOpacity>
-        <Text>{team.name}</Text>
+        <Text style={{ fontSize: 20, fontWeight: "bold" }}>{team.name}</Text>
       </View>
 
       <ScrollView style={{ flex: 1 }}>
-        <View style={{ flexDirection: "row", gap: 8, paddingBottom: 16, alignItems: "center", justifyContent: "space-between" }}>
+        <View style={{ flexDirection: "row", gap: 8, paddingBottom: 12, alignItems: "center", justifyContent: "space-between" }}>
           <Text>Channels</Text>
           <TouchableOpacity onPress={() => router.push(`/${teamId}/new-channel`)}>
             <PlusIcon size={16} color="black" />
@@ -52,11 +52,12 @@ export default function Page() {
           {channels?.map((channel) => (
             <TouchableOpacity
               key={channel._id}
-              style={{ padding: 8, borderRadius: 4, backgroundColor: "lightgray" }}
+              style={{ padding: 8, flexDirection: "row", alignItems: "center", gap: 12 }}
               onPress={() => {
                 router.push(`/${teamId}/${channel._id}`)
               }}
             >
+              <Text>#</Text>
               <Text>{channel.name}</Text>
             </TouchableOpacity>
           ))}

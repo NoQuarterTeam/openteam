@@ -33,6 +33,8 @@ export default function Page() {
           } catch (error) {
             if (error instanceof ConvexError) {
               toast({ title: error.data, type: "error" })
+            } else {
+              toast({ title: "Failed to create team", type: "error" })
             }
           }
         }}
