@@ -3,6 +3,7 @@ import { api } from "@openteam/backend/convex/_generated/api"
 import { useQuery } from "convex/react"
 import { useRouter } from "expo-router"
 import * as SecureStore from "expo-secure-store"
+import { useEffect, useState } from "react"
 import { Image, Text, TouchableOpacity, View } from "react-native"
 import { Screen } from "@/components/screen"
 
@@ -12,23 +13,18 @@ export default function Page() {
   const me = useQuery(api.auth.me)
   const teams = useQuery(api.teams.myTeams)
 
-  // const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // useEffect(() => {
-  //   const handleGetInitialTeam = async () => {
-  //     const teamId = await SecureStore.getItemAsync("selectedTeamId")
-  //     if (teamId) router.navigate(`/${teamId}`)
-  //     else setIsLoading(false)
-  //   }
-  //   handleGetInitialTeam()
-  // }, [])
+  useEffect(() => {
+    const handleGetInitialTeam = async () => {
+      const teamId = await SecureStore.getItemAsync("selectedTeamId")
+      if (teamId) router.navigate(`/${teamId}`)
+      else setIsLoading(false)
+    }
+    handleGetInitialTeam()
+  }, [])
 
-  // if (isLoading)
-  //   return (
-  //     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-  //       <ActivityIndicator />
-  //     </View>
-  //   )
+  if (isLoading) return null
 
   return (
     <Screen>
