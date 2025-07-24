@@ -98,6 +98,8 @@ export const markAsRead = mutation({
 export const create = mutation({
   args: { name: v.string(), teamId: v.string() },
   handler: async (ctx, args) => {
+    if (!args.name.trim()) throw new ConvexError("Channel name is required")
+
     const teamId = ctx.db.normalizeId("teams", args.teamId)
     if (!teamId) throw new ConvexError("Invalid team ID")
 
@@ -106,12 +108,12 @@ export const create = mutation({
     // Check if channel already exists
     const existing = await ctx.db
       .query("channels")
-      .withIndex("by_team_name", (q) => q.eq("teamId", teamId).eq("name", args.name))
+      .withIndex("by_team_name", (q) => q.eq("teamId", teamId).eq("name", args.name.toLowerCase().trim()))
       .first()
 
     if (existing) throw new ConvexError("Channel already exists with this name")
 
-    const channelId = await ctx.db.insert("channels", { name: args.name, createdBy: user._id, teamId })
+    const channelId = await ctx.db.insert("channels", { name: args.name.toLowerCase().trim(), createdBy: user._id, teamId })
 
     // Get the current max order for this user and add the new channel at the end
     const userChannelOrders = await ctx.db

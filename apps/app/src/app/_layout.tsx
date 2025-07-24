@@ -1,11 +1,13 @@
 import { ConvexAuthProvider } from "@convex-dev/auth/react"
 import { ConvexReactClient } from "convex/react"
-import { Slot } from "expo-router"
+import { Slot, SplashScreen } from "expo-router"
 import * as SecureStore from "expo-secure-store"
+import { useEffect } from "react"
 
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
   unsavedChangesWarning: false,
 })
+SplashScreen.preventAutoHideAsync()
 
 const secureStorage = {
   getItem: async (key: string) => {
@@ -19,7 +21,11 @@ const secureStorage = {
   },
 }
 
-export default function Layout() {
+export default function Page() {
+  useEffect(() => {
+    SplashScreen.hideAsync()
+  }, [])
+
   return (
     <ConvexAuthProvider client={convex} storage={secureStorage}>
       <Slot />

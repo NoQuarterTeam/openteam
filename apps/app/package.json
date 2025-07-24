@@ -1,42 +1,48 @@
 {
   "name": "@openteam/app",
   "version": "1.0.0",
+  "private": true,
   "main": "expo-router/entry",
   "scripts": {
     "dev": "expo start",
+    "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
-    "deploy": "npx expo export -p web && npx eas-cli@latest deploy"
+    "web": "expo start --web"
   },
   "dependencies": {
+    "@auth/core": "0.37.0",
+    "@convex-dev/auth": "0.0.87",
     "@openteam/backend": "workspace:*",
-    "@auth/core": "0.40.0",
-    "convex": "1.25.4",
-    "expo": "^53.0.20",
-    "expo-auth-session": "^6.2.1",
+    "convex": "^1.25.4",
+    "expo": "53.0.20",
+    "expo-asset": "~11.1.7",
+    "expo-auth-session": "~6.2.1",
     "expo-constants": "~17.1.4",
     "expo-crypto": "^14.1.5",
+    "expo-font": "~13.3.2",
     "expo-linking": "~7.1.4",
     "expo-router": "~5.1.4",
     "expo-secure-store": "^14.2.3",
     "expo-splash-screen": "~0.30.7",
     "expo-status-bar": "~2.2.3",
-    "expo-web-browser": "^14.2.0",
-    "nativewind": "^4.0.1",
+    "expo-system-ui": "~5.0.10",
+    "expo-web-browser": "~14.2.0",
+    "lucide-react-native": "^0.525.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.79.5",
+    "react-native-gesture-handler": "~2.24.0",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
-    "react-native-web": "^0.20.0",
-    "tailwindcss": "^3.4.0"
+    "react-native-toast-message": "^2.3.3",
+    "react-native-web": "~0.20.0",
+    "react-native-webview": "13.13.5"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0",
-    "@types/react": "~19.1.8",
-    "typescript": "~5.8.3"
-  },
-  "private": true
+    "@babel/core": "7.27.1",
+    "@types/react": "19.1.8",
+    "typescript": "5.8.3"
+  }
 }

@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@openteam/backend",
   "version": "1.0.0",
   "description": "",
@@ -10,7 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "convex": "1.25.4",
+    "convex": "^1.25.4",
     "convex-helpers": "^0.1.99"
   },
   "devDependencies": {

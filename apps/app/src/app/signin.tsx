@@ -2,6 +2,7 @@ import { useAuthActions } from "@convex-dev/auth/react"
 import { makeRedirectUri } from "expo-auth-session"
 import { useRouter } from "expo-router"
 import { openAuthSessionAsync } from "expo-web-browser"
+// import { openAuthSessionAsync } from "expo-web-browser"
 import { useState } from "react"
 import { Text, TouchableOpacity, View } from "react-native"
 import { Screen } from "@/components/screen"
@@ -36,9 +37,6 @@ export default function Page() {
 
       <View style={{ flexDirection: "row", gap: 10 }}>
         <TouchableOpacity
-          // icon={Github}
-          // size="$5"
-          // themeInverse
           onPress={() => handleSignin("github")}
           disabled={isSubmitting}
           style={{ padding: 8, backgroundColor: "black", flex: 1 }}
@@ -46,9 +44,6 @@ export default function Page() {
           <Text style={{ color: "white", textAlign: "center" }}>{isSubmitting ? "Signing in..." : "GitHub"}</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          // icon={Github}
-          // size="$5"
-          // themeInverse
           onPress={() => handleSignin("google")}
           disabled={isSubmitting}
           style={{ padding: 8, backgroundColor: "black", flex: 1 }}
