@@ -409,39 +409,23 @@ export const Message = memo(function _Message({
 })
 
 function MessageEditor({ message }: { message: MessageData }) {
-  const { teamId } = useParams<{ teamId: Id<"teams"> }>()
+  const { teamId, messageId } = useParams<{ teamId: Id<"teams">; messageId: Id<"messages"> }>()
   const updateMessage = useMutation(api.messages.update).withOptimisticUpdate((localStore, args) => {
-    if (message.threadInfo?.parentMessageId) {
-      optimisticallyUpdateValueInPaginatedQuery(
-        localStore,
-        api.messages.list,
-        { channelId: message.channelId, messageId: message.threadInfo.parentMessageId },
-        (currentValue) => {
-          if (message._id === currentValue._id) {
-            return {
-              ...currentValue,
-              content: args.content,
-            }
+    if (!messageId) return
+    optimisticallyUpdateValueInPaginatedQuery(
+      localStore,
+      api.messages.list,
+      { channelId: message.channelId, messageId },
+      (currentValue) => {
+        if (message._id === currentValue._id) {
+          return {
+            ...currentValue,
+            content: args.content,
           }
-          return currentValue
-        },
-      )
-    } else {
-      optimisticallyUpdateValueInPaginatedQuery(
-        localStore,
-        api.messages.list,
-        { channelId: message.channelId },
-        (currentValue) => {
-          if (message._id === currentValue._id) {
-            return {
-              ...currentValue,
-              content: args.content,
-            }
-          }
-          return currentValue
-        },
-      )
-    }
+        }
+        return currentValue
+      },
+    )
   })
 
   const [input, setInput] = useState(message.content || "")

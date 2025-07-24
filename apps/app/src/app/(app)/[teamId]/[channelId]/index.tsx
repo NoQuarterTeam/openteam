@@ -9,9 +9,11 @@ import { ChevronLeftIcon } from "lucide-react-native"
 import { useCallback, useMemo, useRef } from "react"
 import { NativeScrollEvent, NativeSyntheticEvent, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import EditMessage from "@/components/edit-message"
 import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
 import { DEFAULT_PAGINATION_NUM_ITEMS } from "@/lib/config"
+import { useEditMessage } from "@/lib/use-edit-message"
 
 dayjs.extend(advancedFormat)
 
@@ -91,6 +93,8 @@ export default function Page() {
     }, [messages.length, status]),
   )
 
+  const message = useEditMessage((s) => s.message)
+
   return (
     <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
       <View
@@ -146,12 +150,16 @@ export default function Page() {
         }}
       />
 
-      <MessageInput
-        onFocus={async () => {
-          await new Promise((resolve) => setTimeout(resolve, 100))
-          flatListRef.current?.scrollToEnd({ animated: false })
-        }}
-      />
+      {message ? (
+        <EditMessage />
+      ) : (
+        <MessageInput
+          onFocus={async () => {
+            await new Promise((resolve) => setTimeout(resolve, 100))
+            flatListRef.current?.scrollToEnd({ animated: false })
+          }}
+        />
+      )}
     </View>
   )
 }
