@@ -1,10 +1,10 @@
 import { api } from "@openteam/backend/convex/_generated/api"
 import { Id } from "@openteam/backend/convex/_generated/dataModel"
 import { FlashList } from "@shopify/flash-list"
-import { useMutation, usePaginatedQuery, useQuery } from "convex/react"
+import { usePaginatedQuery, useQuery } from "convex/react"
 import dayjs from "dayjs"
 import advancedFormat from "dayjs/plugin/advancedFormat"
-import { Link, useFocusEffect, useLocalSearchParams } from "expo-router"
+import { Link, useLocalSearchParams } from "expo-router"
 import { ChevronLeftIcon } from "lucide-react-native"
 import { useCallback, useMemo, useRef } from "react"
 import { NativeScrollEvent, NativeSyntheticEvent, Text, View } from "react-native"
@@ -16,16 +16,21 @@ import { DEFAULT_PAGINATION_NUM_ITEMS } from "@/lib/config"
 dayjs.extend(advancedFormat)
 
 export default function Page() {
-  const params = useLocalSearchParams<{ teamId: Id<"teams">; channelId: Id<"channels"> }>()
-  const channel = useQuery(api.channels.get, { channelId: params.channelId })
+  const params = useLocalSearchParams<{ teamId: Id<"teams">; channelId: Id<"channels">; messageId: Id<"messages"> }>()
+  const parentMessage = useQuery(api.messages.get, { messageId: params.messageId })
+
   const insets = useSafeAreaInsets()
 
   // Initial page load
   const {
     results,
     loadMore: _,
-    status,
-  } = usePaginatedQuery(api.messages.list, { channelId: params.channelId }, { initialNumItems: DEFAULT_PAGINATION_NUM_ITEMS })
+    status: __,
+  } = usePaginatedQuery(
+    api.messages.list,
+    { channelId: params.channelId, messageId: params.messageId },
+    { initialNumItems: DEFAULT_PAGINATION_NUM_ITEMS },
+  )
 
   const isScrolledUpRef = useRef(false)
 
@@ -53,7 +58,6 @@ export default function Page() {
     return result
   }, [messages])
 
-  const markAsRead = useMutation(api.channels.markAsRead)
   const flatListRef = useRef<FlashList<(typeof flatMessagesWithDates)[number] & { isFirstMessageOfUser: boolean }>>(null)
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -63,42 +67,31 @@ export default function Page() {
 
     isScrolledUpRef.current = !isAtBottom
   }, [])
-  const prevMessagesLengthRef = useRef(0)
-  const isLoadingMoreRef = useRef(false)
+  // const prevMessagesLengthRef = useRef(0)
+  // const isLoadingMoreRef = useRef(false)
 
-  // Handle scrolling to bottom for new messages and initial load
-  useFocusEffect(
-    useCallback(() => {
-      if (!params.channelId) return
+  // // Handle scrolling to bottom for new messages and initial load
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     if (!flatListRef.current) return
+  //     const currentLength = messages.length
+  //     prevMessagesLengthRef.current = currentLength
 
-      const currentLength = messages.length
-      const prevLength = prevMessagesLengthRef.current
-      prevMessagesLengthRef.current = currentLength
+  //     // Don't scroll if we're loading more messages or still loading first page
+  //     if (isLoadingMoreRef.current || status === "LoadingFirstPage") return
 
-      // Don't scroll if we're loading more messages or still loading first page
-      if (isLoadingMoreRef.current || status === "LoadingFirstPage") return
-
-      // Scroll to bottom if:
-      // 1. Initial load (prevLength === 0) and we have messages and user isn't scrolled up
-      // 2. New messages arrived (currentLength > prevLength) and user is at bottom
-      const shouldScrollToBottom =
-        (prevLength === 0 && currentLength > 0 && !isScrolledUpRef.current) ||
-        (currentLength > prevLength && !isScrolledUpRef.current)
-
-      if (shouldScrollToBottom) {
-        flatListRef.current?.scrollToEnd({ animated: false })
-        void markAsRead({ channelId: params.channelId })
-      }
-    }, [messages.length, status, params.channelId]),
-  )
+  //     flatListRef.current?.scrollToEnd({ animated: false })
+  //   }, [messages.length, status]),
+  // )
+  if (!parentMessage) return null
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
       <View
         style={{
           flexDirection: "row",
-          alignItems: "center",
           paddingHorizontal: 16,
+          alignItems: "center",
           gap: 8,
           paddingBottom: 12,
           borderBottomWidth: 1,
@@ -108,27 +101,28 @@ export default function Page() {
         <Link href="../">
           <ChevronLeftIcon size={24} color="black" />
         </Link>
-        <Text style={{ fontSize: 20, fontWeight: "bold" }}># {channel?.name}</Text>
+        <Text style={{ fontSize: 20, fontWeight: "bold" }}>Thread</Text>
       </View>
       <FlashList
         ref={flatListRef}
-        extraData={messages.length}
         onScroll={handleScroll}
+        estimatedItemSize={100}
+        ListHeaderComponent={<Message message={parentMessage} isFirstMessageOfUser isThreadParentMessage isThreadMessage />}
         scrollEventThrottle={16}
-        estimatedItemSize={55}
         keyboardShouldPersistTaps="handled"
         data={flatMessagesWithDates}
         contentContainerStyle={{ paddingBottom: 16 }}
         renderItem={({ item }) => {
           if (typeof item === "string") {
+            if (params.messageId) return null
             return (
               <Text
                 style={{
                   fontSize: 16,
                   fontWeight: "bold",
                   paddingVertical: 8,
-                  marginBottom: 8,
                   paddingHorizontal: 16,
+                  marginBottom: 8,
                   borderBottomWidth: 1,
                   borderColor: "#eee",
                 }}
@@ -142,7 +136,7 @@ export default function Page() {
             )
           }
 
-          return <Message message={item} isFirstMessageOfUser={item.isFirstMessageOfUser} />
+          return <Message message={item} isFirstMessageOfUser={item.isFirstMessageOfUser} isThreadMessage />
         }}
         getItemType={(item) => (typeof item === "string" ? "sectionHeader" : "row")}
       />

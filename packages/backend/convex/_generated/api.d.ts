@@ -27,7 +27,6 @@ import type * as optimistic from "../optimistic.js";
 import type * as reactions from "../reactions.js";
 import type * as router from "../router.js";
 import type * as teams from "../teams.js";
-import type * as threads from "../threads.js";
 import type * as userChannelTyping from "../userChannelTyping.js";
 import type * as users from "../users.js";
 
@@ -54,7 +53,6 @@ declare const fullApi: ApiFromModules<{
   reactions: typeof reactions;
   router: typeof router;
   teams: typeof teams;
-  threads: typeof threads;
   userChannelTyping: typeof userChannelTyping;
   users: typeof users;
 }>;

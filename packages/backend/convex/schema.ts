@@ -72,10 +72,10 @@ export default defineSchema({
     channelId: v.id("channels"),
     authorId: v.id("users"),
     content: v.optional(v.string()),
-    threadId: v.optional(v.id("threads")),
+    parentMessageId: v.optional(v.id("messages")),
   })
     .index("by_channel", ["channelId"])
-    .index("by_thread", ["threadId"])
+    .index("by_parent_message", ["parentMessageId"])
     .searchIndex("search_content", { searchField: "content", filterFields: ["channelId"] }),
 
   userChannelActivity: defineTable({
@@ -105,7 +105,8 @@ export default defineSchema({
     content: v.string(),
   })
     .index("by_message", ["messageId"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_message_and_user", ["messageId", "userId"]),
 
   files: defineTable({
     name: v.string(),
@@ -137,19 +138,11 @@ export default defineSchema({
     .index("by_to_user", ["toUserId"])
     .index("by_from_user", ["fromUserId"]),
 
-  threads: defineTable({
-    channelId: v.id("channels"),
-    parentMessageId: v.id("messages"),
-    createdBy: v.id("users"),
-  })
-    .index("by_channel", ["channelId"])
-    .index("by_parent_message", ["parentMessageId"]),
-
   threadActivity: defineTable({
-    threadId: v.id("threads"),
+    parentMessageId: v.id("messages"),
     userId: v.id("users"),
     lastReadTime: v.optional(v.number()),
   })
-    .index("by_thread", ["threadId"])
+    .index("by_parent_message", ["parentMessageId"])
     .index("by_user", ["userId"]),
 })

@@ -16,11 +16,11 @@ import { UsersTyping } from "./users-typing"
 
 export function MessageInput({
   channelId,
-  threadId,
+  parentMessageId,
   lastMessageIdOfUser,
 }: {
   channelId: Id<"channels">
-  threadId?: Id<"threads">
+  parentMessageId?: Id<"messages">
   lastMessageIdOfUser?: Id<"messages">
 }) {
   const [tempMessageId, setTempMessageId] = useState<string>(crypto.randomUUID())
@@ -36,75 +36,39 @@ export function MessageInput({
     const { content } = args
     if (!user) return
 
-    // For thread messages, update both thread queries
-    if (args.threadId) {
-      const messageId = crypto.randomUUID() as Id<"messages">
-      insertAtPosition({
-        paginatedQuery: api.threads.listMessages,
-        argsToMatch: { threadId: args.threadId },
-        sortOrder: "desc",
-        sortKeyFromItem: (item) => item._creationTime,
-        localQueryStore: localStore,
-        item: {
-          _id: messageId,
-          authorId: user._id,
-          content,
-          author: user,
-          channelId,
-          threadId: args.threadId,
-          _creationTime: Date.now(),
-          optimisticStatus: "created",
-          reactions: [],
-          files:
-            filePreviews.map(({ file, id, url }) => ({
-              _id: crypto.randomUUID() as Id<"files">,
-              name: file.name,
-              previewId: id,
-              previewContentType: file.type,
-              previewUrl: url,
-              _creationTime: Date.now(),
-              messageId,
-              url: null,
-              metadata: null,
-              storageId: undefined,
-            })) || [],
-        },
-      })
-    } else {
-      const messageId = crypto.randomUUID() as Id<"messages">
-
-      insertAtPosition({
-        paginatedQuery: api.messages.list,
-        argsToMatch: { channelId },
-        sortOrder: "desc",
-        sortKeyFromItem: (item) => item._creationTime,
-        localQueryStore: localStore,
-        item: {
-          _id: messageId,
-          authorId: user._id,
-          content,
-          author: user,
-          channelId,
-          _creationTime: Date.now(),
-          optimisticStatus: "created",
-          reactions: [],
-          threadInfo: null,
-          files:
-            filePreviews.map(({ file, url, id }) => ({
-              _id: crypto.randomUUID() as Id<"files">,
-              name: file.name,
-              _creationTime: Date.now(),
-              messageId,
-              url: null,
-              previewId: id,
-              previewContentType: file.type,
-              previewUrl: url,
-              metadata: null,
-              storageId: undefined,
-            })) || [],
-        },
-      })
-    }
+    const messageId = crypto.randomUUID() as Id<"messages">
+    insertAtPosition({
+      paginatedQuery: api.messages.list,
+      argsToMatch: { messageId: args.parentMessageId, channelId },
+      sortOrder: "desc",
+      sortKeyFromItem: (item) => item._creationTime,
+      localQueryStore: localStore,
+      item: {
+        _id: messageId,
+        authorId: user._id,
+        content,
+        author: user,
+        channelId,
+        threadInfo: null,
+        parentMessageId: args.parentMessageId,
+        _creationTime: Date.now(),
+        optimisticStatus: "created",
+        reactions: [],
+        files:
+          filePreviews.map(({ file, id, url }) => ({
+            _id: crypto.randomUUID() as Id<"files">,
+            name: file.name,
+            previewId: id,
+            previewContentType: file.type,
+            previewUrl: url,
+            _creationTime: Date.now(),
+            messageId,
+            url: null,
+            metadata: null,
+            storageId: undefined,
+          })) || [],
+      },
+    })
   })
 
   const generateUploadUrl = useMutation(api.files.generateUploadUrl)
@@ -119,12 +83,12 @@ export function MessageInput({
       textAreaRef.current?.resetHeight()
       setNewMessage("")
       setFilePreviews([])
-      posthog.capture("message_sent", { channelId, teamId, threadId })
+      posthog.capture("message_sent", { channelId, teamId, parentMessageId })
       await sendMessage({
         channelId,
         tempMessageId,
         content: newMessage.trim(),
-        threadId,
+        parentMessageId,
       })
       setTempMessageId(crypto.randomUUID())
     } catch {
@@ -156,7 +120,7 @@ export function MessageInput({
       newPreviews = newPreviews.map((p) => ({ ...p, id: createdFiles.find((c) => c.previewId === p.id)!.id }))
       setFilePreviews((prev) => [...prev, ...newPreviews])
 
-      posthog.capture("files_uploaded", { teamId, channelId, threadId })
+      posthog.capture("files_uploaded", { teamId, channelId, parentMessageId })
 
       const results = await Promise.allSettled(
         newPreviews.map(async (preview) => {
@@ -267,12 +231,12 @@ export function MessageInput({
             }}
             tempMessageId={tempMessageId}
             channelId={channelId}
-            threadId={threadId}
+            parentMessageId={parentMessageId}
           />
           <div className="relative w-full">
             <ExpandableTextarea
               ref={textAreaRef}
-              placeholder={threadId ? "Reply to thread..." : "Send a message..."}
+              placeholder={parentMessageId ? "Reply to thread..." : "Send a message..."}
               onChangeValue={setNewMessage}
               onFocus={() => {
                 userStartedTyping({ channelId })
@@ -312,10 +276,10 @@ interface AudioRecorderProps {
   onAudioUploaded: (previewId: Id<"files">, storageId: Id<"_storage">) => void
   tempMessageId: string
   channelId: Id<"channels">
-  threadId?: Id<"threads">
+  parentMessageId?: Id<"messages">
 }
 
-function AudioRecorder({ onAudioRecorded, onAudioUploaded, tempMessageId, channelId, threadId }: AudioRecorderProps) {
+function AudioRecorder({ onAudioRecorded, onAudioUploaded, tempMessageId, channelId, parentMessageId }: AudioRecorderProps) {
   const { teamId } = useParams<{ teamId: Id<"teams"> }>()
 
   const [status, setStatus] = useState<"idle" | "loading" | "recording">("idle")
@@ -330,7 +294,7 @@ function AudioRecorder({ onAudioRecorded, onAudioUploaded, tempMessageId, channe
   const startRecording = async () => {
     try {
       setStatus("loading")
-      posthog.capture("audio_recorded", { teamId, channelId, threadId })
+      posthog.capture("audio_recorded", { teamId, channelId, parentMessageId })
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
 

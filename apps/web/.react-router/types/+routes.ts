@@ -39,12 +39,19 @@ type Pages = {
       "channelId": string;
     };
   };
+  "/:teamId/:channelId/:messageId": {
+    params: {
+      "teamId": string;
+      "channelId": string;
+      "messageId": string;
+    };
+  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/:teamId/invite/:inviteId" | "/signup" | "/login" | "/create-team" | "/:teamId" | "/:teamId/:channelId";
+    page: "/" | "/:teamId/invite/:inviteId" | "/signup" | "/login" | "/create-team" | "/:teamId" | "/:teamId/:channelId" | "/:teamId/:channelId/:messageId";
   };
   "routes/$teamId.invite.$inviteId.tsx": {
     id: "routes/$teamId.invite.$inviteId";
@@ -64,7 +71,7 @@ type RouteFiles = {
   };
   "routes/_app.tsx": {
     id: "routes/_app";
-    page: "/create-team" | "/:teamId" | "/:teamId/:channelId" | "/";
+    page: "/create-team" | "/:teamId" | "/:teamId/:channelId" | "/:teamId/:channelId/:messageId" | "/";
   };
   "routes/_app.create-team.tsx": {
     id: "routes/_app.create-team";
@@ -72,11 +79,15 @@ type RouteFiles = {
   };
   "routes/_app.$teamId.tsx": {
     id: "routes/_app.$teamId";
-    page: "/:teamId" | "/:teamId/:channelId";
+    page: "/:teamId" | "/:teamId/:channelId" | "/:teamId/:channelId/:messageId";
   };
   "routes/_app.$teamId.$channelId.tsx": {
     id: "routes/_app.$teamId.$channelId";
-    page: "/:teamId/:channelId";
+    page: "/:teamId/:channelId" | "/:teamId/:channelId/:messageId";
+  };
+  "routes/_app.$teamId.$channelId.$messageId.tsx": {
+    id: "routes/_app.$teamId.$channelId.$messageId";
+    page: "/:teamId/:channelId/:messageId";
   };
   "routes/_app.$teamId._index.tsx": {
     id: "routes/_app.$teamId._index";

@@ -1,27 +1,33 @@
 import { paginationOptsValidator } from "convex/server"
 import { ConvexError, v } from "convex/values"
-import type { Doc } from "./_generated/dataModel"
+import type { Doc, Id } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 import { canManageTeamChannel, requireUser } from "./auth"
 import type { OptimisticStatus } from "./optimistic"
 
 export const list = query({
-  args: { channelId: v.string(), paginationOpts: paginationOptsValidator },
+  args: { channelId: v.string(), messageId: v.optional(v.id("messages")), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const channelId = ctx.db.normalizeId("channels", args.channelId)
     if (!channelId) throw new ConvexError("Invalid channel ID")
+
+    let parentMessageId: Id<"messages"> | undefined
+    if (args.messageId) {
+      parentMessageId = ctx.db.normalizeId("messages", args.messageId) || undefined
+      if (!parentMessageId) throw new ConvexError("Invalid parent message ID")
+    }
     await canManageTeamChannel(ctx, channelId)
 
     const result = await ctx.db
       .query("messages")
       .withIndex("by_channel", (q) => q.eq("channelId", channelId))
-      .filter((q) => q.eq(q.field("threadId"), undefined))
+      .filter((q) => q.eq(q.field("parentMessageId"), parentMessageId))
       .order("desc")
       .paginate(args.paginationOpts)
 
     const messagesWithAuthorsAndThreads = await Promise.all(
       result.page.map(async (message) => {
-        const [user, dbReactions, dbFiles, thread] = await Promise.all([
+        const [user, dbReactions, dbFiles, dbThreadMessages] = await Promise.all([
           ctx.db.get(message.authorId),
           ctx.db
             .query("messageReactions")
@@ -32,9 +38,9 @@ export const list = query({
             .withIndex("by_message", (q) => q.eq("messageId", message._id))
             .collect(),
           ctx.db
-            .query("threads")
+            .query("messages")
             .withIndex("by_parent_message", (q) => q.eq("parentMessageId", message._id))
-            .first(),
+            .collect(),
         ])
 
         const [reactions, files, image] = await Promise.all([
@@ -58,13 +64,9 @@ export const list = query({
 
         // Thread info
         let threadInfo = null
-        if (thread) {
-          const replies = await ctx.db
-            .query("messages")
-            .withIndex("by_thread", (q) => q.eq("threadId", thread._id))
-            .collect()
+        if (dbThreadMessages.length > 0) {
           const participants = await Promise.all(
-            replies.map(async (reply) => {
+            dbThreadMessages.map(async (reply) => {
               const user = await ctx.db.get(reply.authorId)
               if (!user) return null
               return { ...user, image: user.image ? await ctx.storage.getUrl(user.image) : null }
@@ -72,10 +74,9 @@ export const list = query({
           )
           const uniqueParticipants = [...new Set(participants.filter(Boolean).map((p) => p!._id))]
           threadInfo = {
-            threadId: thread._id,
-            parentMessageId: thread.parentMessageId,
-            replyCount: replies.length,
-            lastReplyTime: replies.length > 0 ? Math.max(...replies.map((r) => r._creationTime)) : undefined,
+            parentMessageId: message._id,
+            replyCount: dbThreadMessages.length,
+            lastReplyTime: dbThreadMessages.length > 0 ? Math.max(...dbThreadMessages.map((r) => r._creationTime)) : undefined,
             participants: uniqueParticipants.map((p) => {
               const user = participants.find((u) => u!._id === p)
               return user!
@@ -102,7 +103,7 @@ export const send = mutation({
   args: {
     channelId: v.string(),
     content: v.optional(v.string()),
-    threadId: v.optional(v.id("threads")),
+    parentMessageId: v.optional(v.id("messages")),
     tempMessageId: v.string(),
   },
   returns: v.id("messages"),
@@ -111,9 +112,9 @@ export const send = mutation({
     if (!channelId) throw new ConvexError("Invalid channel ID")
     const user = await canManageTeamChannel(ctx, channelId)
 
-    // If threadId is provided, verify the thread exists and get channelId from it
-    if (args.threadId) {
-      const thread = await ctx.db.get(args.threadId)
+    // If parentMessageId is provided, verify the thread exists and get channelId from it
+    if (args.parentMessageId) {
+      const thread = await ctx.db.get(args.parentMessageId)
       if (!thread) throw new Error("Thread not found")
       channelId = thread.channelId
     }
@@ -122,7 +123,7 @@ export const send = mutation({
       channelId,
       authorId: user._id,
       content: args.content,
-      threadId: args.threadId,
+      parentMessageId: args.parentMessageId,
     })
 
     const files = await ctx.db
@@ -133,6 +134,54 @@ export const send = mutation({
     await Promise.all(files.map((file) => ctx.db.patch(file._id, { messageId: message })))
 
     return message
+  },
+})
+
+export const get = query({
+  args: { messageId: v.string() },
+  handler: async (ctx, args) => {
+    const messageId = ctx.db.normalizeId("messages", args.messageId)
+    if (!messageId) throw new ConvexError("Invalid message ID")
+    const message = await ctx.db.get(messageId)
+    if (!message) throw new ConvexError("Message not found")
+
+    const [user, reactions, files] = await Promise.all([
+      ctx.db.get(message.authorId),
+      ctx.db
+        .query("messageReactions")
+        .withIndex("by_message", (q) => q.eq("messageId", message._id))
+        .collect(),
+      ctx.db
+        .query("files")
+        .withIndex("by_message", (q) => q.eq("messageId", message._id))
+        .collect(),
+    ])
+
+    const reactionsWithUsers = await Promise.all(
+      reactions.map(async (reaction) => {
+        const user = await ctx.db.get(reaction.userId)
+        return { ...reaction, user: { ...user, image: user?.image ? await ctx.storage.getUrl(user.image) : null } }
+      }),
+    )
+
+    const filesWithUrls = await Promise.all(
+      files.map(async (file) => {
+        return {
+          ...file,
+          url: file.storageId ? await ctx.storage.getUrl(file.storageId) : null,
+          metadata: file.storageId ? await ctx.db.system.get(file.storageId) : null,
+        }
+      }),
+    )
+
+    return {
+      ...message,
+      optimisticStatus: null as OptimisticStatus,
+      threadInfo: null,
+      reactions: reactionsWithUsers,
+      files: filesWithUrls,
+      author: user ? { ...user, image: user.image ? await ctx.storage.getUrl(user.image) : null } : null,
+    }
   },
 })
 

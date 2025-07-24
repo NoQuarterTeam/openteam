@@ -6,11 +6,10 @@ import { useMutation, usePaginatedQuery, useQuery } from "convex/react"
 import dayjs from "dayjs"
 import advancedFormat from "dayjs/plugin/advancedFormat"
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
-import { redirect, useParams, useSearchParams } from "react-router"
+import { Outlet, redirect, useParams } from "react-router"
 import { ChannelHeader } from "@/components/channel-header"
 import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
-import { ThreadSidebar } from "@/components/thread-sidebar"
 import { Spinner } from "@/components/ui/spinner"
 import { DEFAULT_PAGINATION_NUM_ITEMS } from "@/lib/pagination"
 import { useEditMessage } from "@/lib/use-edit-message"
@@ -20,7 +19,7 @@ import { cn } from "@/lib/utils"
 dayjs.extend(advancedFormat)
 
 export default function Component() {
-  const { channelId } = useParams<{ channelId: Id<"channels"> }>()
+  const { channelId, messageId } = useParams<{ channelId: Id<"channels">; messageId: Id<"messages"> }>()
 
   const user = useQuery(api.auth.me)
   const { data: currentChannel } = useQueryTanstack(convexQuery(api.channels.get, { channelId: channelId! }))
@@ -32,9 +31,6 @@ export default function Component() {
   )
 
   const addChannel = useRecentChannels((s) => s.addChannel)
-
-  const [searchParams, setSearchParams] = useSearchParams()
-  const currentThreadId = searchParams.get("threadId") as Id<"threads"> | null
 
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const topSentinelRef = useRef<HTMLDivElement>(null)
@@ -53,13 +49,6 @@ export default function Component() {
 
   const messages = useMemo(() => [...results].reverse(), [results])
 
-  const handleCloseThread = useCallback(() => {
-    setSearchParams((searchParams) => {
-      searchParams.delete("threadId")
-      return searchParams
-    })
-  }, [])
-
   const handleScroll = useCallback(() => {
     if (!messagesContainerRef.current) return
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
@@ -69,22 +58,6 @@ export default function Component() {
   }, [])
 
   const markAsRead = useMutation(api.channels.markAsRead)
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault()
-        setSearchParams((searchParams) => {
-          searchParams.delete("threadId")
-          return searchParams
-        })
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [])
 
   // Handle channel changes - reset state
   useEffect(() => {
@@ -212,7 +185,7 @@ export default function Component() {
       <div
         className={cn(
           "flex-1 flex-col overflow-hidden border bg-background shadow-xs transition-all md:rounded-xl",
-          currentThreadId ? "mr-2 hidden md:flex" : "flex",
+          messageId ? "mr-2 hidden md:flex" : "flex",
         )}
       >
         <ChannelHeader key={currentChannel._id} channel={currentChannel} />
@@ -277,7 +250,7 @@ export default function Component() {
         {!currentChannel.archivedTime && <MessageInput channelId={channelId!} lastMessageIdOfUser={lastMessageOfUser?._id} />}
       </div>
 
-      {!!currentThreadId && <ThreadSidebar threadId={currentThreadId} onClose={handleCloseThread} />}
+      <Outlet />
     </div>
   )
 }

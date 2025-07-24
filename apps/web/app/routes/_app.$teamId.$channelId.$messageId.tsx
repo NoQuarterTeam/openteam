@@ -3,19 +3,20 @@ import type { Id } from "@openteam/backend/convex/_generated/dataModel"
 import { useQuery as useConvexQuery, usePaginatedQuery, useQuery } from "convex/react"
 import { XIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef } from "react"
+import { useNavigate, useParams } from "react-router"
 import { Message } from "@/components/message"
+import { MessageInput } from "@/components/message-input"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { DEFAULT_PAGINATION_NUM_ITEMS } from "@/lib/pagination"
-import { MessageInput } from "./message-input"
-import { Spinner } from "./ui/spinner"
 
-interface ThreadSidebarProps {
-  threadId: Id<"threads">
-  onClose: () => void
-}
-
-export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
-  const threadData = useQuery(api.threads.get, { threadId })
+export default function ThreadSidebar() {
+  const { teamId, messageId, channelId } = useParams<{
+    teamId: Id<"teams">
+    messageId: Id<"messages">
+    channelId: Id<"channels">
+  }>()
+  const parentMessage = useQuery(api.messages.get, messageId ? { messageId } : "skip")
 
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const topSentinelRef = useRef<HTMLDivElement>(null)
@@ -34,8 +35,8 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
 
   // Use paginated query for thread messages
   const { results, loadMore, status } = usePaginatedQuery(
-    api.threads.listMessages,
-    { threadId },
+    api.messages.list,
+    channelId ? { messageId: messageId, channelId } : "skip",
     { initialNumItems: DEFAULT_PAGINATION_NUM_ITEMS },
   )
 
@@ -54,15 +55,15 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
 
   // Handle thread changes - reset state
   useEffect(() => {
-    if (!threadId) return
+    if (!messageId) return
 
-    const isThreadChange = prevThreadIdRef.current !== threadId
-    prevThreadIdRef.current = threadId
+    const isThreadChange = prevThreadIdRef.current !== messageId
+    prevThreadIdRef.current = messageId
 
     if (isThreadChange) {
       isScrolledUpRef.current = false
     }
-  }, [threadId])
+  }, [messageId])
 
   // Handle scroll position during pagination (loading older messages)
   useEffect(() => {
@@ -106,22 +107,43 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
     }
   }, [messages.length, status])
 
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault()
+        navigate(`/${teamId}/${channelId}`)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [])
+
   return (
     <div className="flex h-full w-full shrink-0 flex-col overflow-hidden border bg-background shadow-xs md:w-72 md:rounded-xl lg:w-96">
       {/* Thread Header */}
       <div className="flex items-center justify-between border-b py-2 pr-2 pl-4">
         <div className="flex items-center gap-2">
           <h3 className="font-semibold">Thread</h3>
-          {!threadData && <Spinner className="size-4" />}
+          {!parentMessage && <Spinner className="size-4" />}
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            navigate(`/${teamId}/${channelId}`)
+          }}
+        >
           <XIcon className="size-4" />
         </Button>
       </div>
 
-      {threadData && (
+      {parentMessage && (
         <>
-          <Message message={threadData.parentMessage} isFirstMessageOfUser isThreadParentMessage isThreadMessage />
+          <Message message={parentMessage} isFirstMessageOfUser isThreadParentMessage isThreadMessage />
           <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-none py-2" onScroll={handleScroll}>
             {status === "LoadingMore" ? (
               <div className="flex justify-center py-2">
@@ -167,9 +189,8 @@ export function ThreadSidebar({ threadId, onClose }: ThreadSidebarProps) {
           </div>
 
           <MessageInput
-            channelId={threadData.thread.channelId}
-            threadId={threadId}
-            isDisabled={false}
+            channelId={parentMessage.channelId}
+            parentMessageId={messageId}
             lastMessageIdOfUser={lastMessageOfUser?._id}
           />
         </>

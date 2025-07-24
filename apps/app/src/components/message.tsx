@@ -1,12 +1,19 @@
 import { api } from "@openteam/backend/convex/_generated/api"
+import { Id } from "@openteam/backend/convex/_generated/dataModel"
+import { optimisticallyUpdateValueInPaginatedQuery, useMutation, useQuery } from "convex/react"
 import dayjs from "dayjs"
-import { Fragment } from "react"
-import { Image, Text, View } from "react-native"
+import * as Crypto from "expo-crypto"
+import { useLocalSearchParams, useRouter } from "expo-router"
+import { CopyIcon, PencilIcon, ReplyIcon, TrashIcon } from "lucide-react-native"
+import { Fragment, useCallback, useRef } from "react"
+import { Image, Text, TouchableOpacity, View } from "react-native"
+import ActionSheet, { ActionSheetRef } from "react-native-actions-sheet"
 import { useMarkdown } from "react-native-marked"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { ThreadIndicator } from "./thread-indicator"
+import { Button } from "./ui/button"
 
-type MessageData =
-  | (typeof api.messages.list._returnType)["page"][number]
-  | (typeof api.threads.listMessages._returnType)["page"][number]
+type MessageData = (typeof api.messages.list._returnType)["page"][number] | typeof api.messages.get._returnType
 
 interface Props {
   message: MessageData
@@ -16,6 +23,10 @@ interface Props {
 }
 
 export function Message({ message, isFirstMessageOfUser, isThreadParentMessage = false, isThreadMessage = false }: Props) {
+  const user = useQuery(api.auth.me)
+  const params = useLocalSearchParams<{ teamId: Id<"teams">; channelId: Id<"channels">; messageId: Id<"messages"> }>()
+  const actionSheetRef = useRef<ActionSheetRef>(null)
+  const { teamId } = useLocalSearchParams<{ teamId: Id<"teams"> }>()
   const markdown = useMarkdown(message.content, {
     styles: {
       text: { fontSize: 14, color: "black" },
@@ -23,8 +34,92 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
       paragraph: { paddingVertical: 0 },
     },
   })
+
+  const handleCreateThread = useCallback(async () => {
+    if (isThreadMessage) return
+    router.push(`/${teamId}/${message.channelId}/${message._id}`)
+  }, [isThreadMessage, teamId, message.channelId])
+
+  const insets = useSafeAreaInsets()
+  const router = useRouter()
+
+  const groupedReactions = message.reactions.reduce(
+    (acc, reaction) => {
+      acc[reaction.content] = {
+        count: (acc[reaction.content]?.count || 0) + 1,
+        reactions: [...(acc[reaction.content]?.reactions || []), reaction],
+      }
+      return acc
+    },
+    {} as Record<string, { count: number; reactions: MessageData["reactions"] }>,
+  )
+
+  const addReaction = useMutation(api.reactions.add).withOptimisticUpdate((localStore, args) => {
+    if (!user) return
+
+    optimisticallyUpdateValueInPaginatedQuery(
+      localStore,
+      api.messages.list,
+      { channelId: params.channelId, messageId: params.messageId },
+      (currentValue) => {
+        if (message._id === currentValue._id) {
+          return {
+            ...currentValue,
+            reactions: [
+              ...currentValue.reactions,
+              {
+                ...args,
+                messageId: message._id,
+                _id: Crypto.randomUUID() as Id<"messageReactions">,
+                _creationTime: Date.now(),
+                userId: user._id,
+                user,
+              },
+            ],
+          }
+        }
+        return currentValue
+      },
+    )
+  })
+
+  const removeReaction = useMutation(api.reactions.remove).withOptimisticUpdate((localStore, args) => {
+    optimisticallyUpdateValueInPaginatedQuery(
+      localStore,
+      api.messages.list,
+      { channelId: params.channelId, messageId: params.messageId },
+      (currentValue) => {
+        if (message._id === currentValue._id) {
+          return {
+            ...currentValue,
+            reactions: currentValue.reactions.filter((reaction) => reaction._id !== args.reactionId),
+          }
+        }
+        return currentValue
+      },
+    )
+  })
+
   return (
-    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, paddingVertical: 4 }}>
+    <TouchableOpacity
+      onPress={handleCreateThread}
+      onLongPress={() => actionSheetRef.current?.show()}
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 12,
+        paddingVertical: 4,
+        paddingHorizontal: 16,
+        ...(isThreadParentMessage && {
+          borderBottomWidth: 1,
+          paddingTop: 16,
+          paddingBottom: 10,
+          marginBottom: 8,
+          borderColor: "#eee",
+          backgroundColor: "#ffe",
+        }),
+      }}
+    >
       {isFirstMessageOfUser ? (
         <View
           style={{
@@ -34,7 +129,8 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "#eee",
+            borderWidth: 1,
+            borderColor: "#eee",
           }}
         >
           {message.author?.image ? (
@@ -54,11 +150,168 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
           </View>
         )}
         <View style={{ opacity: message.optimisticStatus === "created" ? 0.8 : 1 }}>
-          {markdown.map((element, index) => {
-            return <Fragment key={`ot-${index}`}>{element}</Fragment>
-          })}
+          {markdown.map((element, index) => (
+            <Fragment key={`ot-${index}`}>{element}</Fragment>
+          ))}
         </View>
+        {/* Reactions */}
+        {Object.entries(groupedReactions).length > 0 && (
+          <View style={{ alignItems: "center", gap: 4, paddingTop: 4, flexDirection: "row" }}>
+            {Object.entries(groupedReactions).map(([content, { count, reactions }]) => {
+              const isReacted = reactions.some((r) => r.userId === user?._id)
+              return (
+                <TouchableOpacity
+                  key={content}
+                  disabled={!user}
+                  onPress={() => {
+                    if (!user) return
+                    const existingReaction = message.reactions.find((r) => r.content === content && r.userId === user._id)
+                    if (existingReaction) {
+                      // posthog.capture("reaction_removed", { channelId: message.channelId, teamId })
+                      removeReaction({ reactionId: existingReaction._id })
+                    } else {
+                      // posthog.capture("reaction_added", { channelId: message.channelId, teamId })
+                      addReaction({ messageId: message._id, content })
+                    }
+                  }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    borderRadius: 25,
+                    justifyContent: "center",
+                    paddingHorizontal: 4,
+                    borderWidth: 1,
+                    height: 26,
+                    borderColor: isReacted ? "blue" : "#eee",
+                    backgroundColor: isReacted ? "rgba(59, 130, 246, 0.1)" : "transparent",
+                  }}
+                >
+                  <Text style={{ fontSize: 12, textAlign: "center" }}>{content}</Text>
+                  <Text style={{ fontSize: 12, minWidth: 16, textAlign: "center", color: isReacted ? "blue" : "black" }}>
+                    {count}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+
+            {/* <WithState initialState={false}>
+                  {(state, setState) => (
+                    <Popover modal open={state} onOpenChange={setState}>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex h-6 w-8 items-center justify-center rounded-full border bg-muted py-0.5 font-normal text-xs hover:border-black dark:hover:border-white"
+                        >
+                          <SmilePlusIcon className="size-3.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" className="w-full p-0" backdrop="transparent">
+                        <EmojiPicker
+                          className="h-[340px]"
+                          onEmojiSelect={({ emoji }) => {
+                            if (!user) return
+                            const existingReaction = message.reactions.find((r) => r.content === emoji && r.userId === user._id)
+                            if (existingReaction) {
+                              posthog.capture("reaction_removed", { channelId: message.channelId, teamId })
+                              removeReaction({ reactionId: existingReaction._id })
+                            } else {
+                              posthog.capture("reaction_added", { channelId: message.channelId, teamId })
+                              addReaction({ messageId: message._id, content: emoji })
+                            }
+                            setState(false)
+                          }}
+                        >
+                          <EmojiPickerSearch />
+                          <EmojiPickerContent />
+                          <EmojiPickerFooter />
+                        </EmojiPicker>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </WithState> */}
+          </View>
+        )}
+        {message.threadInfo && <ThreadIndicator threadInfo={message.threadInfo} />}
       </View>
+      <ActionSheet ref={actionSheetRef} gestureEnabled>
+        <View style={{ padding: 20, paddingBottom: insets.bottom + 20, gap: 12 }}>
+          <QuickReactions
+            message={message}
+            onAdd={(content) => {
+              addReaction({ messageId: message._id, content })
+              actionSheetRef.current?.hide()
+            }}
+            onRemove={(reactionId) => {
+              removeReaction({ reactionId })
+              actionSheetRef.current?.hide()
+            }}
+          />
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            {!isThreadMessage && (
+              <Button onPress={handleCreateThread} variant="outline" style={{ flex: 1 }} leftIcon={<ReplyIcon size={16} />}>
+                Reply
+              </Button>
+            )}
+            <Button variant="outline" style={{ flex: 1 }} leftIcon={<PencilIcon size={16} />}>
+              Edit
+            </Button>
+            <Button variant="outline" style={{ flex: 1 }} leftIcon={<TrashIcon size={16} color="red" />}>
+              Delete
+            </Button>
+          </View>
+          <Button variant="outline" leftIcon={<CopyIcon size={16} />}>
+            Copy text
+          </Button>
+        </View>
+      </ActionSheet>
+    </TouchableOpacity>
+  )
+}
+
+const QUICK_REACTIONS = ["👍", "👌", "😁", "🙌", "🙏"] as const
+
+function QuickReactions({
+  message,
+  onAdd,
+  onRemove,
+}: {
+  message: MessageData
+  onAdd: (emoji: string) => void
+  onRemove: (emoji: string) => void
+}) {
+  const user = useQuery(api.auth.me)
+
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "space-around" }}>
+      {QUICK_REACTIONS.map((emoji) => {
+        const existingReaction = message.reactions.find((r) => r.content === emoji && r.userId === user?._id)
+        return (
+          <TouchableOpacity
+            key={emoji}
+            onPress={() => {
+              if (existingReaction) {
+                onRemove(emoji)
+              } else {
+                onAdd(emoji)
+              }
+            }}
+            style={{
+              borderRadius: 25,
+              width: 50,
+              height: 50,
+              borderWidth: 1,
+              borderColor: existingReaction ? "blue" : "#eee",
+              backgroundColor: existingReaction ? "rgba(59, 130, 246, 0.1)" : "transparent",
+              padding: 8,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ fontSize: 24 }}>{emoji}</Text>
+          </TouchableOpacity>
+        )
+      })}
     </View>
   )
 }

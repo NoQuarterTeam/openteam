@@ -6,7 +6,7 @@ import dayjs from "dayjs"
 import { ChevronDownIcon, Edit2Icon, MessageSquareTextIcon, SmileIcon, SmilePlusIcon, TrashIcon } from "lucide-react"
 import posthog from "posthog-js"
 import { memo, useEffect, useRef, useState } from "react"
-import { useParams, useSearchParams } from "react-router"
+import { useNavigate, useParams } from "react-router"
 import { EmojiPicker, EmojiPickerContent, EmojiPickerFooter, EmojiPickerSearch } from "@/components/ui/emoji-picker"
 import { renderMessageContent } from "@/lib/marked"
 import { useEditMessage } from "@/lib/use-edit-message"
@@ -20,9 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { WithState } from "./with-state"
 
-type MessageData =
-  | (typeof api.messages.list._returnType)["page"][number]
-  | (typeof api.threads.listMessages._returnType)["page"][number]
+type MessageData = (typeof api.messages.list._returnType)["page"][number] | typeof api.messages.get._returnType
 
 interface Props {
   message: MessageData
@@ -42,17 +40,12 @@ export const Message = memo(function _Message({
   const isMobile = useIsMobile()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const [isToolbarVisible, setIsToolbarVisible] = useState(false)
-  const createThread = useMutation(api.threads.create)
-  const [_, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   const handleCreateThread = async (messageId: Id<"messages">) => {
     try {
-      const threadId = await createThread({ parentMessageId: messageId })
       posthog.capture("thread_created", { channelId: message.channelId, teamId })
-      setSearchParams((searchParams) => {
-        searchParams.set("threadId", threadId)
-        return searchParams
-      })
+      navigate(`/${teamId}/${message.channelId}/${messageId}`)
     } catch (error) {
       console.error("Failed to create thread:", error)
     }
@@ -326,17 +319,17 @@ export const Message = memo(function _Message({
               </div>
             )}
             {/* Thread Indicator */}
-            {!isThreadMessage && "threadInfo" in message && message.threadInfo && message.threadInfo.replyCount > 0 && (
-              <ThreadIndicator
-                threadInfo={message.threadInfo}
-                onOpenThread={() =>
-                  setSearchParams((searchParams) => {
-                    searchParams.set("threadId", message.threadInfo!.threadId)
-                    return searchParams
-                  })
-                }
-              />
-            )}
+            {!isThreadMessage &&
+              "threadInfo" in message &&
+              message.threadInfo?.parentMessageId &&
+              message.threadInfo.replyCount > 0 && (
+                <ThreadIndicator
+                  threadInfo={{
+                    ...message.threadInfo,
+                    parentMessageId: message.threadInfo!.parentMessageId!,
+                  }}
+                />
+              )}
           </>
         )}
 
@@ -418,11 +411,11 @@ export const Message = memo(function _Message({
 function MessageEditor({ message }: { message: MessageData }) {
   const { teamId } = useParams<{ teamId: Id<"teams"> }>()
   const updateMessage = useMutation(api.messages.update).withOptimisticUpdate((localStore, args) => {
-    if (message.threadId) {
+    if (message.threadInfo?.parentMessageId) {
       optimisticallyUpdateValueInPaginatedQuery(
         localStore,
-        api.threads.listMessages,
-        { threadId: message.threadId },
+        api.messages.list,
+        { channelId: message.channelId, messageId: message.threadInfo.parentMessageId },
         (currentValue) => {
           if (message._id === currentValue._id) {
             return {
