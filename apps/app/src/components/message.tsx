@@ -34,7 +34,7 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "lightgray",
+            backgroundColor: "#eee",
           }}
         >
           {message.author?.image ? (

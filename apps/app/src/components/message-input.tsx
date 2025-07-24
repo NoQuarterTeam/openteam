@@ -98,7 +98,7 @@ export function MessageInput() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.select({ ios: "padding", android: "height" })}>
-      <View style={{ borderTopWidth: 1, flexDirection: "row", borderColor: "lightgray", padding: 16, gap: 12 }}>
+      <View style={{ borderTopWidth: 1, flexDirection: "row", borderColor: "#eee", padding: 16, gap: 12 }}>
         <TouchableOpacity
           style={{
             width: 32,

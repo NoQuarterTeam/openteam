@@ -101,7 +101,7 @@ export default function Page() {
           gap: 8,
           paddingBottom: 12,
           borderBottomWidth: 1,
-          borderColor: "lightgray",
+          borderColor: "#eee",
         }}
       >
         <Link href="../">

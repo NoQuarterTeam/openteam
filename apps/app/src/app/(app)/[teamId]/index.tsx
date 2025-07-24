@@ -25,7 +25,7 @@ export default function Page() {
         }}
       >
         <TouchableOpacity
-          onPress={() => router.push(`/${teamId}/team-selector`)}
+          onPress={() => router.push(`/${teamId}/select-team`)}
           style={{
             width: 32,
             height: 32,
@@ -33,7 +33,7 @@ export default function Page() {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "lightgray",
+            backgroundColor: "#eee",
           }}
         >
           {team.image ? (

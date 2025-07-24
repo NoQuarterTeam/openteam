@@ -39,7 +39,7 @@ export default function Page() {
                 padding: 10,
                 borderRadius: 10,
                 borderWidth: 1,
-                borderColor: "lightgray",
+                borderColor: "#eee",
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 10,
@@ -54,7 +54,7 @@ export default function Page() {
                   width: 32,
                   height: 32,
                   borderRadius: 4,
-                  backgroundColor: "lightgray",
+                  backgroundColor: "#eee",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
@@ -80,7 +80,7 @@ export default function Page() {
                 width: 36,
                 height: 36,
                 borderRadius: 4,
-                backgroundColor: "lightgray",
+                backgroundColor: "#eee",
                 alignItems: "center",
                 justifyContent: "center",
               }}

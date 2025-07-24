@@ -2,8 +2,10 @@ import { api } from "@openteam/backend/convex/_generated/api"
 import { useQuery } from "convex/react"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import * as SecureStore from "expo-secure-store"
-import { Button, Image, ScrollView, Text, TouchableOpacity, View } from "react-native"
+import { PlusIcon } from "lucide-react-native"
+import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native"
 import { ModalView } from "@/components/modal-view"
+import { Button } from "@/components/ui/button"
 import { DEFAULT_TEAM_KEY } from "@/lib/config"
 export default function Page() {
   const router = useRouter()
@@ -25,7 +27,7 @@ export default function Page() {
                 padding: 8,
                 borderWidth: 1,
                 borderRadius: 12,
-                borderColor: "lightgray",
+                borderColor: "#eee",
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 12,
@@ -39,7 +41,7 @@ export default function Page() {
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: "lightgray",
+                  backgroundColor: "#eee",
                 }}
               >
                 {team.image ? (
@@ -53,7 +55,13 @@ export default function Page() {
           ))}
         </View>
       </ScrollView>
-      <Button onPress={() => router.push(`/${teamId}/new-team`)} title="Create new team" />
+      <Button
+        leftIcon={<PlusIcon size={16} color="black" />}
+        variant="outline"
+        onPress={() => router.push(`/${teamId}/new-team`)}
+      >
+        Create new team
+      </Button>
     </ModalView>
   )
 }
