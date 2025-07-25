@@ -194,16 +194,16 @@ export function Message({
       ) : (
         <View style={{ width: 36 }} />
       )}
-      <View>
+      <View style={{ flex: 1 }}>
         <GestureDetector gesture={Gesture.Exclusive(doubleTap, singleTap, longPress)}>
-          <TouchableOpacity activeOpacity={0.8}>
+          <TouchableOpacity activeOpacity={0.8} style={{ flex: 1, width: "100%" }}>
             {isFirstMessageOfUser && (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                 <Text style={{ fontSize: 16, fontWeight: "bold" }}>{message.author.name}</Text>
                 <Text style={{ fontSize: 12, color: "gray" }}>{dayjs(message._creationTime).format("HH:mm")}</Text>
               </View>
             )}
-            <View style={{ opacity: message.optimisticStatus === "created" ? 0.8 : 1 }}>
+            <View style={{ flex: 1, opacity: message.optimisticStatus === "created" ? 0.8 : 1 }}>
               {markdown.map((element, index) => (
                 <Fragment key={`ot-${index}`}>{element}</Fragment>
               ))}

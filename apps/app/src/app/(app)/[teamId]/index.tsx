@@ -18,9 +18,9 @@ export default function Page() {
 
   if (!team) return null
   return (
-    <View style={{ paddingTop: insets.top, paddingHorizontal: 16, flex: 1 }}>
+    <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16, flex: 1 }}>
       <View style={{ gap: 8, marginBottom: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <View style={{ gap: 4, flexDirection: "row", alignItems: "center" }}>
+        <View style={{ gap: 8, flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
             onPress={() => router.push(`/${teamId}/select-team`)}
             style={{

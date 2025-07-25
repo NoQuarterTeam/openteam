@@ -99,13 +99,13 @@ export default function Page() {
   if (!parentMessage) return null
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
+    <View style={{ flex: 1, paddingTop: insets.top + 8, paddingBottom: insets.bottom }}>
       <View
         style={{
           flexDirection: "row",
-          paddingHorizontal: 12,
+          paddingHorizontal: 16,
           alignItems: "center",
-          gap: 8,
+          gap: 16,
           paddingBottom: 12,
           borderBottomWidth: 1,
           borderColor: colorScheme === "dark" ? "#444" : "#eee",
