@@ -73,7 +73,7 @@ export default {
     ],
   },
   androidStatusBar: {
-    backgroundColor: "#000",
+    backgroundColor: "#ffffff",
   },
   updates: {
     url: "https://u.expo.dev/d1ed4fc0-6042-4822-9544-c0799cdb4228",
