@@ -14,10 +14,13 @@ export default {
   orientation: "portrait",
   plugins: [
     "expo-router",
+    "expo-font",
     "expo-secure-store",
     ["expo-web-browser", { experimentalLauncherActivity: true }],
     "expo-updates",
     "expo-dev-client",
+    ["expo-document-picker", { iCloudContainerEnvironment: "Production" }],
+    ["expo-image-picker", { photosPermission: "The app accesses your photos to let you share them in your messages." }],
     "expo-notifications",
     [
       "expo-splash-screen",
@@ -50,6 +53,8 @@ export default {
     supportsTablet: true,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      NSCameraUsageDescription: "This app uses the camera to send photos to your team.",
+      UIBackgroundModes: ["remote-notification"],
     },
   },
   android: {
@@ -58,6 +63,13 @@ export default {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
+    permissions: [
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "android.permission.DOWNLOAD_WITHOUT_NOTIFICATION",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.RECORD_AUDIO",
+    ],
   },
   web: {},
   extra: {
