@@ -1,11 +1,12 @@
 import { useAuthActions } from "@convex-dev/auth/react"
 import { makeRedirectUri } from "expo-auth-session"
+import { Image } from "expo-image"
 import { useRouter } from "expo-router"
 import { openAuthSessionAsync } from "expo-web-browser"
-// import { openAuthSessionAsync } from "expo-web-browser"
 import { useState } from "react"
-import { Text, TouchableOpacity, View } from "react-native"
-import { Screen } from "@/components/screen"
+import { ScrollView, Text, View } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { Button } from "@/components/ui/button"
 
 export default function Page() {
   const { signIn } = useAuthActions()
@@ -30,27 +31,22 @@ export default function Page() {
       setIsSubmitting(false)
     }
   }
-
+  const insets = useSafeAreaInsets()
   return (
-    <Screen>
-      <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 24 }}>Sign in</Text>
-
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <TouchableOpacity
-          onPress={() => handleSignin("github")}
-          disabled={isSubmitting}
-          style={{ padding: 8, backgroundColor: "black", flex: 1 }}
-        >
-          <Text style={{ color: "white", textAlign: "center" }}>{isSubmitting ? "Signing in..." : "GitHub"}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => handleSignin("google")}
-          disabled={isSubmitting}
-          style={{ padding: 8, backgroundColor: "black", flex: 1 }}
-        >
-          <Text style={{ color: "white", textAlign: "center" }}>{isSubmitting ? "Signing in..." : "Google"}</Text>
-        </TouchableOpacity>
+    <ScrollView style={{ flex: 1, paddingTop: insets.top + 16, paddingBottom: insets.bottom, paddingHorizontal: 16 }}>
+      <View style={{ alignItems: "center", marginBottom: 12 }}>
+        <Image source={require("../../assets/images/logo.png")} style={{ width: 80, height: 80 }} />
       </View>
-    </Screen>
+      <Text style={{ fontSize: 24, textAlign: "center", fontWeight: "bold", marginBottom: 24 }}>Sign in to OpenTeam</Text>
+
+      <View style={{ flexDirection: "column", gap: 10 }}>
+        <Button onPress={() => handleSignin("github")} disabled={isSubmitting}>
+          {isSubmitting ? "Signing in..." : "GitHub"}
+        </Button>
+        <Button onPress={() => handleSignin("google")} disabled={isSubmitting}>
+          {isSubmitting ? "Signing in..." : "Google"}
+        </Button>
+      </View>
+    </ScrollView>
   )
 }

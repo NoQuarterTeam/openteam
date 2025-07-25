@@ -2,12 +2,15 @@ import { useAuthActions } from "@convex-dev/auth/react"
 import { api } from "@openteam/backend/convex/_generated/api"
 import { useMutation, useQuery } from "convex/react"
 import { ConvexError } from "convex/values"
+import { Image } from "expo-image"
 import { router, useRouter } from "expo-router"
 import * as SecureStore from "expo-secure-store"
 import { useEffect, useState } from "react"
-import { Button, Image, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
-import { Screen } from "@/components/screen"
+import { ScrollView, Text, TouchableOpacity, View } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "@/components/toaster"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 export default function Page() {
   const router = useRouter()
@@ -26,12 +29,16 @@ export default function Page() {
     handleGetInitialTeam()
   }, [])
 
+  const insets = useSafeAreaInsets()
   if (isLoading) return null
 
   return (
-    <Screen>
-      <ScrollView style={{ flex: 1, paddingTop: 16 }}>
+    <View style={{ flex: 1, paddingTop: insets.top + 16, paddingBottom: insets.bottom }}>
+      <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
         <View style={{ gap: 8 }}>
+          <View style={{ alignItems: "center", marginBottom: 12 }}>
+            <Image source={require("../../../assets/images/logo.png")} style={{ width: 80, height: 80 }} />
+          </View>
           {teams?.map((team) => (
             <TouchableOpacity
               key={team._id}
@@ -60,19 +67,19 @@ export default function Page() {
                 }}
               >
                 {team.image ? (
-                  <Image source={{ uri: team.image }} style={{ width: 24, height: 24 }} />
+                  <Image source={{ uri: team.image }} style={{ width: 32, height: 32, borderRadius: 4 }} />
                 ) : (
                   <Text>{team.name[0]}</Text>
                 )}
               </View>
-              <Text style={{ color: "black", textAlign: "center" }}>{team.name}</Text>
+              <Text style={{ fontSize: 16 }}>{team.name}</Text>
             </TouchableOpacity>
           ))}
           {teams && teams.length === 0 && <NewTeamForm />}
         </View>
       </ScrollView>
 
-      <View style={{ gap: 16 }}>
+      <View style={{ gap: 16, padding: 16, borderTopWidth: 1, borderColor: "#eee" }}>
         {me && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View
@@ -97,11 +104,9 @@ export default function Page() {
             </View>
           </View>
         )}
-        <TouchableOpacity onPress={() => signOut()} style={{ padding: 10, backgroundColor: "black", borderRadius: 4 }}>
-          <Text style={{ color: "white", textAlign: "center" }}>Sign out</Text>
-        </TouchableOpacity>
+        <Button onPress={() => signOut()}>Sign out</Button>
       </View>
-    </Screen>
+    </View>
   )
 }
 
@@ -111,9 +116,8 @@ function NewTeamForm() {
   return (
     <View style={{ gap: 8 }}>
       <Text style={{ fontSize: 24, fontWeight: "bold" }}>Create a team</Text>
-      <TextInput value={name} onChangeText={setName} placeholder="Team name" />
+      <Input value={name} onChangeText={setName} placeholder="Team name" />
       <Button
-        title="Create"
         disabled={!name.trim()}
         onPress={async () => {
           try {
@@ -128,7 +132,9 @@ function NewTeamForm() {
             }
           }
         }}
-      />
+      >
+        Create
+      </Button>
     </View>
   )
 }
