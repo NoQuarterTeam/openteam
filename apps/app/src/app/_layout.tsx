@@ -3,6 +3,7 @@ import { ConvexReactClient } from "convex/react"
 import { Slot, SplashScreen } from "expo-router"
 import * as SecureStore from "expo-secure-store"
 import { useEffect } from "react"
+import { useColorScheme } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { Toast } from "@/components/toaster"
@@ -25,6 +26,7 @@ const secureStorage = {
 }
 
 export default function Page() {
+  const colorScheme = useColorScheme()
   useEffect(() => {
     SplashScreen.hideAsync()
   }, [])
@@ -32,7 +34,7 @@ export default function Page() {
   return (
     <SafeAreaProvider>
       <ConvexAuthProvider client={convex} storage={secureStorage}>
-        <GestureHandlerRootView>
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: colorScheme === "dark" ? "#000" : "#fff" }}>
           <Slot />
           <Toast />
         </GestureHandlerRootView>

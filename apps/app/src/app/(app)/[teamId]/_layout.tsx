@@ -10,6 +10,7 @@ export default function Layout() {
       <Stack.Screen name="select-team" options={{ presentation: "modal" }} />
       <Stack.Screen name="new-team" options={{ presentation: "modal" }} />
       <Stack.Screen name="new-channel" options={{ presentation: "modal" }} />
+      <Stack.Screen name="profile" options={{ presentation: "modal" }} />
     </Stack>
   )
 }

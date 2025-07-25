@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Text } from "@/components/ui/text"
 
 export default function Page() {
+  const user = useQuery(api.auth.me)
   const colorScheme = useColorScheme()
   const { teamId } = useLocalSearchParams<{ teamId: string }>()
   const channels = useQuery(api.channels.list, { teamId })
@@ -18,16 +19,30 @@ export default function Page() {
   if (!team) return null
   return (
     <View style={{ paddingTop: insets.top, paddingHorizontal: 16, flex: 1 }}>
-      <View
-        style={{
-          gap: 8,
-          marginBottom: 16,
-          flexDirection: "row",
-          alignItems: "center",
-        }}
-      >
+      <View style={{ gap: 8, marginBottom: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View style={{ gap: 4, flexDirection: "row", alignItems: "center" }}>
+          <TouchableOpacity
+            onPress={() => router.push(`/${teamId}/select-team`)}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: colorScheme === "dark" ? "#444" : "#eee",
+            }}
+          >
+            {team.image ? (
+              <Image source={{ uri: team.image }} style={{ width: 36, height: 36, borderRadius: 8 }} />
+            ) : (
+              <Text style={{ fontSize: 16, fontWeight: "bold" }}>{team.name[0]}</Text>
+            )}
+          </TouchableOpacity>
+          <Text style={{ fontSize: 20, fontWeight: "bold" }}>{team.name}</Text>
+        </View>
         <TouchableOpacity
-          onPress={() => router.push(`/${teamId}/select-team`)}
+          onPress={() => router.push(`/${teamId}/profile`)}
           style={{
             width: 36,
             height: 36,
@@ -38,13 +53,12 @@ export default function Page() {
             backgroundColor: colorScheme === "dark" ? "#444" : "#eee",
           }}
         >
-          {team.image ? (
-            <Image source={{ uri: team.image }} style={{ width: 36, height: 36, borderRadius: 8 }} />
+          {user?.image ? (
+            <Image source={{ uri: user.image }} style={{ width: 36, height: 36, borderRadius: 8 }} />
           ) : (
-            <Text style={{ fontSize: 16, fontWeight: "bold" }}>{team.name[0]}</Text>
+            <Text style={{ fontSize: 16, fontWeight: "bold" }}>{user?.name?.[0]}</Text>
           )}
         </TouchableOpacity>
-        <Text style={{ fontSize: 20, fontWeight: "bold" }}>{team.name}</Text>
       </View>
 
       <ScrollView style={{ flex: 1 }}>
