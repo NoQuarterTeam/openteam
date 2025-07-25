@@ -71,6 +71,9 @@ export default {
       "android.permission.RECORD_AUDIO",
     ],
   },
+  updates: {
+    url: "https://u.expo.dev/d1ed4fc0-6042-4822-9544-c0799cdb4228",
+  },
   web: {},
   extra: {
     eas: {
