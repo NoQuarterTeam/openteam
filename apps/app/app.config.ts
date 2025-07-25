@@ -23,7 +23,7 @@ export default {
       "expo-splash-screen",
       {
         backgroundColor: "#fff",
-        image: "./assets/images/splash-icon.png",
+        image: "./assets/images/splash-icon-light.png",
         dark: {
           image: "./assets/images/splash-icon-dark.png",
           backgroundColor: "#000000",
