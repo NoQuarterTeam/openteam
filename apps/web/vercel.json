@@ -1,4 +1,3 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd ../../packages/backend && npx convex deploy --cmd 'cd ../../apps/web && turbo run build' --cmd-url-env-var-name VITE_CONVEX_URL"
+  "$schema": "https://openapi.vercel.sh/vercel.json"
 }
