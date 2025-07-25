@@ -63,6 +63,7 @@ export default {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
+
     permissions: [
       "android.permission.READ_EXTERNAL_STORAGE",
       "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -70,6 +71,9 @@ export default {
       "android.permission.ACCESS_NETWORK_STATE",
       "android.permission.RECORD_AUDIO",
     ],
+  },
+  androidStatusBar: {
+    backgroundColor: "#000",
   },
   updates: {
     url: "https://u.expo.dev/d1ed4fc0-6042-4822-9544-c0799cdb4228",
