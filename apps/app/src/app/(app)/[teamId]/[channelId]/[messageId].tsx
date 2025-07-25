@@ -7,11 +7,12 @@ import advancedFormat from "dayjs/plugin/advancedFormat"
 import { Link, useFocusEffect, useLocalSearchParams } from "expo-router"
 import { ChevronLeftIcon } from "lucide-react-native"
 import { useCallback, useMemo, useRef, useState } from "react"
-import { NativeScrollEvent, NativeSyntheticEvent, Text, View } from "react-native"
+import { NativeScrollEvent, NativeSyntheticEvent, useColorScheme, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import EditMessage from "@/components/edit-message"
 import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
+import { Text } from "@/components/ui/text"
 import { DEFAULT_PAGINATION_NUM_ITEMS } from "@/lib/config"
 
 dayjs.extend(advancedFormat)
@@ -19,7 +20,7 @@ dayjs.extend(advancedFormat)
 export default function Page() {
   const params = useLocalSearchParams<{ teamId: Id<"teams">; channelId: Id<"channels">; messageId: Id<"messages"> }>()
   const parentMessage = useQuery(api.messages.get, { messageId: params.messageId })
-
+  const colorScheme = useColorScheme()
   const insets = useSafeAreaInsets()
 
   // Initial page load
@@ -100,11 +101,11 @@ export default function Page() {
           gap: 8,
           paddingBottom: 12,
           borderBottomWidth: 1,
-          borderColor: "#eee",
+          borderColor: colorScheme === "dark" ? "#444" : "#eee",
         }}
       >
         <Link href="../">
-          <ChevronLeftIcon size={24} color="black" />
+          <ChevronLeftIcon size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
         </Link>
         <Text style={{ fontSize: 20, fontWeight: "bold" }}>Thread</Text>
       </View>
@@ -131,7 +132,7 @@ export default function Page() {
                   paddingHorizontal: 16,
                   marginBottom: 8,
                   borderBottomWidth: 1,
-                  borderColor: "#eee",
+                  borderColor: colorScheme === "dark" ? "#444" : "#eee",
                 }}
               >
                 {dayjs(item).isSame(dayjs(), "day")

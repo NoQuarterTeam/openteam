@@ -1,4 +1,3 @@
-import { Button, ContextMenu } from "@expo/ui/swift-ui"
 import { api } from "@openteam/backend/convex/_generated/api"
 import { Id } from "@openteam/backend/convex/_generated/dataModel"
 import { insertAtPosition, useMutation, useQuery } from "convex/react"
@@ -6,9 +5,10 @@ import * as Crypto from "expo-crypto"
 import { useLocalSearchParams } from "expo-router"
 import { ArrowRightIcon, PlusIcon } from "lucide-react-native"
 import { useState } from "react"
-import { KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from "react-native"
+import { KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, useColorScheme, View } from "react-native"
 
 export function MessageInput({ onFocus }: { onFocus?: () => void }) {
+  const colorScheme = useColorScheme()
   const params = useLocalSearchParams<{ teamId: Id<"teams">; channelId: Id<"channels">; messageId: Id<"messages"> }>()
   const user = useQuery(api.auth.me)
 
@@ -65,43 +65,34 @@ export function MessageInput({ onFocus }: { onFocus?: () => void }) {
   return (
     <KeyboardAvoidingView behavior={Platform.select({ ios: "padding", android: "height" })}>
       <View
-        style={{ borderTopWidth: 1, flexDirection: "row", alignItems: "flex-end", borderColor: "#eee", padding: 16, gap: 12 }}
+        style={{
+          borderTopWidth: 1,
+          flexDirection: "row",
+          alignItems: "flex-end",
+          borderColor: colorScheme === "dark" ? "#444" : "#eee",
+          padding: 16,
+          gap: 12,
+        }}
       >
-        {Platform.select({
-          ios: (
-            <ContextMenu style={{ width: 150, height: 50 }}>
-              <ContextMenu.Items>
-                <Button systemImage="person.crop.circle.badge.xmark" onPress={() => console.log("Pressed1")}>
-                  Hello
-                </Button>
-                <Button variant="bordered" systemImage="heart" onPress={() => console.log("Pressed2")}>
-                  Love it
-                </Button>
-              </ContextMenu.Items>
-              <ContextMenu.Trigger>
-                <TouchableOpacity
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 4,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: "#eee",
-                  }}
-                >
-                  <PlusIcon color="black" size={20} />
-                </TouchableOpacity>
-              </ContextMenu.Trigger>
-            </ContextMenu>
-          ),
-        })}
+        <TouchableOpacity
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 4,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colorScheme === "dark" ? "#444" : "#eee",
+          }}
+        >
+          <PlusIcon color={colorScheme === "dark" ? "#fff" : "#000"} size={20} />
+        </TouchableOpacity>
 
         <TextInput
           onSubmitEditing={handleSend}
           multiline
           placeholder="Message"
-          style={{ fontSize: 16, flex: 1, minHeight: 32 }}
+          style={{ fontSize: 16, flex: 1, minHeight: 32, color: colorScheme === "dark" ? "#fff" : "#000" }}
           value={message}
           autoFocus={!!params.messageId}
           onChangeText={setMessage}
@@ -116,10 +107,10 @@ export function MessageInput({ onFocus }: { onFocus?: () => void }) {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "black",
+            backgroundColor: colorScheme === "dark" ? "#fff" : "#000",
           }}
         >
-          <ArrowRightIcon color="white" size={20} />
+          <ArrowRightIcon color={colorScheme === "dark" ? "#000" : "#fff"} size={20} />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

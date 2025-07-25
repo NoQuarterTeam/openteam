@@ -6,11 +6,12 @@ import { Image } from "expo-image"
 import { router, useRouter } from "expo-router"
 import * as SecureStore from "expo-secure-store"
 import { useEffect, useState } from "react"
-import { ScrollView, Text, TouchableOpacity, View } from "react-native"
+import { ScrollView, TouchableOpacity, useColorScheme, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "@/components/toaster"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Text } from "@/components/ui/text"
 
 export default function Page() {
   const router = useRouter()
@@ -30,6 +31,7 @@ export default function Page() {
   }, [])
 
   const insets = useSafeAreaInsets()
+  const colorScheme = useColorScheme()
   if (isLoading) return null
 
   return (
@@ -37,7 +39,14 @@ export default function Page() {
       <ScrollView style={{ flex: 1, paddingHorizontal: 16 }}>
         <View style={{ gap: 8 }}>
           <View style={{ alignItems: "center", marginBottom: 12 }}>
-            <Image source={require("../../../assets/images/logo.png")} style={{ width: 80, height: 80 }} />
+            <Image
+              source={
+                colorScheme === "dark"
+                  ? require("../../../assets/images/logo-dark.png")
+                  : require("../../../assets/images/logo-light.png")
+              }
+              style={{ width: 80, height: 80 }}
+            />
           </View>
           {teams?.map((team) => (
             <TouchableOpacity
@@ -46,7 +55,7 @@ export default function Page() {
                 padding: 10,
                 borderRadius: 10,
                 borderWidth: 1,
-                borderColor: "#eee",
+                borderColor: colorScheme === "dark" ? "#444" : "#eee",
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 10,
@@ -61,7 +70,7 @@ export default function Page() {
                   width: 32,
                   height: 32,
                   borderRadius: 4,
-                  backgroundColor: "#eee",
+                  backgroundColor: colorScheme === "dark" ? "#444" : "#eee",
                   alignItems: "center",
                   justifyContent: "center",
                 }}
@@ -79,7 +88,7 @@ export default function Page() {
         </View>
       </ScrollView>
 
-      <View style={{ gap: 16, padding: 16, borderTopWidth: 1, borderColor: "#eee" }}>
+      <View style={{ gap: 16, padding: 16, borderTopWidth: 1, borderColor: colorScheme === "dark" ? "#444" : "#eee" }}>
         {me && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View
@@ -87,7 +96,7 @@ export default function Page() {
                 width: 36,
                 height: 36,
                 borderRadius: 4,
-                backgroundColor: "#eee",
+                backgroundColor: colorScheme === "dark" ? "#444" : "#eee",
                 alignItems: "center",
                 justifyContent: "center",
               }}

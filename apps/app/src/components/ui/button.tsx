@@ -1,4 +1,5 @@
-import { StyleProp, Text, TextStyle, TouchableOpacity, TouchableOpacityProps } from "react-native"
+import { StyleProp, TextStyle, TouchableOpacity, TouchableOpacityProps, useColorScheme } from "react-native"
+import { Text } from "./text"
 
 interface Props extends TouchableOpacityProps {
   textStyle?: StyleProp<TextStyle>
@@ -8,29 +9,31 @@ interface Props extends TouchableOpacityProps {
 }
 
 export function Button(props: Props) {
+  const colorScheme = useColorScheme()
   const variantStyle = {
     primary: {
-      backgroundColor: "#000",
+      backgroundColor: colorScheme === "dark" ? "#fff" : "#000",
       borderColor: "transparent",
     },
     outline: {
       backgroundColor: "transparent",
-      borderColor: "#eee",
+      borderColor: colorScheme === "dark" ? "#444" : "#eee",
     },
   }[props.variant ?? "primary"]
 
   const variantTextStyle = {
     primary: {
-      color: "white",
+      color: colorScheme === "dark" ? "#000" : "#fff",
     },
     outline: {
-      color: "#000",
+      color: colorScheme === "dark" ? "#fff" : "#000",
     },
   }[props.variant ?? "primary"]
 
   return (
     <TouchableOpacity
       {...props}
+      activeOpacity={0.8}
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -39,6 +42,7 @@ export function Button(props: Props) {
         borderRadius: 8,
         padding: 8,
         borderWidth: 1,
+        opacity: props.disabled ? 0.7 : 1,
         ...variantStyle,
         ...(typeof props.style === "object" ? props.style : {}),
       }}

@@ -5,10 +5,11 @@ import { optimisticallyUpdateValueInPaginatedQuery, useMutation, useQuery } from
 import dayjs from "dayjs"
 import * as Clipboard from "expo-clipboard"
 import * as Crypto from "expo-crypto"
+import { Image } from "expo-image"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { CopyIcon, PencilIcon, ReplyIcon, SmilePlusIcon, TrashIcon } from "lucide-react-native"
 import { Fragment, useCallback, useRef } from "react"
-import { Alert, Image, Text, TouchableOpacity, View } from "react-native"
+import { Alert, TouchableOpacity, useColorScheme, View } from "react-native"
 import ActionSheet, { ActionSheetRef } from "react-native-actions-sheet"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import { useMarkdown } from "react-native-marked"
@@ -16,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { ThreadIndicator } from "./thread-indicator"
 import { toast } from "./toaster"
 import { Button } from "./ui/button"
+import { Text } from "./ui/text"
 
 type MessageData = (typeof api.messages.list._returnType)["page"][number] | typeof api.messages.get._returnType
 
@@ -34,14 +36,15 @@ export function Message({
   isThreadMessage = false,
   onEdit,
 }: Props) {
+  const colorScheme = useColorScheme()
   const user = useQuery(api.auth.me)
   const params = useLocalSearchParams<{ teamId: Id<"teams">; channelId: Id<"channels">; messageId: Id<"messages"> }>()
   const actionSheetRef = useRef<ActionSheetRef>(null)
   const { teamId } = useLocalSearchParams<{ teamId: Id<"teams"> }>()
   const markdown = useMarkdown(message.content, {
     styles: {
-      text: { fontSize: 14, color: "black" },
-      strong: { fontWeight: "bold", fontSize: 14, color: "black" },
+      text: { fontSize: 14, color: colorScheme === "dark" ? "#fff" : "#000" },
+      strong: { fontWeight: "bold", fontSize: 14, color: colorScheme === "dark" ? "#fff" : "#000" },
       paragraph: { paddingVertical: 0 },
     },
   })
@@ -149,187 +152,203 @@ export function Message({
     .runOnJS(true)
 
   return (
-    <GestureDetector gesture={Gesture.Exclusive(doubleTap, singleTap, longPress)}>
-      <TouchableOpacity
-        // onLongPress={() => actionSheetRef.current?.show()}
-        style={{
-          flexDirection: "row",
-          alignItems: "flex-start",
-          gap: 12,
-          paddingVertical: 4,
-          paddingHorizontal: 16,
-          backgroundColor: message.optimisticStatus === "deleted" ? "rgba(255,0,0,0.05)" : "transparent",
-          ...(isThreadParentMessage && {
-            borderBottomWidth: 1,
-            paddingTop: 12,
-            paddingBottom: 10,
-            marginBottom: 8,
-            borderColor: "#eee",
-            backgroundColor: "#ffe",
-          }),
-        }}
-      >
-        {isFirstMessageOfUser ? (
-          <View
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              borderWidth: 1,
-              borderColor: "#eee",
-            }}
-          >
-            {message.author?.image ? (
-              <Image source={{ uri: message.author.image }} style={{ width: 36, height: 36, borderRadius: 8 }} />
-            ) : (
-              <Text>{message.author?.name?.[0]}</Text>
-            )}
-          </View>
-        ) : (
-          <View style={{ width: 36 }} />
-        )}
-        <View>
-          {isFirstMessageOfUser && (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Text style={{ fontSize: 16, fontWeight: "bold" }}>{message.author.name}</Text>
-              <Text style={{ fontSize: 12, color: "gray" }}>{dayjs(message._creationTime).format("HH:mm")}</Text>
-            </View>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 12,
+        paddingVertical: 4,
+        paddingHorizontal: 16,
+        backgroundColor:
+          message.optimisticStatus === "deleted" ? (colorScheme === "dark" ? "#544" : "rgba(255,0,0,0.05)") : "transparent",
+        ...(isThreadParentMessage && {
+          borderBottomWidth: 1,
+          paddingTop: 12,
+          paddingBottom: 10,
+          marginBottom: 8,
+          borderColor: colorScheme === "dark" ? "#444" : "#eee",
+          backgroundColor: colorScheme === "dark" ? "#221" : "#ffe",
+        }),
+      }}
+    >
+      {isFirstMessageOfUser ? (
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 1,
+            backgroundColor: colorScheme === "dark" ? "#444" : "#eee",
+            borderColor: colorScheme === "dark" ? "#444" : "#eee",
+          }}
+        >
+          {message.author?.image ? (
+            <Image source={{ uri: message.author.image }} style={{ width: 36, height: 36, borderRadius: 8 }} />
+          ) : (
+            <Text>{message.author?.name?.[0]}</Text>
           )}
-          <View style={{ opacity: message.optimisticStatus === "created" ? 0.8 : 1 }}>
-            {markdown.map((element, index) => (
-              <Fragment key={`ot-${index}`}>{element}</Fragment>
-            ))}
-          </View>
-          {/* Reactions */}
-          {Object.entries(groupedReactions).length > 0 && (
-            <View style={{ alignItems: "center", gap: 4, paddingTop: 4, flexDirection: "row" }}>
-              {Object.entries(groupedReactions).map(([content, { count, reactions }]) => {
-                const isReacted = reactions.some((r) => r.userId === user?._id)
-                return (
-                  <TouchableOpacity
-                    key={content}
-                    disabled={!user}
-                    onPress={() => {
-                      if (!user) return
-                      const existingReaction = message.reactions.find((r) => r.content === content && r.userId === user._id)
-                      if (existingReaction) {
-                        // posthog.capture("reaction_removed", { channelId: message.channelId, teamId })
-                        removeReaction({ reactionId: existingReaction._id })
-                      } else {
-                        // posthog.capture("reaction_added", { channelId: message.channelId, teamId })
-                        addReaction({ messageId: message._id, content })
-                      }
-                    }}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      borderRadius: 25,
-                      justifyContent: "center",
-                      paddingHorizontal: 4,
-                      borderWidth: 1,
-                      height: 26,
-                      borderColor: isReacted ? "blue" : "#eee",
-                      backgroundColor: isReacted ? "rgba(59, 130, 246, 0.1)" : "transparent",
-                    }}
-                  >
-                    <Text style={{ fontSize: 12, textAlign: "center" }}>{content}</Text>
-                    <Text style={{ fontSize: 12, minWidth: 16, textAlign: "center", color: isReacted ? "blue" : "black" }}>
-                      {count}
-                    </Text>
-                  </TouchableOpacity>
-                )
-              })}
-
-              <TouchableOpacity
-                onPress={() => {
-                  actionSheetRef.current?.show()
-                }}
-                style={{
-                  borderRadius: 25,
-                  height: 26,
-                  paddingHorizontal: 8,
-                  borderWidth: 1,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderColor: "#dcdcdc",
-                  backgroundColor: "#eee",
-                }}
-              >
-                <SmilePlusIcon size={16} />
-              </TouchableOpacity>
-            </View>
-          )}
-          {message.threadInfo && <ThreadIndicator threadInfo={message.threadInfo} />}
         </View>
-        <ActionSheet ref={actionSheetRef} gestureEnabled>
-          <View style={{ padding: 20, paddingBottom: insets.bottom + 20, gap: 12 }}>
-            <QuickReactions
-              message={message}
-              onAdd={(content) => {
-                addReaction({ messageId: message._id, content })
-                actionSheetRef.current?.hide()
-              }}
-              onRemove={(reactionId) => {
-                removeReaction({ reactionId })
-                actionSheetRef.current?.hide()
-              }}
-            />
+      ) : (
+        <View style={{ width: 36 }} />
+      )}
+      <View>
+        <GestureDetector gesture={Gesture.Exclusive(doubleTap, singleTap, longPress)}>
+          <TouchableOpacity activeOpacity={0.8}>
+            {isFirstMessageOfUser && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Text style={{ fontSize: 16, fontWeight: "bold" }}>{message.author.name}</Text>
+                <Text style={{ fontSize: 12, color: "gray" }}>{dayjs(message._creationTime).format("HH:mm")}</Text>
+              </View>
+            )}
+            <View style={{ opacity: message.optimisticStatus === "created" ? 0.8 : 1 }}>
+              {markdown.map((element, index) => (
+                <Fragment key={`ot-${index}`}>{element}</Fragment>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </GestureDetector>
 
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              {!isThreadMessage && (
-                <Button
+        {/* Reactions */}
+        {Object.entries(groupedReactions).length > 0 && (
+          <View style={{ alignItems: "center", gap: 4, paddingTop: 4, flexDirection: "row" }}>
+            {Object.entries(groupedReactions).map(([content, { count, reactions }]) => {
+              const isReacted = reactions.some((r) => r.userId === user?._id)
+              return (
+                <TouchableOpacity
+                  key={content}
+                  disabled={!user}
                   onPress={() => {
-                    handleCreateThread()
-                    actionSheetRef.current?.hide()
+                    if (!user) return
+                    const existingReaction = message.reactions.find((r) => r.content === content && r.userId === user._id)
+                    if (existingReaction) {
+                      // posthog.capture("reaction_removed", { channelId: message.channelId, teamId })
+                      removeReaction({ reactionId: existingReaction._id })
+                    } else {
+                      // posthog.capture("reaction_added", { channelId: message.channelId, teamId })
+                      addReaction({ messageId: message._id, content })
+                    }
                   }}
-                  variant="outline"
-                  style={{ flex: 1 }}
-                  leftIcon={<ReplyIcon size={16} />}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    borderRadius: 25,
+                    justifyContent: "center",
+                    paddingHorizontal: 4,
+                    borderWidth: 1,
+                    height: 26,
+                    borderColor: isReacted ? "blue" : colorScheme === "dark" ? "#444" : "#eee",
+                    backgroundColor: isReacted
+                      ? colorScheme === "dark"
+                        ? "rgba(59, 130, 246, 0.2)"
+                        : "rgba(59, 130, 246, 0.1)"
+                      : "transparent",
+                  }}
                 >
-                  Reply
-                </Button>
-              )}
-              <Button variant="outline" style={{ flex: 1 }} leftIcon={<PencilIcon size={16} />}>
-                Edit
-              </Button>
+                  <Text style={{ fontSize: 12, textAlign: "center" }}>{content}</Text>
+                  <Text style={{ fontSize: 12, minWidth: 16, textAlign: "center", color: isReacted ? "blue" : "black" }}>
+                    {count}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+
+            <TouchableOpacity
+              onPress={() => {
+                actionSheetRef.current?.show()
+              }}
+              style={{
+                borderRadius: 25,
+                height: 26,
+                paddingHorizontal: 8,
+                borderWidth: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                borderColor: colorScheme === "dark" ? "#444" : "#eee",
+                backgroundColor: colorScheme === "dark" ? "#444" : "#eee",
+              }}
+            >
+              <SmilePlusIcon size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
+            </TouchableOpacity>
+          </View>
+        )}
+        {message.threadInfo && <ThreadIndicator threadInfo={message.threadInfo} />}
+      </View>
+      <ActionSheet
+        ref={actionSheetRef}
+        gestureEnabled
+        containerStyle={{ backgroundColor: colorScheme === "dark" ? "#000" : "#fff" }}
+      >
+        <View style={{ padding: 20, paddingBottom: insets.bottom + 20, gap: 12 }}>
+          <QuickReactions
+            message={message}
+            onAdd={(content) => {
+              addReaction({ messageId: message._id, content })
+              actionSheetRef.current?.hide()
+            }}
+            onRemove={(reactionId) => {
+              removeReaction({ reactionId })
+              actionSheetRef.current?.hide()
+            }}
+          />
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            {!isThreadMessage && (
               <Button
                 onPress={() => {
-                  Alert.alert("Delete message", "Are you sure you want to delete this message?", [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "OK",
-                      onPress: () => {
-                        actionSheetRef.current?.hide()
-                        remove({ messageId: message._id })
-                      },
-                    },
-                  ])
+                  handleCreateThread()
+                  actionSheetRef.current?.hide()
                 }}
                 variant="outline"
                 style={{ flex: 1 }}
-                leftIcon={<TrashIcon size={16} color="red" />}
+                leftIcon={<ReplyIcon size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />}
               >
-                Delete
+                Reply
               </Button>
-            </View>
+            )}
             <Button
               variant="outline"
-              leftIcon={<CopyIcon size={16} />}
-              onPress={async () => {
-                actionSheetRef.current?.hide()
-                toast({ type: "success", title: "Copied to clipboard", visibilityTime: 1000 })
-                void Clipboard.setStringAsync(message.content)
-              }}
+              style={{ flex: 1 }}
+              leftIcon={<PencilIcon size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />}
             >
-              Copy text
+              Edit
+            </Button>
+            <Button
+              onPress={() => {
+                Alert.alert("Delete message", "Are you sure you want to delete this message?", [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "OK",
+                    onPress: () => {
+                      actionSheetRef.current?.hide()
+                      remove({ messageId: message._id })
+                    },
+                  },
+                ])
+              }}
+              variant="outline"
+              style={{ flex: 1 }}
+              leftIcon={<TrashIcon size={16} color="red" />}
+            >
+              Delete
             </Button>
           </View>
-        </ActionSheet>
-      </TouchableOpacity>
-    </GestureDetector>
+          <Button
+            variant="outline"
+            leftIcon={<CopyIcon size={16} />}
+            onPress={async () => {
+              actionSheetRef.current?.hide()
+              toast({ type: "success", title: "Copied to clipboard", visibilityTime: 1000 })
+              void Clipboard.setStringAsync(message.content)
+            }}
+          >
+            Copy text
+          </Button>
+        </View>
+      </ActionSheet>
+    </View>
   )
 }
 
@@ -342,9 +361,10 @@ function QuickReactions({
 }: {
   message: MessageData
   onAdd: (emoji: string) => void
-  onRemove: (emoji: string) => void
+  onRemove: (reactionId: Id<"messageReactions">) => void
 }) {
   const user = useQuery(api.auth.me)
+  const colorScheme = useColorScheme()
 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "space-around" }}>
@@ -355,7 +375,7 @@ function QuickReactions({
             key={emoji}
             onPress={() => {
               if (existingReaction) {
-                onRemove(emoji)
+                onRemove(existingReaction._id)
               } else {
                 onAdd(emoji)
               }
@@ -365,8 +385,12 @@ function QuickReactions({
               width: 50,
               height: 50,
               borderWidth: 1,
-              borderColor: existingReaction ? "blue" : "#eee",
-              backgroundColor: existingReaction ? "rgba(59, 130, 246, 0.1)" : "transparent",
+              borderColor: existingReaction ? "blue" : colorScheme === "dark" ? "#444" : "#eee",
+              backgroundColor: existingReaction
+                ? colorScheme === "dark"
+                  ? "rgba(59, 130, 246, 0.2)"
+                  : "rgba(59, 130, 246, 0.1)"
+                : "transparent",
               padding: 8,
               alignItems: "center",
               justifyContent: "center",

@@ -2,10 +2,12 @@ import { api } from "@openteam/backend/convex/_generated/api"
 import { useQuery } from "convex/react"
 import { router, useLocalSearchParams } from "expo-router"
 import { PlusIcon } from "lucide-react-native"
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native"
+import { Image, ScrollView, TouchableOpacity, useColorScheme, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { Text } from "@/components/ui/text"
 
 export default function Page() {
+  const colorScheme = useColorScheme()
   const { teamId } = useLocalSearchParams<{ teamId: string }>()
   const channels = useQuery(api.channels.list, { teamId })
 
@@ -27,17 +29,17 @@ export default function Page() {
         <TouchableOpacity
           onPress={() => router.push(`/${teamId}/select-team`)}
           style={{
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             borderRadius: 8,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "#eee",
+            backgroundColor: colorScheme === "dark" ? "#444" : "#eee",
           }}
         >
           {team.image ? (
-            <Image source={{ uri: team.image }} style={{ width: 32, height: 32, borderRadius: 8 }} />
+            <Image source={{ uri: team.image }} style={{ width: 36, height: 36, borderRadius: 8 }} />
           ) : (
             <Text style={{ fontSize: 16, fontWeight: "bold" }}>{team.name[0]}</Text>
           )}
@@ -49,7 +51,7 @@ export default function Page() {
         <View style={{ flexDirection: "row", gap: 8, paddingBottom: 12, alignItems: "center", justifyContent: "space-between" }}>
           <Text>Channels</Text>
           <TouchableOpacity onPress={() => router.push(`/${teamId}/new-channel`)}>
-            <PlusIcon size={16} color="black" />
+            <PlusIcon size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
           </TouchableOpacity>
         </View>
         <View style={{ gap: 8 }}>

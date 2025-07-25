@@ -1,3 +1,4 @@
+import Apple from "@auth/core/providers/apple"
 import GitHub from "@auth/core/providers/github"
 import Google from "@auth/core/providers/google"
 import { convexAuth, getAuthUserId } from "@convex-dev/auth/server"
@@ -20,6 +21,16 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     //     return { isAnonymous: true, name: id, email: `${id}@noquarter.co` }
     //   },
     // }),
+    Apple({
+      profile: (appleInfo) => {
+        const name = appleInfo.user ? `${appleInfo.user.name.firstName} ${appleInfo.user.name.lastName}` : "Use"
+        return {
+          id: appleInfo.sub,
+          name: name,
+          email: appleInfo.email,
+        }
+      },
+    }),
     GitHub({
       async profile(githubProfile) {
         if (!githubProfile.email) throw new ConvexError("Email is required")
@@ -42,22 +53,6 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         }
       },
     }),
-    // // Password<DataModel>({
-    // //   id: "password-code",
-    // //   reset: ResendOTPPasswordReset,
-    // //   verify: ResendOTP,
-    // // }),
-    // Password<DataModel>({
-    //   id: "password",
-    //   validatePasswordRequirements: () => null,
-    //   profile(params) {
-    //     const { success, data, error } = ParamsSchema.safeParse(params)
-    //     if (!success) throw new ConvexError(error.flatten().fieldErrors)
-    //     return data
-    //   },
-    //   reset: ResendOTPPasswordReset,
-    //   verify: ResendOTPEmailVerification,
-    // }),
   ],
   callbacks: {
     async redirect({ redirectTo }) {

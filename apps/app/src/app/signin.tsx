@@ -4,15 +4,17 @@ import { Image } from "expo-image"
 import { useRouter } from "expo-router"
 import { openAuthSessionAsync } from "expo-web-browser"
 import { useState } from "react"
-import { ScrollView, Text, View } from "react-native"
+import { ScrollView, useColorScheme, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { Button } from "@/components/ui/button"
+import { Text } from "@/components/ui/text"
 
 export default function Page() {
+  const colorScheme = useColorScheme()
   const { signIn } = useAuthActions()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
-  const handleSignin = async (provider: "github" | "google") => {
+  const handleSignin = async (provider: "github" | "google" | "apple") => {
     try {
       const redirectTo = makeRedirectUri()
       setIsSubmitting(true)
@@ -35,16 +37,24 @@ export default function Page() {
   return (
     <ScrollView style={{ flex: 1, paddingTop: insets.top + 16, paddingBottom: insets.bottom, paddingHorizontal: 16 }}>
       <View style={{ alignItems: "center", marginBottom: 12 }}>
-        <Image source={require("../../assets/images/logo.png")} style={{ width: 80, height: 80 }} />
+        <Image
+          source={
+            colorScheme === "dark" ? require("../../assets/images/logo-dark.png") : require("../../assets/images/logo-light.png")
+          }
+          style={{ width: 80, height: 80 }}
+        />
       </View>
       <Text style={{ fontSize: 24, textAlign: "center", fontWeight: "bold", marginBottom: 24 }}>Sign in to OpenTeam</Text>
 
       <View style={{ flexDirection: "column", gap: 10 }}>
         <Button onPress={() => handleSignin("github")} disabled={isSubmitting}>
-          {isSubmitting ? "Signing in..." : "GitHub"}
+          GitHub
         </Button>
         <Button onPress={() => handleSignin("google")} disabled={isSubmitting}>
-          {isSubmitting ? "Signing in..." : "Google"}
+          Google
+        </Button>
+        <Button onPress={() => handleSignin("apple")} disabled={isSubmitting}>
+          Apple
         </Button>
       </View>
     </ScrollView>

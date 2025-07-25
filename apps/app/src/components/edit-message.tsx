@@ -5,7 +5,7 @@ import { optimisticallyUpdateValueInPaginatedQuery, useMutation } from "convex/r
 import { useLocalSearchParams } from "expo-router"
 import { CheckIcon, XIcon } from "lucide-react-native"
 import { useEffect, useState } from "react"
-import { KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from "react-native"
+import { KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, useColorScheme, View } from "react-native"
 
 export default function EditMessage({
   message,
@@ -14,6 +14,7 @@ export default function EditMessage({
   message: { _id: Id<"messages">; content: string }
   onClose: () => void
 }) {
+  const colorScheme = useColorScheme()
   const params = useLocalSearchParams<{ teamId: Id<"teams">; channelId: Id<"channels">; messageId: Id<"messages"> }>()
   const [content, setContent] = useState(message.content)
 
@@ -54,12 +55,19 @@ export default function EditMessage({
   return (
     <KeyboardAvoidingView behavior={Platform.select({ ios: "padding", android: "height" })}>
       <View
-        style={{ borderTopWidth: 1, flexDirection: "row", alignItems: "flex-end", borderColor: "#eee", padding: 16, gap: 12 }}
+        style={{
+          borderTopWidth: 1,
+          flexDirection: "row",
+          alignItems: "flex-end",
+          borderColor: colorScheme === "dark" ? "#444" : "#eee",
+          padding: 16,
+          gap: 12,
+        }}
       >
         <TextInput
           multiline
           autoFocus
-          style={{ flex: 1, minHeight: 32, fontSize: 16, padding: 4 }}
+          style={{ flex: 1, minHeight: 32, fontSize: 16, padding: 4, color: colorScheme === "dark" ? "#fff" : "#000" }}
           value={content}
           onChangeText={setContent}
         />
@@ -72,10 +80,10 @@ export default function EditMessage({
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "#eee",
+            backgroundColor: colorScheme === "dark" ? "#444" : "#eee",
           }}
         >
-          <XIcon color="black" size={20} />
+          <XIcon color={colorScheme === "dark" ? "#fff" : "#000"} size={20} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={async () => {
@@ -93,10 +101,10 @@ export default function EditMessage({
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "#000",
+            backgroundColor: colorScheme === "dark" ? "#fff" : "#000",
           }}
         >
-          <CheckIcon color="white" size={20} />
+          <CheckIcon color={colorScheme === "dark" ? "#000" : "#fff"} size={20} />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
