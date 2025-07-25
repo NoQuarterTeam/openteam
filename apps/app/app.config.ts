@@ -25,6 +25,7 @@ export default {
     [
       "expo-splash-screen",
       {
+        resizeMode: "cover",
         backgroundColor: "#fff",
         image: "./assets/images/splash-icon-light.png",
         dark: {
@@ -74,6 +75,9 @@ export default {
   },
   androidStatusBar: {
     backgroundColor: "#ffffff",
+    barStyle: "dark-content",
+    translucent: true,
+    hidden: false,
   },
   updates: {
     url: "https://u.expo.dev/d1ed4fc0-6042-4822-9544-c0799cdb4228",

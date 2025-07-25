@@ -62,9 +62,9 @@ export default function Page() {
       </View>
 
       <ScrollView style={{ flex: 1 }}>
-        <View style={{ flexDirection: "row", gap: 8, paddingBottom: 12, alignItems: "center", justifyContent: "space-between" }}>
+        <View style={{ flexDirection: "row", gap: 8, paddingBottom: 4, alignItems: "center", justifyContent: "space-between" }}>
           <Text>Channels</Text>
-          <TouchableOpacity onPress={() => router.push(`/${teamId}/new-channel`)}>
+          <TouchableOpacity onPress={() => router.push(`/${teamId}/new-channel`)} style={{ padding: 8 }}>
             <PlusIcon size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
           </TouchableOpacity>
         </View>
