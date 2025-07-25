@@ -6,21 +6,24 @@ import { useLocalSearchParams } from "expo-router"
 import { CheckIcon, XIcon } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, View } from "react-native"
-import { useEditMessage } from "@/lib/use-edit-message"
 
-export default function EditMessage() {
-  const { message: editMessage, setMessage: clearMessage } = useEditMessage()
+export default function EditMessage({
+  message,
+  onClose,
+}: {
+  message: { _id: Id<"messages">; content: string }
+  onClose: () => void
+}) {
   const params = useLocalSearchParams<{ teamId: Id<"teams">; channelId: Id<"channels">; messageId: Id<"messages"> }>()
-  const [message, setMessage] = useState(editMessage?.content)
+  const [content, setContent] = useState(message.content)
 
   const updateMessage = useMutation(api.messages.update).withOptimisticUpdate((localStore, args) => {
-    if (!editMessage?.id) return
     optimisticallyUpdateValueInPaginatedQuery(
       localStore,
       api.messages.list,
       { channelId: params.channelId, messageId: params.messageId },
       (currentValue) => {
-        if (editMessage.id === currentValue._id) {
+        if (message._id === currentValue._id) {
           return { ...currentValue, content: args.content }
         }
         return currentValue
@@ -34,7 +37,7 @@ export default function EditMessage() {
       api.messages.list,
       { channelId: params.channelId, messageId: params.messageId },
       (currentValue) => {
-        if (editMessage.id === currentValue._id) {
+        if (message._id === currentValue._id) {
           return { ...currentValue, optimisticStatus: "deleted" as OptimisticStatus }
         }
         return currentValue
@@ -43,10 +46,10 @@ export default function EditMessage() {
   })
 
   useEffect(() => {
-    if (editMessage) {
-      setMessage(editMessage.content)
+    if (message) {
+      setContent(message.content)
     }
-  }, [editMessage])
+  }, [message])
 
   return (
     <KeyboardAvoidingView behavior={Platform.select({ ios: "padding", android: "height" })}>
@@ -57,11 +60,11 @@ export default function EditMessage() {
           multiline
           autoFocus
           style={{ flex: 1, minHeight: 32, fontSize: 16, padding: 4 }}
-          value={message}
-          onChangeText={setMessage}
+          value={content}
+          onChangeText={setContent}
         />
         <TouchableOpacity
-          onPress={() => clearMessage(null)}
+          onPress={onClose}
           style={{
             width: 32,
             height: 32,
@@ -76,11 +79,11 @@ export default function EditMessage() {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={async () => {
-            clearMessage(null)
-            if (message) {
-              await updateMessage({ messageId: editMessage.id, content: message })
+            onClose()
+            if (content) {
+              await updateMessage({ messageId: message._id, content: content })
             } else {
-              await remove({ messageId: editMessage.id })
+              await remove({ messageId: message._id })
             }
           }}
           style={{

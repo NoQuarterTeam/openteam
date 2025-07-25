@@ -6,14 +6,13 @@ import dayjs from "dayjs"
 import advancedFormat from "dayjs/plugin/advancedFormat"
 import { Link, useFocusEffect, useLocalSearchParams } from "expo-router"
 import { ChevronLeftIcon } from "lucide-react-native"
-import { useCallback, useMemo, useRef } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { NativeScrollEvent, NativeSyntheticEvent, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import EditMessage from "@/components/edit-message"
 import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
 import { DEFAULT_PAGINATION_NUM_ITEMS } from "@/lib/config"
-import { useEditMessage } from "@/lib/use-edit-message"
 
 dayjs.extend(advancedFormat)
 
@@ -67,11 +66,12 @@ export default function Page() {
   const prevMessagesLengthRef = useRef(0)
   const isLoadingMoreRef = useRef(false)
 
+  const [editMessage, setEditMessage] = useState<{ _id: Id<"messages">; content: string } | null>(null)
+
   // Handle scrolling to bottom for new messages and initial load
   useFocusEffect(
     useCallback(() => {
       if (!params.channelId) return
-
       const currentLength = messages.length
       const prevLength = prevMessagesLengthRef.current
       prevMessagesLengthRef.current = currentLength
@@ -92,8 +92,6 @@ export default function Page() {
       }
     }, [messages.length, status]),
   )
-
-  const message = useEditMessage((s) => s.message)
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
@@ -146,12 +144,12 @@ export default function Page() {
             )
           }
 
-          return <Message message={item} isFirstMessageOfUser={item.isFirstMessageOfUser} />
+          return <Message message={item} isFirstMessageOfUser={item.isFirstMessageOfUser} onEdit={setEditMessage} />
         }}
       />
 
-      {message ? (
-        <EditMessage />
+      {editMessage ? (
+        <EditMessage message={editMessage} onClose={() => setEditMessage(null)} />
       ) : (
         <MessageInput
           onFocus={async () => {

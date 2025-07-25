@@ -13,7 +13,6 @@ import ActionSheet, { ActionSheetRef } from "react-native-actions-sheet"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import { useMarkdown } from "react-native-marked"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { useEditMessage } from "@/lib/use-edit-message"
 import { ThreadIndicator } from "./thread-indicator"
 import { toast } from "./toaster"
 import { Button } from "./ui/button"
@@ -25,10 +24,16 @@ interface Props {
   isFirstMessageOfUser: boolean
   isThreadParentMessage?: boolean
   isThreadMessage?: boolean
+  onEdit?: (message: { _id: Id<"messages">; content: string }) => void
 }
 
-export function Message({ message, isFirstMessageOfUser, isThreadParentMessage = false, isThreadMessage = false }: Props) {
-  const setMessage = useEditMessage((s) => s.setMessage)
+export function Message({
+  message,
+  isFirstMessageOfUser,
+  isThreadParentMessage = false,
+  isThreadMessage = false,
+  onEdit,
+}: Props) {
   const user = useQuery(api.auth.me)
   const params = useLocalSearchParams<{ teamId: Id<"teams">; channelId: Id<"channels">; messageId: Id<"messages"> }>()
   const actionSheetRef = useRef<ActionSheetRef>(null)
@@ -132,12 +137,12 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
     .maxDuration(250)
     .numberOfTaps(2)
     .onStart(() => {
-      setMessage({ id: message._id, content: message.content })
+      onEdit?.({ _id: message._id, content: message.content })
     })
     .runOnJS(true)
 
   const longPress = Gesture.LongPress()
-    .minDuration(250)
+    .minDuration(400)
     .onStart(() => {
       actionSheetRef.current?.show()
     })
