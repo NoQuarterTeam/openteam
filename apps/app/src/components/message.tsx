@@ -158,7 +158,7 @@ export function Message({
         alignItems: "flex-start",
         gap: 12,
         paddingVertical: 4,
-        paddingHorizontal: 16,
+        paddingHorizontal: 12,
         backgroundColor:
           message.optimisticStatus === "deleted" ? (colorScheme === "dark" ? "#544" : "rgba(255,0,0,0.05)") : "transparent",
         ...(isThreadParentMessage && {

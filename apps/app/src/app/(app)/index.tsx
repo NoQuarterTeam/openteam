@@ -22,13 +22,14 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    if (!teams) return
     const handleGetInitialTeam = async () => {
       const teamId = await SecureStore.getItemAsync("selectedTeamId")
-      if (teamId) router.navigate(`/${teamId}`)
+      if (teamId && teams.find((team) => team._id === teamId)) router.navigate(`/${teamId}`)
       else setIsLoading(false)
     }
     handleGetInitialTeam()
-  }, [])
+  }, [teams])
 
   const insets = useSafeAreaInsets()
   const colorScheme = useColorScheme()

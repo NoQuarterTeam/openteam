@@ -65,6 +65,7 @@ export default function Page() {
     const isAtBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 1 // +1 for rounding
     isScrolledUpRef.current = !isAtBottom
   }, [])
+
   const prevMessagesLengthRef = useRef(0)
   const isLoadingMoreRef = useRef(false)
 
@@ -101,7 +102,7 @@ export default function Page() {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          paddingHorizontal: 16,
+          paddingHorizontal: 12,
           gap: 8,
           paddingBottom: 12,
           borderBottomWidth: 1,
@@ -132,7 +133,7 @@ export default function Page() {
                   fontWeight: "bold",
                   paddingVertical: 8,
                   marginBottom: 8,
-                  paddingHorizontal: 16,
+                  paddingHorizontal: 12,
                   borderBottomWidth: 1,
                   borderColor: colorScheme === "dark" ? "#444" : "#eee",
                 }}

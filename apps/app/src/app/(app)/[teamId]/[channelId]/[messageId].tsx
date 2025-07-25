@@ -77,17 +77,24 @@ export default function Page() {
     useCallback(() => {
       if (!flatListRef.current) return
       const currentLength = messages.length
+      const prevLength = prevMessagesLengthRef.current
       prevMessagesLengthRef.current = currentLength
 
       // Don't scroll if we're loading more messages or still loading first page
       if (isLoadingMoreRef.current || status === "LoadingFirstPage") return
 
       try {
-        flatListRef.current?.scrollToEnd({ animated: false })
+        const shouldScrollToBottom =
+          (prevLength === 0 && currentLength > 0 && !isScrolledUpRef.current) ||
+          (currentLength > prevLength && !isScrolledUpRef.current)
+
+        if (shouldScrollToBottom) {
+          flatListRef.current?.scrollToEnd({ animated: false })
+        }
       } catch {
         // weird thing where scroll throws
       }
-    }, [messages, status]),
+    }, [messages.length, status]),
   )
   if (!parentMessage) return null
 
@@ -96,7 +103,7 @@ export default function Page() {
       <View
         style={{
           flexDirection: "row",
-          paddingHorizontal: 16,
+          paddingHorizontal: 12,
           alignItems: "center",
           gap: 8,
           paddingBottom: 12,
@@ -129,7 +136,7 @@ export default function Page() {
                   fontSize: 16,
                   fontWeight: "bold",
                   paddingVertical: 8,
-                  paddingHorizontal: 16,
+                  paddingHorizontal: 12,
                   marginBottom: 8,
                   borderBottomWidth: 1,
                   borderColor: colorScheme === "dark" ? "#444" : "#eee",
