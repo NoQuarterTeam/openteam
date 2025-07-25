@@ -1,0 +1,75 @@
+{
+  "$schema": "https://raw.githubusercontent.com/expo/eas-cli/refs/heads/main/packages/eas-json/schema/eas.schema.json",
+  "cli": {
+    "version": ">= 0.54.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "base": {
+      "node": "22.16.0",
+      "pnpm": "10.11.1"
+    },
+    "simulator": {
+      "extends": "base",
+      "channel": "development",
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "development"
+      }
+    },
+    "development": {
+      "extends": "base",
+      "channel": "development",
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "development"
+      }
+    },
+    "preview": {
+      "extends": "base",
+      "channel": "preview",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "development"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "extends": "base",
+      "channel": "production",
+      "distribution": "store",
+      "env": {
+        "APP_VARIANT": "production"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "releaseStatus": "draft",
+        "serviceAccountKeyPath": "api-8703296620103690660-703748-0240155adcaf.json",
+        "track": "internal"
+      },
+      "ios": {
+        "ascAppId": "1665128755"
+      }
+    }
+  }
+}

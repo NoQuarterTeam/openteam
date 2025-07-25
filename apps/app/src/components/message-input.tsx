@@ -1,3 +1,4 @@
+import { Button, ContextMenu } from "@expo/ui/swift-ui"
 import { api } from "@openteam/backend/convex/_generated/api"
 import { Id } from "@openteam/backend/convex/_generated/dataModel"
 import { insertAtPosition, useMutation, useQuery } from "convex/react"
@@ -66,19 +67,36 @@ export function MessageInput({ onFocus }: { onFocus?: () => void }) {
       <View
         style={{ borderTopWidth: 1, flexDirection: "row", alignItems: "flex-end", borderColor: "#eee", padding: 16, gap: 12 }}
       >
-        <TouchableOpacity
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 4,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#eee",
-          }}
-        >
-          <PlusIcon color="black" size={20} />
-        </TouchableOpacity>
+        {Platform.select({
+          ios: (
+            <ContextMenu style={{ width: 150, height: 50 }}>
+              <ContextMenu.Items>
+                <Button systemImage="person.crop.circle.badge.xmark" onPress={() => console.log("Pressed1")}>
+                  Hello
+                </Button>
+                <Button variant="bordered" systemImage="heart" onPress={() => console.log("Pressed2")}>
+                  Love it
+                </Button>
+              </ContextMenu.Items>
+              <ContextMenu.Trigger>
+                <TouchableOpacity
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 4,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "#eee",
+                  }}
+                >
+                  <PlusIcon color="black" size={20} />
+                </TouchableOpacity>
+              </ContextMenu.Trigger>
+            </ContextMenu>
+          ),
+        })}
+
         <TextInput
           onSubmitEditing={handleSend}
           multiline

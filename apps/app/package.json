@@ -7,6 +7,11 @@
     "dev": "expo start",
     "start": "expo start",
     "android": "expo start --android",
+    "build:simulator": "eas build --profile simulator --platform ios",
+    "build:dev": "eas build --profile development",
+    "build:preview": "eas build --profile preview",
+    "build:staging-internal": "eas build --profile staging-internal",
+    "build:production": "eas build --profile production",
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit"
@@ -14,6 +19,7 @@
   "dependencies": {
     "@auth/core": "0.37.0",
     "@convex-dev/auth": "0.0.87",
+    "@expo/ui": "0.1.1-alpha.10",
     "@openteam/backend": "workspace:*",
     "@shopify/flash-list": "1.7.6",
     "convex": "^1.25.4",
@@ -24,6 +30,7 @@
     "expo-clipboard": "~7.1.5",
     "expo-constants": "~17.1.4",
     "expo-crypto": "^14.1.5",
+    "expo-dev-client": "~5.2.4",
     "expo-font": "~13.3.2",
     "expo-linking": "~7.1.4",
     "expo-router": "~5.1.4",
