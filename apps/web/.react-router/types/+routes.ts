@@ -19,9 +19,6 @@ type Pages = {
       "inviteId": string;
     };
   };
-  "/signup": {
-    params: {};
-  };
   "/login": {
     params: {};
   };
@@ -51,7 +48,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/:teamId/invite/:inviteId" | "/signup" | "/login" | "/create-team" | "/:teamId" | "/:teamId/:channelId" | "/:teamId/:channelId/:messageId";
+    page: "/" | "/:teamId/invite/:inviteId" | "/login" | "/create-team" | "/:teamId" | "/:teamId/:channelId" | "/:teamId/:channelId/:messageId";
   };
   "routes/$teamId.invite.$inviteId.tsx": {
     id: "routes/$teamId.invite.$inviteId";
@@ -59,11 +56,7 @@ type RouteFiles = {
   };
   "routes/_auth.tsx": {
     id: "routes/_auth";
-    page: "/signup" | "/login";
-  };
-  "routes/_auth.signup.tsx": {
-    id: "routes/_auth.signup";
-    page: "/signup";
+    page: "/login";
   };
   "routes/_auth.login.tsx": {
     id: "routes/_auth.login";

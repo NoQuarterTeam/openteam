@@ -4,7 +4,7 @@ import { FlashList } from "@shopify/flash-list"
 import { usePaginatedQuery, useQuery } from "convex/react"
 import dayjs from "dayjs"
 import advancedFormat from "dayjs/plugin/advancedFormat"
-import { Link, useFocusEffect, useLocalSearchParams } from "expo-router"
+import { Link, useLocalSearchParams } from "expo-router"
 import { ChevronLeftIcon } from "lucide-react-native"
 import { useCallback, useMemo, useRef, useState } from "react"
 import { NativeScrollEvent, NativeSyntheticEvent, useColorScheme, View } from "react-native"
@@ -24,11 +24,7 @@ export default function Page() {
   const insets = useSafeAreaInsets()
 
   // Initial page load
-  const {
-    results,
-    loadMore: _,
-    status,
-  } = usePaginatedQuery(
+  const { results, loadMore: _ } = usePaginatedQuery(
     api.messages.list,
     { channelId: params.channelId, messageId: params.messageId },
     { initialNumItems: DEFAULT_PAGINATION_NUM_ITEMS },
@@ -36,6 +32,7 @@ export default function Page() {
 
   const isScrolledUpRef = useRef(false)
 
+  // const messages = results
   const messages = useMemo(() => [...results].reverse(), [results])
 
   const flatMessagesWithDates = useMemo(() => {
@@ -68,35 +65,34 @@ export default function Page() {
     const isAtBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 1 // +1 for rounding
     isScrolledUpRef.current = !isAtBottom
   }, [])
-  const prevMessagesLengthRef = useRef(0)
-  const isLoadingMoreRef = useRef(false)
+  // const prevMessagesLengthRef = useRef(0)
+  // const isLoadingMoreRef = useRef(false)
 
   const [editMessage, setEditMessage] = useState<{ _id: Id<"messages">; content: string } | null>(null)
-  // Handle scrolling to bottom for new messages and initial load
-  useFocusEffect(
-    useCallback(() => {
-      if (!flatListRef.current) return
-      const currentLength = messages.length
-      const prevLength = prevMessagesLengthRef.current
-      prevMessagesLengthRef.current = currentLength
+  // // Handle scrolling to bottom for new messages and initial load
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     if (!flatListRef.current) return
+  //     const currentLength = messages.length
+  //     const prevLength = prevMessagesLengthRef.current
+  //     prevMessagesLengthRef.current = currentLength
 
-      // Don't scroll if we're loading more messages or still loading first page
-      if (isLoadingMoreRef.current || status === "LoadingFirstPage") return
+  //     // Don't scroll if we're loading more messages or still loading first page
+  //     if (isLoadingMoreRef.current || status === "LoadingFirstPage") return
 
-      try {
-        const shouldScrollToBottom =
-          (prevLength === 0 && currentLength > 0 && !isScrolledUpRef.current) ||
-          (currentLength > prevLength && !isScrolledUpRef.current)
+  //     try {
+  //       const shouldScrollToBottom =
+  //         (prevLength === 0 && currentLength > 0 && !isScrolledUpRef.current) ||
+  //         (currentLength > prevLength && !isScrolledUpRef.current)
 
-        if (shouldScrollToBottom) {
-          flatListRef.current?.scrollToEnd({ animated: false })
-        }
-      } catch {
-        // weird thing where scroll throws
-      }
-    }, [messages.length, status]),
-  )
-  if (!parentMessage) return null
+  //       if (shouldScrollToBottom) {
+  //         flatListRef.current?.scrollToEnd({ animated: false })
+  //       }
+  //     } catch {
+  //       // weird thing where scroll throws
+  //     }
+  //   }, [messages.length, status]),
+  // )
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top + 8, paddingBottom: insets.bottom }}>
@@ -116,12 +112,19 @@ export default function Page() {
         </Link>
         <Text style={{ fontSize: 20, fontWeight: "bold" }}>Thread</Text>
       </View>
+
       <FlashList
         ref={flatListRef}
         onScroll={handleScroll}
         estimatedItemSize={55}
+        onContentSizeChange={() => {
+          try {
+            if (isScrolledUpRef.current) return
+            flatListRef.current?.scrollToEnd({ animated: true })
+          } catch {}
+        }}
         ListHeaderComponent={
-          <Message message={parentMessage} isFirstMessageOfUser isThreadParentMessage isThreadMessage onEdit={setEditMessage} />
+          parentMessage && <Message message={parentMessage} isFirstMessageOfUser isThreadParentMessage onEdit={setEditMessage} />
         }
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
@@ -151,13 +154,10 @@ export default function Page() {
             )
           }
 
-          return (
-            <Message message={item} isFirstMessageOfUser={item.isFirstMessageOfUser} isThreadMessage onEdit={setEditMessage} />
-          )
+          return <Message message={item} isFirstMessageOfUser={item.isFirstMessageOfUser} onEdit={setEditMessage} />
         }}
         getItemType={(item) => (typeof item === "string" ? "sectionHeader" : "row")}
       />
-
       {editMessage ? <EditMessage message={editMessage} onClose={() => setEditMessage(null)} /> : <MessageInput />}
     </View>
   )

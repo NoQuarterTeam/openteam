@@ -143,7 +143,7 @@ export default function ThreadSidebar() {
 
       {parentMessage && (
         <>
-          <Message message={parentMessage} isFirstMessageOfUser isThreadParentMessage isThreadMessage />
+          <Message message={parentMessage} isFirstMessageOfUser isThreadParentMessage />
           <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-none py-2" onScroll={handleScroll}>
             {status === "LoadingMore" ? (
               <div className="flex justify-center py-2">
@@ -179,9 +179,7 @@ export default function ThreadSidebar() {
                       new Date(message._creationTime).getTime() - new Date(messages[index - 1]!._creationTime).getTime() >
                         10 * 60 * 1000
 
-                    return (
-                      <Message key={message._id} message={message} isFirstMessageOfUser={isFirstMessageOfUser} isThreadMessage />
-                    )
+                    return <Message key={message._id} message={message} isFirstMessageOfUser={isFirstMessageOfUser} />
                   })}
             </div>
 

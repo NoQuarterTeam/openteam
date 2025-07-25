@@ -45,7 +45,6 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     Google({
       async profile(googleProfile) {
         if (!googleProfile.email) throw new ConvexError("Email is required")
-        console.log(googleProfile)
         return {
           id: googleProfile.sub,
           name: googleProfile.name,
@@ -56,15 +55,8 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   ],
   callbacks: {
     async redirect({ redirectTo }) {
-      // // Allow redirects to the mobile Expo URL or to the web URL.
-      // // Without this, only redirects to `SITE_URL` are allowed.
-      // if (
-      //   redirectTo !== process.env.EXPO_URL! &&
-      //   redirectTo !== process.env.SITE_URL!
-      // ) {
-      //   throw new Error(`Invalid redirectTo URI ${redirectTo}`);
-      // }
-      return redirectTo
+      if (redirectTo.startsWith("openteam://")) return redirectTo
+      return process.env.SITE_URL!
     },
     createOrUpdateUser: async (ctx: GenericMutationCtx<DataModel>, args) => {
       if (args.existingUserId) return args.existingUserId

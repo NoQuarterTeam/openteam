@@ -13,15 +13,9 @@ export default function Page() {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col items-center text-center">
               <h1 className="font-bold text-2xl">Login to OpenTeam</h1>
-              <div className="text-center text-muted-foreground text-sm">
-                Don&apos;t have an account?{" "}
-                <Link to="/signup" className="font-medium text-foreground hover:opacity-50">
-                  Sign up
-                </Link>
-              </div>
             </div>
             <div className="grid gap-3 md:grid-cols-1">
-              <Button variant="outline" className="w-full shrink-0" onClick={() => void signIn("google", { redirectTo: "/" })}>
+              <Button variant="outline" className="w-full shrink-0" onClick={() => void signIn("google")}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                   <title>Google</title>
                   <path
@@ -31,7 +25,7 @@ export default function Page() {
                 </svg>
                 <span>Continue with Google</span>
               </Button>
-              <Button variant="outline" className="w-full shrink-0" onClick={() => void signIn("github", { redirectTo: "/" })}>
+              <Button variant="outline" className="w-full shrink-0" onClick={() => void signIn("github")}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                   <title>GitHub</title>
                   <path
@@ -41,7 +35,7 @@ export default function Page() {
                 </svg>
                 <span>Continue with GitHub</span>
               </Button>
-              <Button variant="outline" className="w-full shrink-0" onClick={() => void signIn("apple", { redirectTo: "/" })}>
+              <Button variant="outline" className="w-full shrink-0" onClick={() => void signIn("apple")}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 814 1000">
                   <title>GitHub</title>
                   <path

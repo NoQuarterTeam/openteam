@@ -118,6 +118,12 @@ export default function Page() {
         ref={flatListRef}
         extraData={messages.length}
         onScroll={handleScroll}
+        // onContentSizeChange={() => {
+        //   try {
+        //     if (isScrolledUpRef.current) return
+        //     flatListRef.current?.scrollToEnd({ animated: false })
+        //   } catch {}
+        // }}
         scrollEventThrottle={16}
         estimatedItemSize={55}
         keyboardShouldPersistTaps="handled"

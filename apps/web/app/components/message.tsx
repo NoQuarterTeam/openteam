@@ -26,16 +26,10 @@ interface Props {
   message: MessageData
   isFirstMessageOfUser: boolean
   isThreadParentMessage?: boolean
-  isThreadMessage?: boolean
 }
 
-export const Message = memo(function _Message({
-  message,
-  isFirstMessageOfUser,
-  isThreadParentMessage = false,
-  isThreadMessage = false,
-}: Props) {
-  const { teamId } = useParams<{ teamId: Id<"teams"> }>()
+export const Message = memo(function _Message({ message, isFirstMessageOfUser, isThreadParentMessage = false }: Props) {
+  const { teamId, messageId } = useParams<{ teamId: Id<"teams">; messageId: Id<"messages"> }>()
   const user = useQuery(api.auth.me)
   const isMobile = useIsMobile()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
@@ -319,7 +313,7 @@ export const Message = memo(function _Message({
               </div>
             )}
             {/* Thread Indicator */}
-            {!isThreadMessage &&
+            {!messageId &&
               "threadInfo" in message &&
               message.threadInfo?.parentMessageId &&
               message.threadInfo.replyCount > 0 && (
@@ -397,7 +391,7 @@ export const Message = memo(function _Message({
             </PopoverContent>
           </Popover>
 
-          {!isThreadMessage && (
+          {!messageId && (
             <Button size="icon" className="size-8" variant="ghost" onClick={() => handleCreateThread(message._id)}>
               <MessageSquareTextIcon className="size-3.5" />
             </Button>

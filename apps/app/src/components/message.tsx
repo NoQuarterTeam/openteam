@@ -25,17 +25,10 @@ interface Props {
   message: MessageData
   isFirstMessageOfUser: boolean
   isThreadParentMessage?: boolean
-  isThreadMessage?: boolean
   onEdit?: (message: { _id: Id<"messages">; content: string }) => void
 }
 
-export function Message({
-  message,
-  isFirstMessageOfUser,
-  isThreadParentMessage = false,
-  isThreadMessage = false,
-  onEdit,
-}: Props) {
+export function Message({ message, isFirstMessageOfUser, isThreadParentMessage = false, onEdit }: Props) {
   const colorScheme = useColorScheme()
   const user = useQuery(api.auth.me)
   const params = useLocalSearchParams<{ teamId: Id<"teams">; channelId: Id<"channels">; messageId: Id<"messages"> }>()
@@ -50,9 +43,9 @@ export function Message({
   })
 
   const handleCreateThread = useCallback(async () => {
-    if (isThreadMessage) return
+    if (params.messageId) return
     router.push(`/${teamId}/${message.channelId}/${message._id}`)
-  }, [isThreadMessage, teamId, message.channelId])
+  }, [params.messageId, teamId, message.channelId])
 
   const insets = useSafeAreaInsets()
   const router = useRouter()
@@ -131,7 +124,7 @@ export function Message({
   const singleTap = Gesture.Tap()
     .maxDuration(250)
     .onStart(() => {
-      if (isThreadMessage) return
+      if (params.messageId) return
       router.push(`/${teamId}/${message.channelId}/${message._id}`)
     })
     .runOnJS(true)
@@ -194,9 +187,9 @@ export function Message({
       ) : (
         <View style={{ width: 36 }} />
       )}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, width: "100%" }}>
         <GestureDetector gesture={Gesture.Exclusive(doubleTap, singleTap, longPress)}>
-          <TouchableOpacity activeOpacity={0.8} style={{ flex: 1, width: "100%" }}>
+          <TouchableOpacity activeOpacity={0.5}>
             {isFirstMessageOfUser && (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                 <Text style={{ fontSize: 16, fontWeight: "bold" }}>{message.author.name}</Text>
@@ -295,7 +288,7 @@ export function Message({
           />
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            {!isThreadMessage && (
+            {!params.messageId && (
               <Button
                 onPress={() => {
                   handleCreateThread()
@@ -310,6 +303,10 @@ export function Message({
             )}
             <Button
               variant="outline"
+              onPress={() => {
+                onEdit?.({ _id: message._id, content: message.content })
+                actionSheetRef.current?.hide()
+              }}
               style={{ flex: 1 }}
               leftIcon={<PencilIcon size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />}
             >
