@@ -35,7 +35,7 @@ export default function Page() {
                 </svg>
                 <span>Continue with GitHub</span>
               </Button>
-              <Button variant="outline" className="w-full shrink-0" onClick={() => void signIn("apple")}>
+              {/* <Button variant="outline" className="w-full shrink-0" onClick={() => void signIn("apple")}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 814 1000">
                   <title>GitHub</title>
                   <path
@@ -44,7 +44,7 @@ export default function Page() {
                   />
                 </svg>
                 <span>Continue with Apple</span>
-              </Button>
+              </Button> */}
             </div>
           </div>
         </CardContent>
