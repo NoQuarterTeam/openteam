@@ -370,6 +370,9 @@ importers:
 
   packages/backend:
     dependencies:
+      '@convex-dev/auth':
+        specifier: 0.0.87
+        version: 0.0.87(@auth/core@0.37.0)(convex@1.25.4(react@19.1.0))(react@19.1.0)
       convex:
         specifier: ^1.25.4
         version: 1.25.4(react@19.1.0)

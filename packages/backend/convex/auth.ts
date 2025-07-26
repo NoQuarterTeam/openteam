@@ -23,10 +23,10 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     // }),
     Apple({
       profile: (appleInfo) => {
-        const name = appleInfo.user ? `${appleInfo.user.name.firstName} ${appleInfo.user.name.lastName}` : "Use"
+        const name = appleInfo.user ? `${appleInfo.user.name.firstName} ${appleInfo.user.name.lastName}` : "User"
         return {
-          id: appleInfo.sub,
-          name: name,
+          id: appleInfo.sub?.toString(),
+          name,
           email: appleInfo.email,
         }
       },

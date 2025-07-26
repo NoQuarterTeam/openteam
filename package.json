@@ -18,6 +18,7 @@
   "overrides": {
     "react": "19.1.0",
     "convex": "1.23.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "@convex-dev/auth": "0.0.87"
   }
 }
