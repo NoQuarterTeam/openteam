@@ -72,13 +72,36 @@ export default function Page() {
           {channels?.map((channel) => (
             <TouchableOpacity
               key={channel._id}
-              style={{ padding: 8, flexDirection: "row", alignItems: "center", gap: 12 }}
+              style={{
+                paddingHorizontal: 8,
+                height: 32,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+                justifyContent: "space-between",
+              }}
               onPress={() => {
                 router.push(`/${teamId}/${channel._id}`)
               }}
             >
-              <Text>#</Text>
-              <Text>{channel.name}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Text>#</Text>
+                <Text>{channel.name}</Text>
+              </View>
+              {channel.unreadCount > 0 && (
+                <View
+                  style={{
+                    justifyContent: "center",
+                    alignItems: "center",
+                    paddingHorizontal: 6,
+                    paddingVertical: 4,
+                    borderRadius: 6,
+                    backgroundColor: colorScheme === "dark" ? "#444" : "#eee",
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: "bold" }}>{channel.unreadCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           ))}
         </View>

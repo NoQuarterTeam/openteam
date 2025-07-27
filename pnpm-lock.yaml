@@ -128,6 +128,12 @@ importers:
       react-native-actions-sheet:
         specifier: ^0.9.7
         version: 0.9.7(react-native-gesture-handler@2.24.0(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0))(react-native-safe-area-context@5.4.0(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0))(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))
+      react-native-avoid-softinput:
+        specifier: ^7.0.2
+        version: 7.0.2(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)
+      react-native-edge-to-edge:
+        specifier: 1.6.0
+        version: 1.6.0(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)
       react-native-gesture-handler:
         specifier: ~2.24.0
         version: 2.24.0(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)
@@ -5503,6 +5509,12 @@ packages:
       react-native: '*'
       react-native-gesture-handler: '*'
       react-native-safe-area-context: '*'
+
+  react-native-avoid-softinput@7.0.2:
+    resolution: {integrity: sha512-3eCTNYa4fVSRoNGLKK3nGyIowT1IQh4CZQxrsVJm2OThX+jvaGQeRZgNOCMBOtbhfGoP4NpE1juKY18QxZGNmA==}
+    peerDependencies:
+      react: '>=18.3.1'
+      react-native: '>=0.76.0'
 
   react-native-edge-to-edge@1.6.0:
     resolution: {integrity: sha512-2WCNdE3Qd6Fwg9+4BpbATUxCLcouF6YRY7K+J36KJ4l3y+tWN6XCqAC4DuoGblAAbb2sLkhEDp4FOlbOIot2Og==}
@@ -12474,6 +12486,12 @@ snapshots:
       react-native: 0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0)
       react-native-gesture-handler: 2.24.0(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)
       react-native-safe-area-context: 5.4.0(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)
+
+  react-native-avoid-softinput@7.0.2(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0):
+    dependencies:
+      react: 19.1.0
+      react-native: 0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0)
+      react-native-is-edge-to-edge: 1.2.1(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)
 
   react-native-edge-to-edge@1.6.0(react-native@0.79.5(@babel/core@7.27.1)(@types/react@19.1.8)(react@19.1.0))(react@19.1.0):
     dependencies:

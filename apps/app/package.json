@@ -52,6 +52,8 @@
     "react-dom": "19.1.0",
     "react-native": "0.79.5",
     "react-native-actions-sheet": "^0.9.7",
+    "react-native-avoid-softinput": "^7.0.2",
+    "react-native-edge-to-edge": "1.6.0",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-ios-context-menu": "3.1.0",
     "react-native-ios-utilities": "5.1.2",

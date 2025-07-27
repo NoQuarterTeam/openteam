@@ -15,6 +15,7 @@ export default {
   plugins: [
     "expo-router",
     "expo-font",
+    "react-native-edge-to-edge",
     "expo-secure-store",
     ["expo-web-browser", { experimentalLauncherActivity: true }],
     "expo-updates",
