@@ -18,6 +18,11 @@ export default defineSchema({
     .index("phone", ["phone"])
     .searchIndex("search_name", { searchField: "name" }),
 
+  pushTokens: defineTable({
+    userId: v.id("users"),
+    token: v.string(),
+  }).index("by_user", ["userId"]),
+
   invites: defineTable({
     email: v.string(),
     role: v.union(v.literal("admin"), v.literal("member")),

@@ -11,8 +11,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "convex": "^1.25.4",
     "@convex-dev/auth": "0.0.87",
+    "@convex-dev/expo-push-notifications": "^0.2.5",
+    "convex": "^1.25.4",
     "convex-helpers": "^0.1.99"
   },
   "devDependencies": {

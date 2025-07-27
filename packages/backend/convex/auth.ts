@@ -4,7 +4,7 @@ import Google from "@auth/core/providers/google"
 import { convexAuth, getAuthUserId } from "@convex-dev/auth/server"
 import type { GenericMutationCtx } from "convex/server"
 import { ConvexError } from "convex/values"
-import type { DataModel, Id } from "./_generated/dataModel"
+import type { DataModel } from "./_generated/dataModel"
 import { type MutationCtx, type QueryCtx, query } from "./_generated/server"
 
 // const ParamsSchema = z.object({
@@ -99,45 +99,36 @@ export const requireUser = async (ctx: MutationCtx | QueryCtx) => {
   return user
 }
 
-export const canManageTeam = async (ctx: MutationCtx | QueryCtx, teamId: Id<"teams">) => {
+export const canManageTeam = async (ctx: MutationCtx | QueryCtx, teamId: string) => {
   const user = await requireUser(ctx)
-  const team = await ctx.db.get(teamId)
+  const normalizedTeamId = ctx.db.normalizeId("teams", teamId)
+  if (!normalizedTeamId) throw new ConvexError("Invalid team ID")
+  const team = await ctx.db.get(normalizedTeamId)
   if (!team) throw new ConvexError("Team not found")
   const userTeam = await ctx.db
     .query("userTeams")
-    .withIndex("by_user_team", (q) => q.eq("userId", user._id).eq("teamId", teamId))
+    .withIndex("by_user_team", (q) => q.eq("userId", user._id).eq("teamId", normalizedTeamId))
     .first()
 
   if (!userTeam) throw new ConvexError("User does not have access to this team")
   return { user, team, userTeam }
 }
 
-export const canManageTeamChannel = async (ctx: MutationCtx | QueryCtx, channelId: Id<"channels">) => {
-  const user = await requireUser(ctx)
-  const channel = await ctx.db.get(channelId)
+export const canManageTeamChannel = async (ctx: MutationCtx | QueryCtx, channelId: string) => {
+  const normalizedChannelId = ctx.db.normalizeId("channels", channelId)
+  if (!normalizedChannelId) throw new ConvexError("Invalid channel ID")
+  const channel = await ctx.db.get(normalizedChannelId)
   if (!channel) throw new ConvexError("Channel not found")
-  const userTeams = await ctx.db
-    .query("userTeams")
-    .withIndex("by_user", (q) => q.eq("userId", user._id))
-    .collect()
 
-  if (!userTeams.find((userTeam) => userTeam.teamId === channel.teamId))
-    throw new ConvexError("User does not have access to this channel")
-  return user
+  const { user, team } = await canManageTeam(ctx, channel.teamId)
+  return { user, channel, team }
 }
 
-export const canManageTeamMessage = async (ctx: MutationCtx | QueryCtx, messageId: Id<"messages">) => {
-  const user = await requireUser(ctx)
-  const message = await ctx.db.get(messageId)
+export const canManageTeamMessage = async (ctx: MutationCtx | QueryCtx, messageId: string) => {
+  const normalizedMessageId = ctx.db.normalizeId("messages", messageId)
+  if (!normalizedMessageId) throw new ConvexError("Invalid message ID")
+  const message = await ctx.db.get(normalizedMessageId)
   if (!message) throw new ConvexError("Message not found")
-  const channel = await ctx.db.get(message.channelId)
-  if (!channel) throw new ConvexError("Channel not found")
-  const userTeams = await ctx.db
-    .query("userTeams")
-    .withIndex("by_user", (q) => q.eq("userId", user._id))
-    .collect()
-
-  if (!userTeams.find((userTeam) => userTeam.teamId === channel.teamId))
-    throw new ConvexError("User does not have access to this channel")
-  return user
+  const { user, channel, team } = await canManageTeamChannel(ctx, message.channelId)
+  return { user, team, channel, message }
 }

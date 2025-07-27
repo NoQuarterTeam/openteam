@@ -1,5 +1,6 @@
 import { paginationOptsValidator } from "convex/server"
 import { ConvexError, v } from "convex/values"
+import { internal } from "./_generated/api"
 import type { Doc, Id } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 import { canManageTeamChannel, requireUser } from "./auth"
@@ -108,19 +109,10 @@ export const send = mutation({
   },
   returns: v.id("messages"),
   handler: async (ctx, args) => {
-    let channelId = ctx.db.normalizeId("channels", args.channelId)
-    if (!channelId) throw new ConvexError("Invalid channel ID")
-    const user = await canManageTeamChannel(ctx, channelId)
-
-    // If parentMessageId is provided, verify the thread exists and get channelId from it
-    if (args.parentMessageId) {
-      const thread = await ctx.db.get(args.parentMessageId)
-      if (!thread) throw new Error("Thread not found")
-      channelId = thread.channelId
-    }
+    const { user, channel } = await canManageTeamChannel(ctx, args.channelId)
 
     const message = await ctx.db.insert("messages", {
-      channelId,
+      channelId: channel._id,
       authorId: user._id,
       content: args.content,
       parentMessageId: args.parentMessageId,
@@ -132,6 +124,12 @@ export const send = mutation({
       .collect()
 
     await Promise.all(files.map((file) => ctx.db.patch(file._id, { messageId: message })))
+
+    await ctx.scheduler.runAfter(0, internal.pushNotifications.send, {
+      messageId: message,
+      parentMessageId: args.parentMessageId,
+      numberOfFiles: files.length,
+    })
 
     return message
   },

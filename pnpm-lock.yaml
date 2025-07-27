@@ -385,6 +385,9 @@ importers:
       '@convex-dev/auth':
         specifier: 0.0.87
         version: 0.0.87(@auth/core@0.37.0)(convex@1.25.4(react@19.1.0))(react@19.1.0)
+      '@convex-dev/expo-push-notifications':
+        specifier: ^0.2.5
+        version: 0.2.5(convex@1.25.4(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.22.4)
       convex:
         specifier: ^1.25.4
         version: 1.25.4(react@19.1.0)
@@ -1196,6 +1199,11 @@ packages:
     peerDependenciesMeta:
       react:
         optional: true
+
+  '@convex-dev/expo-push-notifications@0.2.5':
+    resolution: {integrity: sha512-9Ga9IsiR+miv7gtBDpUM0enRQ1jZfxCUsDN3rvieWxU9oqYfB0Cags+gkiYg51RLOC8TenrhRqEs4rko8wnUpA==}
+    peerDependencies:
+      convex: '>=1.23.0 <1.35.0'
 
   '@convex-dev/react-query@0.0.0-alpha.11':
     resolution: {integrity: sha512-Fy/p3JOvUUNrbBBQD0AEXcSU40PBu567gm3XRgExHkiKlv07kBOjnuXA0TvodKkryyuHLbuIxYP8XIv03i6DEw==}
@@ -7803,6 +7811,17 @@ snapshots:
       server-only: 0.0.1
     optionalDependencies:
       react: 19.1.0
+
+  '@convex-dev/expo-push-notifications@0.2.5(convex@1.25.4(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.22.4)':
+    dependencies:
+      convex: 1.25.4(react@19.1.0)
+      convex-helpers: 0.1.99(convex@1.25.4(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.22.4)
+    transitivePeerDependencies:
+      - '@standard-schema/spec'
+      - hono
+      - react
+      - typescript
+      - zod
 
   '@convex-dev/react-query@0.0.0-alpha.11(@tanstack/react-query@5.83.0(react@19.1.0))(convex@1.25.4(react@19.1.0))(react@19.1.0)(typescript@5.8.3)(zod@3.22.4)':
     dependencies:
