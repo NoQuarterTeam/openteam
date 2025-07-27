@@ -125,11 +125,7 @@ export const send = mutation({
 
     await Promise.all(files.map((file) => ctx.db.patch(file._id, { messageId: message })))
 
-    await ctx.scheduler.runAfter(0, internal.pushNotifications.send, {
-      messageId: message,
-      parentMessageId: args.parentMessageId,
-      numberOfFiles: files.length,
-    })
+    await ctx.scheduler.runAfter(0, internal.pushNotifications.send, { messageId: message, numberOfFiles: files.length })
 
     return message
   },

@@ -74,7 +74,7 @@ export const markAsRead = mutation({
   handler: async (ctx, args) => {
     const channelId = ctx.db.normalizeId("channels", args.channelId)
     if (!channelId) throw new ConvexError("Invalid channel ID")
-    const user = await canManageTeamChannel(ctx, channelId)
+    const { user } = await canManageTeamChannel(ctx, channelId)
     const channelActivity = await ctx.db
       .query("userChannelActivity")
       .withIndex("by_channel", (q) => q.eq("channelId", channelId))
@@ -155,7 +155,7 @@ export const toggleMute = mutation({
   handler: async (ctx, args) => {
     const channelId = ctx.db.normalizeId("channels", args.channelId)
     if (!channelId) throw new ConvexError("Invalid channel ID")
-    const user = await canManageTeamChannel(ctx, channelId)
+    const { user } = await canManageTeamChannel(ctx, channelId)
 
     const channel = await ctx.db.get(channelId)
     if (!channel) throw new ConvexError("Channel not found")
@@ -185,7 +185,7 @@ export const get = query({
   handler: async (ctx, args) => {
     const channelId = ctx.db.normalizeId("channels", args.channelId)
     if (!channelId) throw new ConvexError("Invalid channel ID")
-    const user = await canManageTeamChannel(ctx, channelId)
+    const { user } = await canManageTeamChannel(ctx, channelId)
 
     const channel = await ctx.db.get(channelId)
     if (!channel) return null

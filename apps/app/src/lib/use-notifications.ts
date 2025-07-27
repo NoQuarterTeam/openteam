@@ -1,5 +1,5 @@
 import * as Notifications from "expo-notifications"
-import { useRouter } from "expo-router"
+import { useLocalSearchParams, useRouter } from "expo-router"
 import { useEffect } from "react"
 
 Notifications.setNotificationHandler({
@@ -13,23 +13,43 @@ Notifications.setNotificationHandler({
 
 type NotificationData = {
   type: "NEW_MESSAGE"
-  messageId: string | undefined
+  parentMessageId: string | undefined
   channelId: string
   teamId: string
 }
 
 export function useNotifications() {
   const router = useRouter()
+  const { teamId, channelId, messageId } = useLocalSearchParams<{
+    teamId: string
+    channelId: string
+    messageId: string
+  }>()
+
   useEffect(() => {
     let isMounted = true
 
-    function handleRedirect({ request }: Notifications.Notification) {
+    async function handleRedirect({ request }: Notifications.Notification) {
       const data = request.content.data as NotificationData
       const notificationType = data?.type
       switch (notificationType) {
-        case "NEW_MESSAGE":
-          router.push(`/${data.teamId}/${data.channelId}${data.messageId ? `/${data.messageId}` : ""}`, { withAnchor: false })
+        case "NEW_MESSAGE": {
+          if (teamId !== data.teamId) {
+            // Push team
+            router.replace(`/${data.teamId}`)
+          } else {
+            router.dismissTo(`/${data.teamId}`)
+          }
+          // Push channel
+          if (channelId !== data.channelId) {
+            router.push(`/${data.teamId}/${data.channelId}`)
+          }
+          // Push thread (message) if present
+          if (data.parentMessageId && data.parentMessageId !== messageId) {
+            router.push(`/${data.teamId}/${data.channelId}/${data.parentMessageId}`)
+          }
           break
+        }
         default:
           notificationType satisfies never
           break

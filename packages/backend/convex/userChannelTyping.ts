@@ -11,7 +11,7 @@ export const userStartedTyping = mutation({
   handler: async (ctx, args) => {
     const channelId = ctx.db.normalizeId("channels", args.channelId)
     if (!channelId) throw new ConvexError("Invalid channel ID")
-    const user = await canManageTeamChannel(ctx, channelId)
+    const { user } = await canManageTeamChannel(ctx, channelId)
 
     const existingTypingStatus = await ctx.db
       .query("userChannelTyping")
@@ -34,7 +34,7 @@ export const userStoppedTyping = mutation({
   handler: async (ctx, args) => {
     const channelId = ctx.db.normalizeId("channels", args.channelId)
     if (!channelId) throw new ConvexError("Invalid channel ID")
-    const user = await canManageTeamChannel(ctx, channelId)
+    const { user } = await canManageTeamChannel(ctx, channelId)
 
     const existingTypingStatus = await ctx.db
       .query("userChannelTyping")
@@ -52,7 +52,7 @@ export const getUsersTyping = query({
   handler: async (ctx, args) => {
     const channelId = ctx.db.normalizeId("channels", args.channelId)
     if (!channelId) return []
-    const user = await canManageTeamChannel(ctx, channelId)
+    const { user } = await canManageTeamChannel(ctx, channelId)
     const now = Date.now()
     const activeTypingStatuses = await ctx.db
       .query("userChannelTyping")

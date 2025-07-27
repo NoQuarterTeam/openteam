@@ -123,15 +123,16 @@ export default function Page() {
               className="w-full shrink-0"
               onClick={async () => {
                 try {
+                  setIsAcceptingInvite(true)
                   await acceptInvite({ inviteId: invite._id })
                   navigate(`/${team._id}`)
                 } catch (error) {
+                  setIsAcceptingInvite(false)
                   if (error instanceof ConvexError) {
                     toast.error(error.data)
                   } else {
                     toast.error("Failed to accept invite")
                   }
-                  setIsAcceptingInvite(false)
                 }
               }}
             >

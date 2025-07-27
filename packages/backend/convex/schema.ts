@@ -18,11 +18,6 @@ export default defineSchema({
     .index("phone", ["phone"])
     .searchIndex("search_name", { searchField: "name" }),
 
-  pushTokens: defineTable({
-    userId: v.id("users"),
-    token: v.string(),
-  }).index("by_user", ["userId"]),
-
   invites: defineTable({
     email: v.string(),
     role: v.union(v.literal("admin"), v.literal("member")),
@@ -90,6 +85,7 @@ export default defineSchema({
     isMuted: v.boolean(),
     userId: v.id("users"),
   })
+    .index("by_user_channel", ["userId", "channelId"])
     .index("by_last_read_message_time", ["lastReadMessageTime"])
     .index("by_user", ["userId"])
     .index("by_channel", ["channelId"]),

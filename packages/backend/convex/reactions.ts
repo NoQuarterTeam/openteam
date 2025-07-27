@@ -10,7 +10,7 @@ export const add = mutation({
   handler: async (ctx, args) => {
     const messageId = ctx.db.normalizeId("messages", args.messageId)
     if (!messageId) throw new ConvexError("Invalid message ID")
-    const user = await canManageTeamMessage(ctx, messageId)
+    const { user } = await canManageTeamMessage(ctx, messageId)
 
     return ctx.db.insert("messageReactions", {
       messageId,

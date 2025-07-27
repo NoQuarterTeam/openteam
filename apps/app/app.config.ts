@@ -52,6 +52,7 @@ export default {
     },
     bundleIdentifier: IS_DEV ? "co.noquarter.openteam.dev" : "co.noquarter.openteam",
     supportsTablet: true,
+    usesAppleSignIn: true,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription: "This app uses the camera to send photos to your team.",

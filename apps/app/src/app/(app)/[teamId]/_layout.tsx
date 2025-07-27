@@ -4,10 +4,11 @@ import { Stack } from "expo-router"
 import { useEffect } from "react"
 import { useColorScheme } from "react-native"
 import { getPushToken } from "@/lib/get-push-token"
+import { useNotifications } from "@/lib/use-notifications"
 
 export default function Layout() {
   const colorScheme = useColorScheme()
-
+  useNotifications()
   const savePushNotificationToken = useMutation(api.pushNotifications.saveToken)
 
   useEffect(() => {
