@@ -114,7 +114,6 @@ export const sendSignal = mutation({
       fromUserId: user._id,
       toUserId: targetUserId,
       signal: args.signal,
-      createdAt: Date.now(),
     })
 
     return null
@@ -131,7 +130,7 @@ export const getSignals = query({
     const signals = await ctx.db
       .query("babbleSignals")
       .withIndex("by_to_user", (q) => q.eq("toUserId", user._id))
-      .filter((q) => q.gt(q.field("createdAt"), thirtySecondsAgo))
+      .filter((q) => q.gt(q.field("_creationTime"), thirtySecondsAgo))
       .collect()
 
     return signals
