@@ -28,7 +28,6 @@ export function useNotifications() {
 
   useEffect(() => {
     let isMounted = true
-
     async function handleRedirect({ request }: Notifications.Notification) {
       const data = request.content.data as NotificationData
       const notificationType = data?.type
@@ -40,10 +39,14 @@ export function useNotifications() {
           } else {
             router.dismissTo(`/${data.teamId}`)
           }
-          // Push channel
-          if (channelId !== data.channelId) {
+          await new Promise((resolve) => setTimeout(resolve, 100))
+          console.log("url.channelId", channelId)
+          console.log("data.channelId", data.channelId)
+
+          if (data.channelId && data.channelId !== channelId) {
             router.push(`/${data.teamId}/${data.channelId}`)
           }
+
           // Push thread (message) if present
           if (data.parentMessageId && data.parentMessageId !== messageId) {
             router.push(`/${data.teamId}/${data.channelId}/${data.parentMessageId}`)

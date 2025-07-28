@@ -7,8 +7,8 @@ import { getPushToken } from "@/lib/get-push-token"
 import { useNotifications } from "@/lib/use-notifications"
 
 export default function Layout() {
-  const colorScheme = useColorScheme()
   useNotifications()
+  const colorScheme = useColorScheme()
   const savePushNotificationToken = useMutation(api.pushNotifications.saveToken)
 
   useEffect(() => {

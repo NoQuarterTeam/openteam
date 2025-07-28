@@ -7,17 +7,19 @@ import * as Clipboard from "expo-clipboard"
 import * as Crypto from "expo-crypto"
 import { Image } from "expo-image"
 import { useLocalSearchParams, useRouter } from "expo-router"
-import { CopyIcon, PencilIcon, ReplyIcon, SmilePlusIcon, TrashIcon } from "lucide-react-native"
+import { ChevronDownIcon, CopyIcon, PencilIcon, ReplyIcon, SmilePlusIcon, TrashIcon } from "lucide-react-native"
 import { Fragment, useCallback, useRef } from "react"
-import { Alert, TouchableOpacity, useColorScheme, View } from "react-native"
+import { Alert, ScrollView, TouchableOpacity, useColorScheme, View } from "react-native"
 import ActionSheet, { ActionSheetRef } from "react-native-actions-sheet"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import { useMarkdown } from "react-native-marked"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { FileDisplay } from "./file-display"
 import { ThreadIndicator } from "./thread-indicator"
 import { toast } from "./toaster"
 import { Button } from "./ui/button"
 import { Text } from "./ui/text"
+import { WithState } from "./with-state"
 
 type MessageData = (typeof api.messages.list._returnType)["page"][number] | typeof api.messages.get._returnType
 
@@ -203,6 +205,54 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
             </View>
           </TouchableOpacity>
         </GestureDetector>
+
+        {message.files && message.files.length > 0 && (
+          <View>
+            <WithState initialState={true}>
+              {(isImageOpen, setIsImageOpen) => (
+                <>
+                  <TouchableOpacity
+                    style={{ flexDirection: "row", alignItems: "center", gap: 0, paddingVertical: 4, padding: 4, opacity: 0.5 }}
+                    onPress={() => setIsImageOpen(!isImageOpen)}
+                  >
+                    <Text style={{ fontSize: 12, color: colorScheme === "dark" ? "#fff" : "#000" }}>
+                      {message.files.length === 1 ? message.files[0]!.name : `${message.files.length} files`}
+                    </Text>
+                    <ChevronDownIcon size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                  </TouchableOpacity>
+
+                  {isImageOpen && message.files.length > 0 && (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingTop: 4 }}>
+                      {message.files.map((file) => (
+                        <FileDisplay
+                          key={file._id}
+                          file={file}
+                          variant="message"
+                          channelId={message.channelId}
+                          messageId={message._id}
+                        />
+                      ))}
+                    </ScrollView>
+                  )}
+                  {/* {isImageOpen && message.files.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {message.files.map((file) => (
+                        <FileDisplay
+                          key={file._id}
+                          file={file}
+                          variant="message"
+                          fullSize={onlyFullsizeAbleFiles}
+                          channelId={message.channelId}
+                          messageId={message._id}
+                        />
+                      ))}
+                    </div>
+                  )} */}
+                </>
+              )}
+            </WithState>
+          </View>
+        )}
 
         {/* Reactions */}
         {Object.entries(groupedReactions).length > 0 && (

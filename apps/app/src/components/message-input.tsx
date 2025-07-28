@@ -3,13 +3,13 @@ import { Id } from "@openteam/backend/convex/_generated/dataModel"
 import { insertAtPosition, useMutation, useQuery } from "convex/react"
 import * as Crypto from "expo-crypto"
 import * as DocumentPicker from "expo-document-picker"
-import { Image } from "expo-image"
 import * as ImagePicker from "expo-image-picker"
 import { useLocalSearchParams } from "expo-router"
 import { ArrowRightIcon, FileIcon, ImageIcon, PlusIcon } from "lucide-react-native"
 import { useCallback, useRef, useState } from "react"
 import { ScrollView, TextInput, TouchableOpacity, useColorScheme, View } from "react-native"
 import ActionSheet, { ActionSheetRef } from "react-native-actions-sheet"
+import { FileDisplay } from "./file-display"
 import { toast } from "./toaster"
 import { Button } from "./ui/button"
 
@@ -210,24 +210,23 @@ export function MessageInput({ onFocus }: { onFocus?: () => void }) {
           }}
         >
           <ScrollView horizontal>
-            {filePreviews.map(({ id, storageId, url }) => (
-              <Image key={id} source={{ uri: url }} style={{ flex: 1, marginRight: 8, height: 60, borderRadius: 6 }} />
-              // <FileDisplay
-              //   key={id}
-              //   file={{
-              //     _id: id as Id<"files">,§
-              //     name: file.name,
-              //     previewUrl: url,
-              //     previewId: id,
-              //     storageId,
-              //     previewContentType: file.type,
-              //     url: null,
-              //     metadata: null,
-              //   }}
-              //   variant="preview"
-              //   channelId={channelId}
-              //   onRemove={handleRemoveFile}
-              // />
+            {filePreviews.map(({ id, name, storageId, url, type }) => (
+              <FileDisplay
+                key={id}
+                file={{
+                  _id: id as Id<"files">,
+                  name,
+                  previewUrl: url,
+                  previewId: id,
+                  storageId,
+                  previewContentType: type,
+                  url: null,
+                  metadata: null,
+                }}
+                variant="preview"
+                channelId={params.channelId}
+                onRemove={handleRemoveFile}
+              />
             ))}
           </ScrollView>
         </View>
@@ -290,6 +289,7 @@ export function MessageInput({ onFocus }: { onFocus?: () => void }) {
           value={message}
           autoFocus={!!params.messageId}
           onChangeText={setMessage}
+          returnKeyType="default"
           onFocus={onFocus}
         />
         <TouchableOpacity
