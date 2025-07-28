@@ -39,9 +39,6 @@ export function useNotifications() {
           } else {
             router.dismissTo(`/${data.teamId}`)
           }
-          await new Promise((resolve) => setTimeout(resolve, 100))
-          console.log("url.channelId", channelId)
-          console.log("data.channelId", data.channelId)
 
           if (data.channelId && data.channelId !== channelId) {
             router.push(`/${data.teamId}/${data.channelId}`)
