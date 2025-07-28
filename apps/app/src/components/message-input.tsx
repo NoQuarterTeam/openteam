@@ -8,7 +8,7 @@ import * as ImagePicker from "expo-image-picker"
 import { useLocalSearchParams } from "expo-router"
 import { ArrowRightIcon, FileIcon, ImageIcon, PlusIcon } from "lucide-react-native"
 import { useCallback, useRef, useState } from "react"
-import { KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, useColorScheme, View } from "react-native"
+import { ScrollView, TextInput, TouchableOpacity, useColorScheme, View } from "react-native"
 import ActionSheet, { ActionSheetRef } from "react-native-actions-sheet"
 import { toast } from "./toaster"
 import { Button } from "./ui/button"
@@ -199,7 +199,7 @@ export function MessageInput({ onFocus }: { onFocus?: () => void }) {
   }, [tempMessageId])
 
   return (
-    <KeyboardAvoidingView behavior={Platform.select({ ios: "padding", android: "height" })}>
+    <View style={{ backgroundColor: colorScheme === "dark" ? "#000" : "#fff" }}>
       {filePreviews.length > 0 && (
         <View
           style={{
@@ -207,7 +207,6 @@ export function MessageInput({ onFocus }: { onFocus?: () => void }) {
             borderTopWidth: 1,
             borderColor: colorScheme === "dark" ? "#444" : "#eee",
             padding: 8,
-            backgroundColor: colorScheme === "dark" ? "#000" : "#fff",
           }}
         >
           <ScrollView horizontal>
@@ -308,6 +307,6 @@ export function MessageInput({ onFocus }: { onFocus?: () => void }) {
           <ArrowRightIcon color={colorScheme === "dark" ? "#000" : "#fff"} size={20} />
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   )
 }

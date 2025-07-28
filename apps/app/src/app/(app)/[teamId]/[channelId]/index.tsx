@@ -8,6 +8,7 @@ import { Link, useFocusEffect, useLocalSearchParams } from "expo-router"
 import { ChevronLeftIcon } from "lucide-react-native"
 import { useCallback, useMemo, useRef, useState } from "react"
 import { NativeScrollEvent, NativeSyntheticEvent, useColorScheme, View } from "react-native"
+import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import EditMessage from "@/components/edit-message"
 import { Message } from "@/components/message"
@@ -96,77 +97,88 @@ export default function Page() {
     }, [messages.length, status]),
   )
 
+  const keyboard = useAnimatedKeyboard()
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: -keyboard.height.value }],
+    }
+  })
+
   return (
-    <View style={{ flex: 1, paddingTop: insets.top + 8, paddingBottom: insets.bottom }}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 16,
-          gap: 16,
-          paddingBottom: 12,
-          borderBottomWidth: 1,
-          borderColor: colorScheme === "dark" ? "#444" : "#eee",
-        }}
-      >
-        <Link href="../">
-          <ChevronLeftIcon size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
-        </Link>
-        <Text style={{ fontSize: 20, fontWeight: "bold" }}># {channel?.name}</Text>
-      </View>
-      <FlashList
-        ref={flatListRef}
-        extraData={messages.length}
-        onScroll={handleScroll}
-        // onContentSizeChange={() => {
-        //   try {
-        //     if (isScrolledUpRef.current) return
-        //     flatListRef.current?.scrollToEnd({ animated: false })
-        //   } catch {}
-        // }}
-        scrollEventThrottle={16}
-        estimatedItemSize={55}
-        keyboardShouldPersistTaps="handled"
-        data={flatMessagesWithDates}
-        contentContainerStyle={{ paddingBottom: 16 }}
-        getItemType={(item) => (typeof item === "string" ? "sectionHeader" : "row")}
-        renderItem={({ item }) => {
-          if (typeof item === "string") {
-            return (
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "bold",
-                  paddingVertical: 8,
-                  marginBottom: 8,
-                  paddingHorizontal: 12,
-                  borderBottomWidth: 1,
-                  borderColor: colorScheme === "dark" ? "#444" : "#eee",
-                }}
-              >
-                {dayjs(item).isSame(dayjs(), "day")
-                  ? "Today"
-                  : dayjs(item).isSame(dayjs().subtract(1, "day"), "day")
-                    ? "Yesterday"
-                    : dayjs(item).format("dddd, MMMM Do")}
-              </Text>
-            )
-          }
+    <View style={{ flex: 1, paddingBottom: 0 }}>
+      <Animated.View style={[animatedStyle, { flex: 1, paddingTop: insets.top + 8 }]}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            gap: 16,
+            paddingBottom: 12,
+            borderBottomWidth: 1,
+            borderColor: colorScheme === "dark" ? "#444" : "#eee",
+          }}
+        >
+          <Link href="../">
+            <ChevronLeftIcon size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
+          </Link>
+          <Text style={{ fontSize: 20, fontWeight: "bold" }}># {channel?.name}</Text>
+        </View>
+        <FlashList
+          ref={flatListRef}
+          extraData={messages.length}
+          onScroll={handleScroll}
+          // contentInsetAdjustmentBehavior="always"
+          // onContentSizeChange={() => {
+          //   try {
+          //     if (isScrolledUpRef.current) return
+          //     flatListRef.current?.scrollToEnd({ animated: false })
+          //   } catch {}
+          // }}
+          scrollEventThrottle={16}
+          estimatedItemSize={55}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          data={flatMessagesWithDates}
+          contentContainerStyle={{ paddingBottom: 16 }}
+          getItemType={(item) => (typeof item === "string" ? "sectionHeader" : "row")}
+          renderItem={({ item }) => {
+            if (typeof item === "string") {
+              return (
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    paddingVertical: 8,
+                    marginBottom: 8,
+                    paddingHorizontal: 12,
+                    borderBottomWidth: 1,
+                    borderColor: colorScheme === "dark" ? "#444" : "#eee",
+                  }}
+                >
+                  {dayjs(item).isSame(dayjs(), "day")
+                    ? "Today"
+                    : dayjs(item).isSame(dayjs().subtract(1, "day"), "day")
+                      ? "Yesterday"
+                      : dayjs(item).format("dddd, MMMM Do")}
+                </Text>
+              )
+            }
 
-          return <Message message={item} isFirstMessageOfUser={item.isFirstMessageOfUser} onEdit={setEditMessage} />
-        }}
-      />
-
-      {editMessage ? (
-        <EditMessage message={editMessage} onClose={() => setEditMessage(null)} />
-      ) : (
-        <MessageInput
-          onFocus={async () => {
-            await new Promise((resolve) => setTimeout(resolve, 100))
-            flatListRef.current?.scrollToEnd({ animated: false })
+            return <Message message={item} isFirstMessageOfUser={item.isFirstMessageOfUser} onEdit={setEditMessage} />
           }}
         />
-      )}
+
+        {editMessage ? (
+          <EditMessage message={editMessage} onClose={() => setEditMessage(null)} />
+        ) : (
+          <MessageInput
+          // onFocus={async () => {
+          //   // await new Promise((resolve) => setTimeout(resolve, 1000))
+          //   flatListRef.current?.scrollToEnd({ animated: true })
+          // }}
+          />
+        )}
+      </Animated.View>
     </View>
   )
 }
