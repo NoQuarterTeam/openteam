@@ -129,78 +129,83 @@ export default function Page() {
         </Link>
         <Text style={{ fontSize: 20, fontWeight: "bold" }}># {channel?.name}</Text>
       </View>
-      <FlashList
-        ref={flatListRef}
-        extraData={messages.length > 0}
-        onScroll={handleScroll}
-        onEndReached={() => {
-          if (status === "CanLoadMore") {
-            void loadMore(DEFAULT_PAGINATION_NUM_ITEMS)
-          }
-        }}
-        showsVerticalScrollIndicator={false}
-        onEndReachedThreshold={0.5}
-        scrollEventThrottle={16}
-        estimatedItemSize={55}
-        contentInsetAdjustmentBehavior="always"
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-        inverted
-        data={flatMessagesWithDates}
-        ListFooterComponent={
-          status === "Exhausted" && (
-            <View
-              style={{
-                padding: 16,
-                marginBottom: 32,
-                gap: 4,
-                borderBottomWidth: 1,
-                borderColor: colorScheme === "dark" ? "#444" : "#eee",
-              }}
-            >
-              <Text style={{ fontSize: 24, fontWeight: "bold" }}>{channel?.name}</Text>
-              <Text style={{ fontSize: 14, color: colorScheme === "dark" ? "#888" : "#666" }}>
-                Created {dayjs(channel?._creationTime).format("MMMM Do, YYYY")} by {channel?.createdBy.name}. This is the very
-                beginning of the {channel?.name} channel.
-              </Text>
-            </View>
-          )
-        }
-        contentContainerStyle={{ paddingBottom: 16 }}
-        getItemType={(item) => (typeof item === "string" ? "sectionHeader" : "row")}
-        maintainVisibleContentPosition={{
-          minIndexForVisible: 1,
-          autoscrollToTopThreshold: 10,
-        }}
-        renderItem={({ item }) => {
-          if (typeof item === "string") {
-            return (
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "bold",
-                  paddingVertical: 8,
-                  marginBottom: 8,
-                  paddingHorizontal: 12,
-                  borderBottomWidth: 1,
-                  borderColor: colorScheme === "dark" ? "#444" : "#eee",
-                }}
-              >
-                {dayjs(item).isSame(dayjs(), "day")
-                  ? "Today"
-                  : dayjs(item).isSame(dayjs().subtract(1, "day"), "day")
-                    ? "Yesterday"
-                    : dayjs(item).format("dddd, MMMM Do")}
-              </Text>
-            )
-          }
 
-          return <Message message={item} isFirstMessageOfUser={item.isFirstMessageOfUser} onEdit={setEditMessage} />
-        }}
-      />
-
-      {editMessage ? <EditMessage message={editMessage} onClose={() => setEditMessage(null)} /> : <MessageInput />}
-
+      <View style={{ flex: 1 }}>
+        {status === "LoadingFirstPage" ? (
+          <View style={{ flex: 1 }} />
+        ) : (
+          <FlashList
+            ref={flatListRef}
+            extraData={messages.length > 0}
+            onScroll={handleScroll}
+            onEndReached={() => {
+              if (status === "CanLoadMore") {
+                void loadMore(DEFAULT_PAGINATION_NUM_ITEMS)
+              }
+            }}
+            showsVerticalScrollIndicator={false}
+            onEndReachedThreshold={0.1}
+            scrollEventThrottle={16}
+            estimatedItemSize={55}
+            automaticallyAdjustContentInsets={false}
+            contentInsetAdjustmentBehavior="always"
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+            inverted
+            data={flatMessagesWithDates}
+            contentContainerStyle={{ paddingBottom: 16 }}
+            getItemType={(item) => (typeof item === "string" ? "sectionHeader" : "row")}
+            maintainVisibleContentPosition={{
+              minIndexForVisible: 1,
+              autoscrollToTopThreshold: 10,
+            }}
+            ListFooterComponent={
+              status === "Exhausted" && (
+                <View
+                  style={{
+                    padding: 16,
+                    marginBottom: 32,
+                    gap: 4,
+                    borderBottomWidth: 1,
+                    borderColor: colorScheme === "dark" ? "#444" : "#eee",
+                  }}
+                >
+                  <Text style={{ fontSize: 24, fontWeight: "bold" }}>{channel?.name}</Text>
+                  <Text style={{ fontSize: 14, color: colorScheme === "dark" ? "#888" : "#666" }}>
+                    Created {dayjs(channel?._creationTime).format("MMMM Do, YYYY")} by {channel?.createdBy.name}. This is the very
+                    beginning of the {channel?.name} channel.
+                  </Text>
+                </View>
+              )
+            }
+            renderItem={({ item }) => {
+              if (typeof item === "string") {
+                return (
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "bold",
+                      paddingVertical: 8,
+                      marginBottom: 8,
+                      paddingHorizontal: 12,
+                      borderBottomWidth: 1,
+                      borderColor: colorScheme === "dark" ? "#444" : "#eee",
+                    }}
+                  >
+                    {dayjs(item).isSame(dayjs(), "day")
+                      ? "Today"
+                      : dayjs(item).isSame(dayjs().subtract(1, "day"), "day")
+                        ? "Yesterday"
+                        : dayjs(item).format("dddd, MMMM Do")}
+                  </Text>
+                )
+              }
+              return <Message message={item} isFirstMessageOfUser={item.isFirstMessageOfUser} onEdit={setEditMessage} />
+            }}
+          />
+        )}
+        {editMessage ? <EditMessage message={editMessage} onClose={() => setEditMessage(null)} /> : <MessageInput />}
+      </View>
       <Animated.View style={[animatedStyle]} />
     </View>
   )
