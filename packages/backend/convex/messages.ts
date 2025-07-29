@@ -6,8 +6,20 @@ import { mutation, query } from "./_generated/server"
 import { canManageTeamChannel, requireUser } from "./auth"
 import type { OptimisticStatus } from "./optimistic"
 
+interface ThreadInfo {
+  parentMessageId: Id<"messages">
+  replyCount: number
+  lastReplyTime: number | undefined
+  participants: (Omit<Doc<"users">, "image"> & { image: string | null })[]
+}
+
 export const list = query({
-  args: { channelId: v.string(), messageId: v.optional(v.id("messages")), paginationOpts: paginationOptsValidator },
+  args: {
+    channelId: v.string(),
+    messageId: v.optional(v.id("messages")),
+    paginationOpts: paginationOptsValidator,
+    order: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+  },
   handler: async (ctx, args) => {
     const channelId = ctx.db.normalizeId("channels", args.channelId)
     if (!channelId) throw new ConvexError("Invalid channel ID")
@@ -23,7 +35,7 @@ export const list = query({
       .query("messages")
       .withIndex("by_channel", (q) => q.eq("channelId", channelId))
       .filter((q) => q.eq(q.field("parentMessageId"), parentMessageId))
-      .order("desc")
+      .order(args.order || "desc")
       .paginate(args.paginationOpts)
 
     const messagesWithAuthorsAndThreads = await Promise.all(
@@ -64,7 +76,7 @@ export const list = query({
         ])
 
         // Thread info
-        let threadInfo = null
+        let threadInfo: ThreadInfo | null = null
         if (dbThreadMessages.length > 0) {
           const participants = await Promise.all(
             dbThreadMessages.map(async (reply) => {
@@ -139,7 +151,7 @@ export const get = query({
     const message = await ctx.db.get(messageId)
     if (!message) throw new ConvexError("Message not found")
 
-    const [user, reactions, files] = await Promise.all([
+    const [user, reactions, files, threadMessages] = await Promise.all([
       ctx.db.get(message.authorId),
       ctx.db
         .query("messageReactions")
@@ -148,6 +160,10 @@ export const get = query({
       ctx.db
         .query("files")
         .withIndex("by_message", (q) => q.eq("messageId", message._id))
+        .collect(),
+      ctx.db
+        .query("messages")
+        .withIndex("by_parent_message", (q) => q.eq("parentMessageId", message._id))
         .collect(),
     ])
 
@@ -168,10 +184,32 @@ export const get = query({
       }),
     )
 
+    // Thread info
+    let threadInfo: ThreadInfo | null = null
+    if (threadMessages.length > 0) {
+      const participants = await Promise.all(
+        threadMessages.map(async (reply) => {
+          const user = await ctx.db.get(reply.authorId)
+          if (!user) return null
+          return { ...user, image: user.image ? await ctx.storage.getUrl(user.image) : null }
+        }),
+      )
+      const uniqueParticipants = [...new Set(participants.filter(Boolean).map((p) => p!._id))]
+      threadInfo = {
+        parentMessageId: message._id,
+        replyCount: threadMessages.length,
+        lastReplyTime: threadMessages.length > 0 ? Math.max(...threadMessages.map((r) => r._creationTime)) : undefined,
+        participants: uniqueParticipants.map((p) => {
+          const user = participants.find((u) => u!._id === p)
+          return user!
+        }),
+      }
+    }
+
     return {
       ...message,
       optimisticStatus: null as OptimisticStatus,
-      threadInfo: null,
+      threadInfo,
       reactions: reactionsWithUsers,
       files: filesWithUrls,
       author: user ? { ...user, image: user.image ? await ctx.storage.getUrl(user.image) : null } : null,

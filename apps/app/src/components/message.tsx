@@ -32,6 +32,7 @@ interface Props {
 
 export function Message({ message, isFirstMessageOfUser, isThreadParentMessage = false, onEdit }: Props) {
   const colorScheme = useColorScheme()
+
   const user = useQuery(api.auth.me)
   const params = useLocalSearchParams<{ teamId: Id<"teams">; channelId: Id<"channels">; messageId: Id<"messages"> }>()
   const actionSheetRef = useRef<ActionSheetRef>(null)
@@ -156,14 +157,6 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
         paddingHorizontal: 12,
         backgroundColor:
           message.optimisticStatus === "deleted" ? (colorScheme === "dark" ? "#544" : "rgba(255,0,0,0.05)") : "transparent",
-        ...(isThreadParentMessage && {
-          borderBottomWidth: 1,
-          paddingTop: 12,
-          paddingBottom: 10,
-          marginBottom: 8,
-          borderColor: colorScheme === "dark" ? "#444" : "#eee",
-          backgroundColor: colorScheme === "dark" ? "#221" : "#ffe",
-        }),
       }}
     >
       {isFirstMessageOfUser ? (
@@ -198,7 +191,7 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
                 <Text style={{ fontSize: 12, color: "gray" }}>{dayjs(message._creationTime).format("HH:mm")}</Text>
               </View>
             )}
-            <View style={{ flex: 1, opacity: message.optimisticStatus === "created" ? 0.8 : 1 }}>
+            <View style={{ opacity: message.optimisticStatus === "created" ? 0.8 : 1 }}>
               {markdown.map((element, index) => (
                 <Fragment key={`ot-${index}`}>{element}</Fragment>
               ))}
@@ -317,7 +310,7 @@ export function Message({ message, isFirstMessageOfUser, isThreadParentMessage =
             </TouchableOpacity>
           </View>
         )}
-        {message.threadInfo && <ThreadIndicator threadInfo={message.threadInfo} />}
+        {message.threadInfo && !isThreadParentMessage && <ThreadIndicator threadInfo={message.threadInfo} />}
       </View>
       <ActionSheet
         ref={actionSheetRef}

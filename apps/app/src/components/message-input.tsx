@@ -287,7 +287,7 @@ export function MessageInput({ onFocus }: { onFocus?: () => void }) {
           placeholder="Message"
           style={{ fontSize: 16, flex: 1, minHeight: 32, color: colorScheme === "dark" ? "#fff" : "#000" }}
           value={message}
-          autoFocus={!!params.messageId}
+          // autoFocus={!!params.messageId}
           onChangeText={setMessage}
           returnKeyType="default"
           onFocus={onFocus}

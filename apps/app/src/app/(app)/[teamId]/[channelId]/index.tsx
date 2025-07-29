@@ -134,7 +134,6 @@ export default function Page() {
         extraData={messages.length > 0}
         onScroll={handleScroll}
         onEndReached={() => {
-          if (status === "LoadingFirstPage" || status === "LoadingMore") return
           if (status === "CanLoadMore") {
             void loadMore(DEFAULT_PAGINATION_NUM_ITEMS)
           }
@@ -148,6 +147,25 @@ export default function Page() {
         keyboardDismissMode="interactive"
         inverted
         data={flatMessagesWithDates}
+        ListFooterComponent={
+          status === "Exhausted" && (
+            <View
+              style={{
+                padding: 16,
+                marginBottom: 32,
+                gap: 4,
+                borderBottomWidth: 1,
+                borderColor: colorScheme === "dark" ? "#444" : "#eee",
+              }}
+            >
+              <Text style={{ fontSize: 24, fontWeight: "bold" }}>{channel?.name}</Text>
+              <Text style={{ fontSize: 14, color: colorScheme === "dark" ? "#888" : "#666" }}>
+                Created {dayjs(channel?._creationTime).format("MMMM Do, YYYY")} by {channel?.createdBy.name}. This is the very
+                beginning of the {channel?.name} channel.
+              </Text>
+            </View>
+          )
+        }
         contentContainerStyle={{ paddingBottom: 16 }}
         getItemType={(item) => (typeof item === "string" ? "sectionHeader" : "row")}
         maintainVisibleContentPosition={{

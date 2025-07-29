@@ -313,14 +313,17 @@ export const Message = memo(function _Message({ message, isFirstMessageOfUser, i
               </div>
             )}
             {/* Thread Indicator */}
-            {"threadInfo" in message && message.threadInfo?.parentMessageId && message.threadInfo.replyCount > 0 && (
-              <ThreadIndicator
-                threadInfo={{
-                  ...message.threadInfo,
-                  parentMessageId: message.threadInfo!.parentMessageId!,
-                }}
-              />
-            )}
+            {"threadInfo" in message &&
+              message.threadInfo?.parentMessageId &&
+              message.threadInfo.replyCount > 0 &&
+              !isThreadParentMessage && (
+                <ThreadIndicator
+                  threadInfo={{
+                    ...message.threadInfo,
+                    parentMessageId: message.threadInfo!.parentMessageId!,
+                  }}
+                />
+              )}
           </>
         )}
 

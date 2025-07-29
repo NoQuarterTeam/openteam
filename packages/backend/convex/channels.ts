@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values"
 import dayjs from "dayjs"
 import { mutation, query } from "./_generated/server"
-import { canManageTeam, canManageTeamChannel, requireUser } from "./auth"
+import { canManageTeam, canManageTeamChannel, canManageTeamMessage, requireUser } from "./auth"
 
 export const list = query({
   args: { teamId: v.string() },
@@ -91,6 +91,32 @@ export const markAsRead = mutation({
       })
     } else {
       await ctx.db.patch(channelActivity._id, { lastReadMessageTime: Date.now() })
+    }
+  },
+})
+
+export const markThreadAsRead = mutation({
+  args: { messageId: v.string() },
+  handler: async (ctx, args) => {
+    const messageId = ctx.db.normalizeId("messages", args.messageId)
+    if (!messageId) throw new ConvexError("Invalid message ID")
+
+    const { user } = await canManageTeamMessage(ctx, messageId)
+
+    const threadActivity = await ctx.db
+      .query("threadActivity")
+      .withIndex("by_parent_message", (q) => q.eq("parentMessageId", messageId))
+      .filter((q) => q.eq(q.field("userId"), user._id))
+      .first()
+
+    if (!threadActivity) {
+      await ctx.db.insert("threadActivity", {
+        parentMessageId: messageId,
+        userId: user._id,
+        lastReadTime: Date.now(),
+      })
+    } else {
+      await ctx.db.patch(threadActivity._id, { lastReadTime: Date.now() })
     }
   },
 })

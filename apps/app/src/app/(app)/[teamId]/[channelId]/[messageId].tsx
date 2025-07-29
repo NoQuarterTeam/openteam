@@ -1,7 +1,7 @@
 import { api } from "@openteam/backend/convex/_generated/api"
 import { Id } from "@openteam/backend/convex/_generated/dataModel"
 import { FlashList } from "@shopify/flash-list"
-import { usePaginatedQuery, useQuery } from "convex/react"
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react"
 import dayjs from "dayjs"
 import advancedFormat from "dayjs/plugin/advancedFormat"
 import { Link, useFocusEffect, useLocalSearchParams } from "expo-router"
@@ -26,36 +26,42 @@ export default function Page() {
 
   // Initial page load
   const {
-    results,
+    results: messages,
     status,
-    loadMore: _,
+    loadMore,
   } = usePaginatedQuery(
     api.messages.list,
-    { channelId: params.channelId, messageId: params.messageId },
+    { channelId: params.channelId, messageId: params.messageId, order: "asc" },
     { initialNumItems: DEFAULT_PAGINATION_NUM_ITEMS },
   )
 
-  const isScrolledUpRef = useRef(false)
+  const isScrolledUpRef = useRef(true)
 
-  // const messages = results
-  const messages = useMemo(() => [...results].reverse(), [results])
+  const [editMessage, setEditMessage] = useState<{ _id: Id<"messages">; content: string } | null>(null)
 
   const flatMessagesWithDates = useMemo(() => {
     const result: Array<((typeof messages)[0] & { isFirstMessageOfUser: boolean }) | string> = []
     let currentDate = ""
 
+    // Iterate forwards since we're using a regular list (oldest to newest)
     for (let index = 0; index < messages.length; index++) {
       const message = messages[index]
+      const date = dayjs(message._creationTime).format("YYYY-MM-DD")
+
+      // Add date header if it's a new date (checking the previous message in original order)
+      if (date !== currentDate) {
+        currentDate = date
+        result.push(date)
+      }
+
+      // For regular list, check if this is the first message of the user by looking at the PREVIOUS message
+      // (which appears above in the regular display)
       const isFirstMessageOfUser =
         index === 0 ||
         messages[index - 1]?.authorId !== message.authorId ||
         (!!messages[index - 1] &&
           new Date(message._creationTime).getTime() - new Date(messages[index - 1]!._creationTime).getTime() > 10 * 60 * 1000)
-      const date = dayjs(message._creationTime).format("YYYY-MM-DD")
-      if (date !== currentDate) {
-        currentDate = date
-        result.push(date)
-      }
+
       result.push({ ...message, isFirstMessageOfUser })
     }
 
@@ -70,43 +76,41 @@ export default function Page() {
     const isAtBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 1 // +1 for rounding
     isScrolledUpRef.current = !isAtBottom
   }, [])
-  const prevMessagesLengthRef = useRef(0)
-  const isLoadingMoreRef = useRef(false)
 
-  const [editMessage, setEditMessage] = useState<{ _id: Id<"messages">; content: string } | null>(null)
+  const markAsRead = useMutation(api.channels.markThreadAsRead)
+  const prevMessagesLengthRef = useRef(0)
+
   // Handle scrolling to bottom for new messages and initial load
   useFocusEffect(
     useCallback(() => {
-      if (!flatListRef.current) return
+      if (!params.channelId) return
       const currentLength = messages.length
       const prevLength = prevMessagesLengthRef.current
       prevMessagesLengthRef.current = currentLength
-
       // Don't scroll if we're loading more messages or still loading first page
-      if (isLoadingMoreRef.current || status === "LoadingFirstPage") return
+      // Scroll to bottom if:
+      // 1. Initial load (prevLength === 0) and we have messages and user isn't scrolled up
+      // 2. New messages arrived (currentLength > prevLength) and user is at bottom
+      const shouldScrollToBottom =
+        (prevLength === 0 && currentLength > 0 && !isScrolledUpRef.current) ||
+        (currentLength > prevLength && !isScrolledUpRef.current)
 
-      try {
-        const shouldScrollToBottom =
-          (prevLength === 0 && currentLength > 0 && !isScrolledUpRef.current) ||
-          (currentLength > prevLength && !isScrolledUpRef.current)
-
-        if (shouldScrollToBottom) {
-          flatListRef.current?.scrollToEnd({ animated: false })
-        }
-      } catch {
-        // weird thing where scroll throws
+      if (shouldScrollToBottom) {
+        flatListRef.current?.scrollToEnd({ animated: true })
+        void markAsRead({ messageId: params.messageId })
       }
-    }, [messages.length, status]),
+    }, [messages.length]),
   )
+
   const keyboard = useAnimatedKeyboard()
+
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      paddingBottom: Math.max(keyboard.height.value, insets.bottom),
+      height: Math.max(keyboard.height.value, insets.bottom),
     }
   })
-
   return (
-    <Animated.View style={[{ flex: 1, paddingTop: insets.top + 8 }, animatedStyle]}>
+    <View style={{ flex: 1, paddingTop: insets.top + 8 }}>
       <View
         style={{
           flexDirection: "row",
@@ -127,23 +131,51 @@ export default function Page() {
       <FlashList
         ref={flatListRef}
         onScroll={handleScroll}
+        onEndReached={() => {
+          if (status === "CanLoadMore") {
+            void loadMore(DEFAULT_PAGINATION_NUM_ITEMS)
+          }
+        }}
+        onEndReachedThreshold={0.5}
         estimatedItemSize={55}
-        overScrollMode="never"
         contentInsetAdjustmentBehavior="always"
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
-        // onContentSizeChange={() => {
-        //   try {
-        //     if (isScrolledUpRef.current) return
-        //     flatListRef.current?.scrollToEnd({ animated: true })
-        //   } catch {}
-        // }}
-        ListHeaderComponent={
-          parentMessage && <Message message={parentMessage} isFirstMessageOfUser isThreadParentMessage onEdit={setEditMessage} />
-        }
         scrollEventThrottle={16}
+        extraData={messages.length}
         data={flatMessagesWithDates}
         contentContainerStyle={{ paddingBottom: 16 }}
+        getItemType={(item) => (typeof item === "string" ? "sectionHeader" : "row")}
+        ListHeaderComponent={
+          parentMessage && (
+            <View
+              style={{
+                borderBottomWidth: 1,
+                marginBottom: 8,
+                borderColor: colorScheme === "dark" ? "#444" : "#eee",
+              }}
+            >
+              <View style={{ paddingVertical: 8, borderBottomWidth: 1, borderColor: colorScheme === "dark" ? "#444" : "#eee" }}>
+                <Message message={parentMessage} isFirstMessageOfUser isThreadParentMessage onEdit={setEditMessage} />
+              </View>
+              <View
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                }}
+              >
+                <Text style={{ opacity: 0.5 }}>
+                  {dayjs(parentMessage._creationTime).isSame(dayjs(), "day")
+                    ? "Today"
+                    : dayjs(parentMessage._creationTime).isSame(dayjs().subtract(1, "day"), "day")
+                      ? "Yesterday"
+                      : dayjs(parentMessage._creationTime).format("dddd, MMMM Do")}
+                  {parentMessage.threadInfo ? `• ${parentMessage.threadInfo.replyCount} replies` : ""}
+                </Text>
+              </View>
+            </View>
+          )
+        }
         renderItem={({ item }) => {
           if (typeof item === "string") {
             if (params.messageId) return null
@@ -170,18 +202,9 @@ export default function Page() {
 
           return <Message message={item} isFirstMessageOfUser={item.isFirstMessageOfUser} onEdit={setEditMessage} />
         }}
-        getItemType={(item) => (typeof item === "string" ? "sectionHeader" : "row")}
       />
-      {editMessage ? (
-        <EditMessage message={editMessage} onClose={() => setEditMessage(null)} />
-      ) : (
-        <MessageInput
-          onFocus={async () => {
-            await new Promise((resolve) => setTimeout(resolve, 100))
-            flatListRef.current?.scrollToEnd({ animated: true })
-          }}
-        />
-      )}
-    </Animated.View>
+      {editMessage ? <EditMessage message={editMessage} onClose={() => setEditMessage(null)} /> : <MessageInput />}
+      <Animated.View style={animatedStyle} />
+    </View>
   )
 }
